@@ -292,7 +292,7 @@
       x: start.x, y: start.y, w: 28, h: 30,
       vx: 0, vy: 0, onGround: false, face: 1,
       coyote: 0, animT: 0, invuln: 0, squash: 1, alive: true, winPose: 0,
-      powered: false, powerAnim: 0
+      powered: false, powerAnim: 0, bounceLock: 0
     };
     camX = 0; elapsed = 0; particles = [];
   }
@@ -325,6 +325,7 @@
   function onPress(k) {
     if (k === "p" && (state === "play" || state === "pause")) {
       state = state === "play" ? "pause" : "play";
+      if (state === "pause") stopBGM(); else startBGM();
     }
     if (k === "r") { resetGame(); }
   }
@@ -336,6 +337,7 @@
   function jumpKey(){ return keys[" "] || keys["arrowup"] || keys["w"] || touch.up; }
   function running(){ return keys["shift"] || touch.dash; }
   let jumpHeld = false;
+  let jumpBuffer = 0;   // ジャンプ押下の猶予（踏みつけ高ジャンプのタイミング判定用）
 
   // タッチボタンの割り当て（A=ジャンプ, B=ダッシュ, 十字キー=移動）
   function applyTouch(act, v) {
@@ -351,7 +353,7 @@
       const press = (e) => {
         e.preventDefault();
         try { el.setPointerCapture(e.pointerId); } catch (_) {}
-        applyTouch(act, true); el.classList.add("pressed"); ac();
+        applyTouch(act, true); el.classList.add("pressed"); ac(); primeAudio();
       };
       const release = () => { applyTouch(act, false); el.classList.remove("pressed"); };
       el.addEventListener("pointerdown", press);
@@ -392,6 +394,33 @@
     power: () => { [392,523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,0.12,"square",0.08), i*70)); },
     win:   () => { [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,0.18,"triangle",0.08), i*140)); }
   };
+
+  // ---------- まるりんボイス & BGM（音声ファイル） ----------
+  const VOICE = {
+    get: new Audio("audio/voice_get.wav"),  // 001: ナッツ取得・クリア
+    sad: new Audio("audio/voice_sad.wav")   // 003: 被弾・落下・ゲームオーバー
+  };
+  VOICE.get.volume = 0.85;
+  VOICE.sad.volume = 0.85;
+  function playVoice(name) {
+    try { const a = VOICE[name]; a.currentTime = 0; a.play().catch(() => {}); } catch (e) {}
+  }
+
+  const bgm = new Audio("audio/bgm_stage1.mp3");
+  bgm.loop = true;
+  bgm.volume = 0.15;                          // 小さめ
+  function startBGM() { try { bgm.play().catch(() => {}); } catch (e) {} }
+  function stopBGM()  { try { bgm.pause(); } catch (e) {} }
+
+  // iOS等で最初のタッチ/クリック時に音声を解禁しておく
+  let audioPrimed = false;
+  function primeAudio() {
+    if (audioPrimed) return;
+    audioPrimed = true;
+    [VOICE.get, VOICE.sad].forEach(a => {
+      try { a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(() => {}); } catch (e) {}
+    });
+  }
 
   // ---------- 物理ヘルパー ----------
   function rectHit(a, b) {
@@ -462,6 +491,8 @@
     if (!player.alive) return;
     player.alive = false;
     sfx.hurt();
+    playVoice("sad");   // 落下・被弾でやられたとき
+    stopBGM();
     lives--;
     state = "dead";
     player.vy = -10; player.deadT = 0;
@@ -493,15 +524,20 @@
     if (p.onGround) p.coyote = COYOTE; else if (p.coyote > 0) p.coyote--;
 
     // ジャンプ
+    if (jumpBuffer > 0) jumpBuffer--;
+    if (p.bounceLock > 0) p.bounceLock--;
     if (jumpKey()) {
-      if (!jumpHeld && p.coyote > 0) {
-        p.vy = -JUMP; p.coyote = 0; p.squash = 0.7; sfx.jump();
-        spawnParticles(p.x + p.w/2, p.y + p.h, "#ffffff", 4);
+      if (!jumpHeld) {
+        jumpBuffer = 8;                     // 押した瞬間（踏みつけ高ジャンプの受付）
+        if (p.coyote > 0) {
+          p.vy = -JUMP; p.coyote = 0; p.squash = 0.7; sfx.jump();
+          spawnParticles(p.x + p.w/2, p.y + p.h, "#ffffff", 4);
+        }
       }
       jumpHeld = true;
     } else {
-      // 可変ジャンプ高さ
-      if (p.vy < -5) p.vy = -5;
+      // 可変ジャンプ高さ（ただし踏みつけ高ジャンプ中は維持）
+      if (p.bounceLock <= 0 && p.vy < -5) p.vy = -5;
       jumpHeld = false;
     }
 
@@ -522,7 +558,7 @@
     if (p.powerAnim > 0) p.powerAnim--;
     for (const n of nuts) {
       if (!n.got && rectHit(p, n)) {
-        n.got = true; score += 300; sfx.power();
+        n.got = true; score += 300; sfx.power(); playVoice("get");
         p.powerAnim = 40;
         if (!p.powered) setPowered(true);
         spawnParticles(n.x + n.w/2, n.y + n.h/2, "#c98a3a", 10);
@@ -555,7 +591,16 @@
         const fromAbove = p.vy > 0 && (p.y + p.h) - e.y < 20;
         if (fromAbove) {
           e.alive = false; e.squash = 0.2;
-          p.vy = -9; score += 200; sfx.stomp();
+          score += 200; sfx.stomp();
+          // タイミングよくジャンプを押していれば高くジャンプ
+          const timed = jumpKey() || jumpBuffer > 0;
+          if (timed) {
+            p.vy = -16; p.bounceLock = 14; jumpBuffer = 0; p.squash = 0.7;
+            sfx.jump();
+            spawnParticles(e.x + e.w/2, e.y - 6, "#ffffff", 6);
+          } else {
+            p.vy = -9;
+          }
           spawnParticles(e.x + e.w/2, e.y, "#8a6d5a", 8);
         } else if (p.invuln <= 0) {
           hurtPlayer();
@@ -582,6 +627,7 @@
       p.invuln = 90;
       p.powerAnim = 0;
       sfx.hurt();
+      playVoice("sad");   // 敵に当たったとき
       p.vy = -6; p.vx = -p.face * 3;
       return;
     }
@@ -607,6 +653,7 @@
     player.alive = true; player.invuln = 90; player.deadT = 0;
     // 敵を全員復活させる
     resetEnemies();
+    startBGM();
     state = "play";
   }
 
@@ -619,7 +666,9 @@
     state = "clear";
     player.winPose = 0;
     score += Math.max(0, 2000 - Math.floor(elapsed / 3));
+    stopBGM();
     sfx.win();
+    playVoice("get");   // クリア時
   }
 
   function updateParticles() {
@@ -632,6 +681,8 @@
   function resetGame() {
     lives = 3; score = 0; coinsGot = 0;
     buildLevel();
+    bgm.currentTime = 0;
+    startBGM();
     state = "play";
   }
 
@@ -1063,7 +1114,7 @@
   }
 
   startBtn.addEventListener("click", () => {
-    ac(); // ユーザー操作でオーディオ解禁
+    ac(); primeAudio(); // ユーザー操作でオーディオ解禁
     overlay.classList.add("hidden");
     document.body.classList.add("playing");
     resetGame();
@@ -1071,7 +1122,7 @@
 
   // ゲームオーバー/クリア時は画面タップでリスタート（モバイル用）
   canvas.addEventListener("pointerdown", (e) => {
-    if (state === "gameover" || state === "clear") { e.preventDefault(); ac(); resetGame(); }
+    if (state === "gameover" || state === "clear") { e.preventDefault(); ac(); primeAudio(); resetGame(); }
   });
 
   // 実際に見えている高さに合わせる（スマホでアドレスバー分がはみ出さないように）
