@@ -20,7 +20,7 @@
     overscroll-behavior: none;
   }
   #wrap {
-    height: var(--app-h, 100%);
+    height: var(--app-h, 100vh);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -40,6 +40,11 @@
     overflow: hidden;
     /* 画面に見えている高さを基準に、上下が切れないよう少し余裕をもたせる */
     width: min(100vw, calc(var(--app-h, 100vh) * 1.72), 960px);
+  }
+  /* dvh対応ブラウザ（最近のiPad/iPhone）は、ブラウザ管理の安定した単位を使う */
+  @supports (height: 100dvh) {
+    #wrap  { height: 100dvh; }
+    #stage { width: min(100vw, calc(100dvh * 1.72), 960px); }
   }
   canvas { display: block; image-rendering: pixelated; width: 100%; height: auto; }
 
@@ -1107,7 +1112,9 @@
   let lastInnerH = 0;
   function loop() {
     // 見えている高さが変わったら追従（回転・アドレスバー開閉に確実に対応）
-    if (window.innerHeight !== lastInnerH) { lastInnerH = window.innerHeight; fitViewport(); }
+    // ただし一時的な異常値は無視して、まれなレイアウト崩れを防ぐ
+    const ih = window.innerHeight;
+    if (ih > 120 && ih !== lastInnerH) { lastInnerH = ih; fitViewport(); }
     update();
     draw();
     requestAnimationFrame(loop);
@@ -1127,7 +1134,9 @@
 
   // 実際に見えている高さに合わせる（スマホでアドレスバー分がはみ出さないように）
   function fitViewport() {
-    document.documentElement.style.setProperty("--app-h", window.innerHeight + "px");
+    const h = window.innerHeight;
+    // 一時的におかしな値（0や極端に小さい値）は無視して、ズレを防ぐ
+    if (h && h > 120) document.documentElement.style.setProperty("--app-h", h + "px");
   }
   window.addEventListener("resize", fitViewport);
   window.addEventListener("orientationchange", () => setTimeout(fitViewport, 250));
