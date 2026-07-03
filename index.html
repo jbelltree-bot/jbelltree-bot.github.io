@@ -122,6 +122,26 @@
     body.has-touch h1 { display: none; }
     #wrap { gap: 0; padding: 0; }
   }
+
+  /* 縦向きのときに「横にしてね」案内 */
+  #rotate {
+    display: none;
+    position: fixed; inset: 0; z-index: 50;
+    background: #14142a;
+    color: #fff; text-align: center;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; padding: 30px;
+  }
+  #rotate .ico { font-size: 64px; animation: roticon 2.2s ease-in-out infinite; }
+  #rotate h2 { font-size: 24px; text-shadow: 2px 2px 0 #e94560; }
+  #rotate p { font-size: 16px; line-height: 1.7; opacity: .9; }
+  @keyframes roticon {
+    0%, 35% { transform: rotate(0deg); }
+    55%, 100% { transform: rotate(90deg); }
+  }
+  @media (orientation: portrait) {
+    body.has-touch #rotate { display: flex; }
+  }
   #overlay {
     position: absolute; inset: 0;
     display: flex; flex-direction: column;
@@ -164,6 +184,13 @@
     </div>
   </div>
   <div id="hint">P：ポーズ ／ R：リスタート</div>
+</div>
+
+<!-- 縦向きのときの案内（横向きにすると自動で消えます） -->
+<div id="rotate">
+  <div class="ico">📱</div>
+  <h2>画面を横にしてね</h2>
+  <p>まるりんワールドは<b>横向き</b>で遊べます🐹<br>スマホ・タブレットを横に回してください</p>
 </div>
 
 <!-- スマホ・タブレット用タッチ操作 -->
@@ -1026,7 +1053,10 @@
   }
 
   // ---------- ループ ----------
+  let lastInnerH = 0;
   function loop() {
+    // 見えている高さが変わったら追従（回転・アドレスバー開閉に確実に対応）
+    if (window.innerHeight !== lastInnerH) { lastInnerH = window.innerHeight; fitViewport(); }
     update();
     draw();
     requestAnimationFrame(loop);
