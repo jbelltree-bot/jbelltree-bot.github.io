@@ -185,7 +185,7 @@
         📱 スマホ・タブレットは画面の<b>十字キー</b>と<b>A（ジャンプ）B（ダッシュ）</b>ボタンで操作<br>
         敵は上から踏むとやっつけられるよ。🌰ナッツでパワーアップ！<br>
         🌻ひまわりを取ると<b>たねまるりん</b>に！ <b>B</b>ボタンで<b>種</b>を飛ばして敵を倒せる🌰<br>
-        🪶はねを取ると<b>はねまるりん</b>に！ ジャンプ中に<b>B</b>ボタンで少しのあいだ<b>ぷかぷか飛べる</b>✈️
+        🪶はねを取ると<b>はねまるりん</b>に！ ジャンプ中に<b>A</b>ボタンをもう一度で、少しのあいだ<b>ぷかぷか飛べる</b>✈️
       </p>
       <button id="startBtn">スタート！</button>
     </div>
@@ -285,10 +285,10 @@
         "----------------------------------------------------------------------------------------------------",
         "--------------------------------------------------o-o-o-------------------------------------G-------",
         "------------------------------------------------------------?----------------------------N----------",
-        "----------o-o--N--------o-o------------------------------------o-o------F--------------#####--------",
+        "----------o-o--N--------o-o------------------------------------o-o---------------------#####--------",
         "---P---------------------?------------H-----------b-------------------------------------------------",
         "------------------------------------#####------o-o--------------------------------------------------",
-        "--------------------v-----------------------v------------------#####-----------------v--------------",
+        "--------------------v------------v----------v------------------#####------v----------v--------------",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXX",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXX",
       ]
@@ -628,17 +628,8 @@
     p.animT++;
     // 横入力（Bボタン/Shiftでダッシュ）
     const dashing = running();
-    // Bボタン（ダッシュ）を押した瞬間の特殊アクション
-    if (dashing && !dashPrev) {
-      if (p.seed) {
-        fireSeed();                 // たねまるりん：種を発射
-      } else if (p.wing && !p.onGround && !p.glideUsed) {
-        // はねまるりん：ジャンプ後にもう一度Bで、少しの間ぷかぷか飛ぶ
-        p.gliding = true; p.glideUsed = true; p.glideTimer = 78; p.glideT = 0;
-        p.vy = -1.6; sfx.jump();
-        spawnParticles(p.x + p.w/2, p.y + p.h/2, "#ffffff", 6);
-      }
-    }
+    // Bボタン（ダッシュ）を押した瞬間：たねまるりんは種を発射
+    if (dashing && !dashPrev) fireSeed();
     dashPrev = dashing;
     if (p.seedCool > 0) p.seedCool--;
     // 滑空の更新（ぷかぷか上下しながらゆっくり降下）
@@ -667,6 +658,11 @@
         if (p.coyote > 0) {
           p.vy = -JUMP; p.coyote = 0; p.squash = 0.7; sfx.jump();
           spawnParticles(p.x + p.w/2, p.y + p.h, "#ffffff", 4);
+        } else if (p.wing && !p.onGround && !p.gliding && !p.glideUsed) {
+          // はねまるりん：ジャンプ中にもう一度Aで、少しの間ぷかぷか飛ぶ
+          p.gliding = true; p.glideUsed = true; p.glideTimer = 78; p.glideT = 0;
+          p.vy = -1.6; sfx.jump();
+          spawnParticles(p.x + p.w/2, p.y + p.h/2, "#ffffff", 6);
         }
       }
       jumpHeld = true;
