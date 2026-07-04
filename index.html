@@ -297,6 +297,7 @@
     {
       name: "ステージ3 成田",
       theme: "narita",
+      boss: "sumo",
       level: [
         "------------------------------------------------------------------------------------------------------------------------------------------------------",
         "------------------------------------------------------------------------------------------------------------------------------------------------------",
@@ -557,7 +558,7 @@
   const BOSS_BGM = [
     new Audio("audio/bgm_boss1.mp3"),  // ステージ1ボス（クリだいおう）
     new Audio("audio/bgm_boss1.mp3"),  // ステージ2ボス（ペンギン）※ボス1と同じ曲
-    null                               // ステージ3ボス（未定）
+    new Audio("audio/bgm_boss3.mp3")   // ステージ3ボス（こうよう）※太鼓連打
   ];
   BOSS_BGM.forEach(a => { if (a) { a.loop = true; a.volume = 0.2; } });
   let bgm = BGM[0];                           // 今鳴らしているBGM
@@ -1009,6 +1010,8 @@
     if (type === "penguins") {
       // にせぺぎ（左・投げ役）＋ ペギ（右・すばやい体当たり役）で挟み撃ち
       bosses = [ makeBoss("nisepegi", 120), makeBoss("pegi", W - 170) ];
+    } else if (type === "sumo") {
+      bosses = [ makeBoss("sumo", W - 180) ];
     } else {
       bosses = [ makeBoss("kuri", W - 170) ];
     }
@@ -1034,6 +1037,16 @@
         invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
         jumpCd: 1e9, throwCd: 70 + Math.floor(Math.random()*40), speedBase: 1.0, throws: true, alive: true, dyingT: 0 };
     }
+    if (kind === "sumo") {
+      // こうよう（子供力士）：ぶちかまし突進＋塩まき。踏み5回orたね5発で撃破
+      return { kind, name: "こうよう", x, y: BOSS_GROUND - 66, w: 66, h: 66,
+        vx: -1, vy: 0, onGround: false, face: -1,
+        hp: 5, maxHp: 5, stompDmg: 1, seedDmg: 1, hpPerHeart: 1,
+        invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
+        jumpCd: 1e9, throwCd: 90 + Math.floor(Math.random()*40),
+        chargeCd: 150 + Math.floor(Math.random()*60), charging: false, chargeT: 0, windup: 0,
+        speedBase: 1.5, throws: true, alive: true, dyingT: 0 };
+    }
     // クリだいおう（ステージ1）
     return { kind, name: "クリだいおう", x, y: BOSS_GROUND - 90, w: 96, h: 90,
       vx: -1.4, vy: 0, onGround: false, face: -1,
@@ -1048,7 +1061,7 @@
     b.hurtFlash = b.invuln;
     b.squash = seed ? 0.8 : 0.6;
     sfx.stomp();
-    const col = seed ? "#ffd34d" : (b.kind === "pegi" ? "#aed4e7" : (b.kind === "nisepegi" ? "#c8d27c" : "#a56b3e"));
+    const col = seed ? "#ffd34d" : (b.kind === "pegi" ? "#aed4e7" : (b.kind === "nisepegi" ? "#c8d27c" : (b.kind === "sumo" ? "#f6cfa4" : "#a56b3e")));
     spawnParticles(b.x + b.w/2, b.y + b.h*0.3, col, seed ? 6 : 10);
     if (b.hp <= 0) {
       b.hp = 0; b.alive = false; b.dyingT = 0; b.vx = 0;
@@ -1058,11 +1071,12 @@
     }
   }
 
-  // にせぺぎがキュウリを山なりに投げる
+  // にせぺぎがキュウリを、こうようが塩を山なりに投げる
   function throwCuke(b) {
     const p = player;
     const dir = (p.x + p.w/2) < (b.x + b.w/2) ? -1 : 1;
-    cukes.push({ x: b.x + b.w/2, y: b.y + 8, vx: dir * (3.2 + Math.random()*1.6), vy: -7.6, t: 0 });
+    const salt = b.kind === "sumo";
+    cukes.push({ x: b.x + b.w/2, y: b.y + (salt ? 4 : 8), vx: dir * (3.2 + Math.random()*1.6), vy: salt ? -8.4 : -7.6, t: 0, kind: salt ? "salt" : "cuke" });
     sfx.seed();
   }
 
@@ -1073,11 +1087,12 @@
       cu.vy += 0.42;                    // 山なりに落ちる
       cu.x += cu.vx; cu.y += cu.vy;
       const box = { x: cu.x - 10, y: cu.y - 6, w: 20, h: 12 };
+      const puff = cu.kind === "salt" ? "#ffffff" : "#6cae3e";
       // 地面に落ちたら割れる
-      for (const s of solids) { if (rectHit(box, s)) { cu.dead = true; spawnParticles(cu.x, cu.y, "#6cae3e", 6); break; } }
+      for (const s of solids) { if (rectHit(box, s)) { cu.dead = true; spawnParticles(cu.x, cu.y, puff, 6); break; } }
       // たねで撃ち落とせる
       if (!cu.dead) for (const sd of seeds) {
-        if (rectHit({ x: sd.x-5, y: sd.y-5, w: 10, h: 10 }, box)) { cu.dead = true; sd.life = 0; score += 50; sfx.stomp(); spawnParticles(cu.x, cu.y, "#8cc655", 8); break; }
+        if (rectHit({ x: sd.x-5, y: sd.y-5, w: 10, h: 10 }, box)) { cu.dead = true; sd.life = 0; score += 50; sfx.stomp(); spawnParticles(cu.x, cu.y, cu.kind === "salt" ? "#ffffff" : "#8cc655", 8); break; }
       }
       // プレイヤーに当たると被弾
       if (!cu.dead && rectHit(p, box) && p.invuln <= 0) { cu.dead = true; hurtPlayer(); }
@@ -1105,7 +1120,22 @@
 
       b.squash += (1 - b.squash) * 0.2;
       const phase = b.kind === "kuri" ? (b.hp <= 5 ? 2 : (b.hp <= 10 ? 1 : 0)) : 0;
-      const speed = b.speedBase + phase * 0.7;
+      let speed = b.speedBase + phase * 0.7;
+      // こうよう：しこ（構え）→ ぶちかまし（突進）
+      if (b.kind === "sumo") {
+        if (b.windup > 0) {
+          b.windup--; speed = 0;                       // しこの構え中は止まる
+        } else if (b.charging) {
+          speed = 6.2; b.chargeT--;                     // 突進中は高速
+          if (b.chargeT <= 0) { b.charging = false; b.chargeCd = 150 + Math.floor(Math.random()*90); }
+        } else {
+          b.chargeCd--;
+          if (b.chargeCd <= 0 && b.onGround) {          // まるりんの方を向いて構える
+            b.vx = (p.x + p.w/2 < b.x + b.w/2) ? -1 : 1;
+            b.windup = 18; b.charging = true; b.chargeT = 46;
+          }
+        }
+      }
       // 横移動＋壁で反転
       b.x += (b.vx > 0 ? 1 : -1) * speed;
       if (b.x < 16) { b.x = 16; b.vx = Math.abs(b.vx); }
@@ -1119,10 +1149,11 @@
           b.jumpCd = (b.kind === "pegi" ? 55 : 140 - phase * 30) + Math.floor(Math.random()*30);
         }
       }
-      // キュウリを投げる（にせぺぎ）
-      if (b.throws && b.onGround) {
+      // キュウリを投げる（にせぺぎ）／塩をまく（こうよう）
+      const busy = b.kind === "sumo" && (b.charging || b.windup > 0);
+      if (b.throws && b.onGround && !busy) {
         b.throwCd--;
-        if (b.throwCd <= 0) { throwCuke(b); b.throwCd = 80 + Math.floor(Math.random()*50); }
+        if (b.throwCd <= 0) { throwCuke(b); b.throwCd = (b.kind === "sumo" ? 110 : 80) + Math.floor(Math.random()*50); }
       }
       // 重力＋床
       b.vy += GRAVITY; if (b.vy > 18) b.vy = 18;
@@ -1202,6 +1233,12 @@
       const g = ctx.createLinearGradient(0, 0, 0, H);
       g.addColorStop(0, "#e2e9ef");
       g.addColorStop(1, "#eef2f6");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    } else if (inBoss && STAGES[stageIndex].boss === "sumo") {
+      // 相撲場の館内（ボス戦）：あたたかい木の色
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#f0e2c6");
+      g.addColorStop(1, "#f6ecd6");
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     } else if (theme === "town") {
       // 街の空（少しやわらかい水色）
@@ -1903,6 +1940,7 @@
 
   // ボス戦の背景（駅の中）
   function drawBossBackdrop() {
+    if (STAGES[stageIndex].boss === "sumo") { drawSumoBackdrop(); return; }
     if (STAGES[stageIndex].boss !== "penguins") return;
     // 奥の壁と柱
     ctx.fillStyle = "#cdd9e4"; ctx.fillRect(0, 150, W, 130);
@@ -1924,13 +1962,25 @@
   function drawBosses() {
     for (const b of bosses) {
       if (b.kind === "pegi" || b.kind === "nisepegi") drawPenguinBoss(b);
+      else if (b.kind === "sumo") drawSumoBoss(b);
       else drawKuriBoss(b);
     }
   }
 
-  // にせぺぎが投げるキュウリ
+  // にせぺぎが投げるキュウリ／こうようがまく塩
   function drawCukes() {
     for (const cu of cukes) {
+      if (cu.kind === "salt") {   // 塩の一つかみ（白い粒のかたまり）
+        ctx.save();
+        ctx.translate(cu.x, cu.y);
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        const dots = [[0,0],[-5,-2],[5,-1],[-2,4],[3,4],[-6,3],[6,3],[0,-5]];
+        for (const [dx, dy] of dots) { ctx.beginPath(); ctx.arc(dx + Math.sin(cu.t*0.4)*1.5, dy, 2.4, 0, 7); ctx.fill(); }
+        ctx.fillStyle = "#e7e0cf";
+        for (const [dx, dy] of [[-3,0],[4,2],[-1,-3]]) { ctx.beginPath(); ctx.arc(dx, dy, 1.6, 0, 7); ctx.fill(); }
+        ctx.restore();
+        continue;
+      }
       ctx.save();
       ctx.translate(cu.x, cu.y);
       ctx.rotate(cu.t * 0.18);
@@ -2069,6 +2119,126 @@
       ctx.beginPath();
       ctx.moveTo(-24, -64); ctx.lineTo(-12, -52); ctx.moveTo(-12, -64); ctx.lineTo(-24, -52);
       ctx.moveTo(12, -64); ctx.lineTo(24, -52); ctx.moveTo(24, -64); ctx.lineTo(12, -52);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ===== 相撲場（土俵）の背景 =====
+  function drawSumoBackdrop() {
+    // 奥の板壁
+    ctx.fillStyle = "#c9a877"; ctx.fillRect(0, 120, W, 150);
+    ctx.strokeStyle = "rgba(120,90,55,0.35)"; ctx.lineWidth = 2;
+    for (let x = 40; x < W; x += 80) { ctx.beginPath(); ctx.moveTo(x, 120); ctx.lineTo(x, 270); ctx.stroke(); }
+    // 青いのぼり（場内の案内幕）
+    ctx.fillStyle = "#2a4f9c";
+    for (let i = 0; i < 6; i++) { ctx.fillRect(30 + i*130, 150, 22, 92); }
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    for (let i = 0; i < 6; i++) { ctx.fillRect(37 + i*130, 158, 8, 76); }
+    // 吊り屋根（紫の屋形）＋房
+    ctx.fillStyle = "#5a2352";
+    ctx.beginPath(); ctx.moveTo(W/2 - 250, 70); ctx.lineTo(W/2 + 250, 70);
+    ctx.lineTo(W/2 + 200, 110); ctx.lineTo(W/2 - 200, 110); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#6d2b63"; ctx.fillRect(W/2 - 210, 100, 420, 16);
+    ctx.fillStyle = "#e9c84a"; ctx.fillRect(W/2 - 210, 100, 420, 4);
+    // 四隅の房（東西南北の色）
+    const tas = [[W/2 - 190, "#e04a3f"], [W/2 - 64, "#f2f2f2"], [W/2 + 64, "#3f7dd0"], [W/2 + 190, "#2f9e57"]];
+    for (const [tx, tc] of tas) {
+      ctx.fillStyle = "#caa63e"; ctx.fillRect(tx - 2, 110, 4, 14);
+      ctx.fillStyle = tc; ctx.beginPath(); ctx.moveTo(tx, 124); ctx.lineTo(tx - 7, 150); ctx.lineTo(tx + 7, 150); ctx.closePath(); ctx.fill();
+    }
+    // 「西」の看板
+    ctx.fillStyle = "#3a2a1e"; ctx.fillRect(W/2 - 26, 128, 52, 40);
+    ctx.fillStyle = "#f4ead2"; ctx.font = "bold 26px 'Segoe UI', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("西", W/2, 150);
+    // 土俵の土台（一段高い台）
+    const topY = BOSS_GROUND + 4;
+    ctx.fillStyle = "#e3b877"; ctx.fillRect(40, topY, W - 80, H - topY);
+    ctx.fillStyle = "#edc98d"; ctx.fillRect(60, topY - 10, W - 120, 18);
+    // 俵（土俵の丸い縁）
+    ctx.strokeStyle = "#d8a94c"; ctx.lineWidth = 10; ctx.setLineDash([16, 7]);
+    ctx.beginPath(); ctx.ellipse(W/2, topY + 24, 300, 34, 0, Math.PI, 0); ctx.stroke();
+    ctx.setLineDash([]);
+    // 仕切り線（白）
+    ctx.strokeStyle = "#f5f1e4"; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(W/2 - 46, topY + 30); ctx.lineTo(W/2 - 46, topY + 46);
+    ctx.moveTo(W/2 + 46, topY + 30); ctx.lineTo(W/2 + 46, topY + 46); ctx.stroke();
+  }
+
+  // ===== ボス：こうよう（子供力士）=====
+  function drawSumoBoss(b) {
+    const cx = b.x + b.w/2, by = b.y + b.h, W2 = b.w, H2 = b.h;
+    ctx.save();
+    ctx.translate(cx, by);
+    const sq = b.squash;
+    ctx.scale(1 + (1 - sq) * 0.35, sq);
+    if (!b.alive) ctx.globalAlpha = Math.max(0, 1 - b.dyingT / 90);
+    const dir = b.face;
+    const flash = b.hurtFlash > 0 && Math.floor(b.hurtFlash / 4) % 2 === 0;
+    const skin = flash ? "#ffdccb" : "#f6cfa4";
+    const skinD = flash ? "#f6c4b0" : "#e6b184";
+    const lean = b.charging ? dir * 6 : 0;                 // 突進中は前のめり
+    const stance = b.windup > 0 ? 6 : 0;                   // しこの構えは腰を落とす
+    // 影
+    ctx.fillStyle = "rgba(0,0,0,0.15)";
+    ctx.beginPath(); ctx.ellipse(0, 2, W2*0.6, 8, 0, 0, 7); ctx.fill();
+    // 足（しこ中は開く）
+    const legSpread = b.windup > 0 ? W2*0.42 : W2*0.28;
+    ctx.fillStyle = skin;
+    ctx.beginPath(); ctx.ellipse(-legSpread, -5, 12, 8, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(legSpread, -5, 12, 8, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = skinD;
+    ctx.beginPath(); ctx.ellipse(-legSpread, -18 + stance, 15, 16, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(legSpread, -18 + stance, 15, 16, 0, 0, 7); ctx.fill();
+    // まわし（白いふんどし）
+    ctx.fillStyle = flash ? "#ffffff" : "#f7f4ea";
+    roundRectPath(-W2*0.42, -H2*0.52, W2*0.84, H2*0.30, 6); ctx.fill();
+    ctx.fillStyle = "#e7e1cf"; ctx.fillRect(-6 + lean*0.5, -H2*0.52, 12, H2*0.30);   // 前垂れ
+    // 体（ぽっちゃり胴）
+    ctx.fillStyle = skin;
+    ctx.beginPath(); ctx.ellipse(lean*0.4, -H2*0.52, W2*0.46, H2*0.34, 0, 0, 7); ctx.fill();
+    // おへそ
+    ctx.strokeStyle = skinD; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(lean*0.4, -H2*0.44, 2.5, 0, 7); ctx.stroke();
+    // 腕（突進中は前に突き出す）
+    ctx.fillStyle = skin;
+    ctx.beginPath(); ctx.ellipse(-W2*0.5 + lean, -H2*0.55 - stance*0.5, 11, 9, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(W2*0.5 + lean, -H2*0.55 - stance*0.5, 11, 9, 0, 0, 7); ctx.fill();
+    // 頭
+    const hy = -H2*0.86 - stance*0.3;
+    ctx.fillStyle = skin;
+    ctx.beginPath(); ctx.ellipse(lean, hy, W2*0.36, W2*0.34, 0, 0, 7); ctx.fill();
+    // 髪（黒・短髪）
+    ctx.fillStyle = "#241a14";
+    ctx.beginPath(); ctx.ellipse(lean, hy - W2*0.14, W2*0.37, W2*0.22, 0, Math.PI, 0); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(lean - W2*0.37, hy - W2*0.05);
+    ctx.quadraticCurveTo(lean - W2*0.2, hy - W2*0.02, lean - W2*0.05, hy - W2*0.1);
+    ctx.quadraticCurveTo(lean + W2*0.1, hy - W2*0.02, lean + W2*0.37, hy - W2*0.05);
+    ctx.lineTo(lean + W2*0.37, hy - W2*0.16); ctx.lineTo(lean - W2*0.37, hy - W2*0.16); ctx.closePath(); ctx.fill();
+    if (b.alive) {
+      // めがね
+      const ex = W2*0.15, ey = hy + 2;
+      ctx.strokeStyle = "#222"; ctx.lineWidth = 2.4; ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lean - ex - 9 + dir*1.5, ey - 6, 16, 12, 4) : ctx.rect(lean - ex - 9 + dir*1.5, ey - 6, 16, 12); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lean + ex - 7 + dir*1.5, ey - 6, 16, 12, 4) : ctx.rect(lean + ex - 7 + dir*1.5, ey - 6, 16, 12); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(lean - ex + 7 + dir*1.5, ey); ctx.lineTo(lean + ex - 7 + dir*1.5, ey); ctx.stroke();
+      // 目
+      ctx.fillStyle = "#241a14";
+      ctx.beginPath(); ctx.arc(lean - ex + dir*1.5, ey, 2.6, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(lean + ex + 1 + dir*1.5, ey, 2.6, 0, 7); ctx.fill();
+      // 笑った口
+      ctx.strokeStyle = "#a85a3e"; ctx.lineWidth = 2.4; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.arc(lean + dir*1.5, hy + W2*0.16, 7, 0.15*Math.PI, 0.85*Math.PI); ctx.stroke();
+      // ほっぺ
+      ctx.fillStyle = "rgba(244,150,120,0.5)";
+      ctx.beginPath(); ctx.arc(lean - W2*0.24, hy + W2*0.12, 4, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(lean + W2*0.24, hy + W2*0.12, 4, 0, 7); ctx.fill();
+    } else {
+      // やられ目（＞＜）＋めがねずれ
+      ctx.strokeStyle = "#241a14"; ctx.lineWidth = 2.4; ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(lean - W2*0.22, hy - 4); ctx.lineTo(lean - W2*0.06, hy + 2); ctx.lineTo(lean - W2*0.22, hy + 8);
+      ctx.moveTo(lean + W2*0.22, hy - 4); ctx.lineTo(lean + W2*0.06, hy + 2); ctx.lineTo(lean + W2*0.22, hy + 8);
       ctx.stroke();
     }
     ctx.restore();
