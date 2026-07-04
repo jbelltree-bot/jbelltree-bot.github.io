@@ -183,7 +183,7 @@
         <span class="keycap">A</span><span class="keycap">D</span> で移動<br>
         <span class="keycap">Space</span> / <span class="keycap">↑</span> / <span class="keycap">W</span> でジャンプ<br>
         📱 スマホ・タブレットは画面の<b>十字キー</b>と<b>A（ジャンプ）B（ダッシュ）</b>ボタンで操作<br>
-        敵は上から踏むとやっつけられるよ。🌰ナッツでパワーアップ！<br>
+        敵は上から踏むとやっつけられるよ。🌰ナッツでパワーアップ！ ？ボックスから出る🥖フランスパンで1UP！<br>
         🌻ひまわりを取ると<b>たねまるりん</b>に！ <b>B</b>ボタンで<b>種</b>を飛ばして敵を倒せる🌰<br>
         🪶はねを取ると<b>はねまるりん</b>に！ ジャンプ中に<b>A</b>ボタンをもう一度で、少しのあいだ<b>ぷかぷか飛べる</b>✈️
       </p>
@@ -238,7 +238,7 @@
 
   // ---------- レベルデザイン ----------
   // X=床/地面ブロック  #=硬いブロック  ?=はてなブロック(コイン)  o=コイン
-  // N=ナッツ(でかまるりん)  F=ひまわり(たねまるりん・種の飛び道具)  H=はね(はねまるりん・滑空)
+  // N=ナッツ(でかまるりん)  F=ひまわり(たねまるりん・種の飛び道具)  H=はね(はねまるりん・滑空)  U=1UP(フランスパン)
   // e=クリの敵  E=動かないクリ  c=ネコ(地上)  b=カラス(飛ぶ)  v=車(地上・速い)
   // P=プレイヤー開始  G=ゴール  -=空
   const STAGES = [
@@ -247,51 +247,51 @@
       theme: "grass",
       boss: "kuri",
       level: [
-        "----------------------------------------------------------------------------------------------------",
-        "----------------------------------------------------------------------------------------------------",
-        "----------------------------------------------------------------------------------------------------",
-        "-------------------o-o-o--------------------------------------------------------------------G--------",
-        "-----------------------------------------------?-----------------------------------------N----------",
-        "--------------------------------------o-o-o----------------------------o-N-o-----------#####--------",
-        "----------P----N------?--#--?-----------------------------------#--#--#-----------------------------",
-        "-------------------------------------e------------------o-o-------------------e---------------------",
-        "-----------------------------e-------------------#####--------------e----------------E--------------",
-        "XXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXX----XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX----XXXXXXXXXXXXXXXXXXXXXXX",
-        "XXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXX----XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX----XXXXXXXXXXXXXXXXXXXXXXX",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "--------------------o-o-o-------------------------o-o-o-------------o-o-o---------------------------o-o-o-----------------------------------------G---",
+        "---------------------------------------------------------------------------------------------------------------------------------------------N--------",
+        "----------------N-------------------------------------------------------o-o------------------------------N----------------------o-o-o------#####------",
+        "----P---------------?-----------------------U-------------?-------------####--------------?-----------------------------?-----------------------------",
+        "----------------------------####--------------------------------------------------------------------------------####----------------------------------",
+        "-------------------------e----------------------#####--e------------------------e---------e-####--------------e---------------------E-----------------",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXX",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXX",
       ]
     },
     {
       name: "ステージ2 南流山",
       theme: "town",
       level: [
-        "----------------------------------------------------------------------------------------------------",
-        "----------------------------------------------------------------------------------------------------",
-        "----------------------------------------------------------------------------------------------------",
-        "--------------------------------------------------o-o-o-------------------------------------G-------",
-        "------------------------------------------------?-----------------------------------------N---------",
-        "----------------------o-o-o---N-------------------------------o-o-o--------------------#####--------",
-        "---P--------------------?--------------###---------F----------b-------------------------------------",
-        "------------------------------b----------------o-o----------------------------b---------------------",
-        "------------------c--------------------------c---#####----------------c-------------c---------------",
-        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------------o-o-o---------------o-o-o-----------------------------------------------o-o-o---------------------------------------------G---",
+        "---------------------------------------------------------------------------------------------------------------------------------------------N--------",
+        "------------------N---------------------------------------------------------------------o-o---------N-----------------------o-o-o----------#####------",
+        "----P-----------------------?----------------b------F-------####--?-------------U-----------------------------?----b----------------------------------",
+        "-------------------------------------------------------------------------------------b--####----------------------------------------------------------",
+        "------------------------c-----------------------#####-------c-----------------------------------c-------------------####c-------------------c---------",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXX",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXX",
       ]
     },
     {
       name: "ステージ3 成田",
       theme: "narita",
       level: [
-        "----------------------------------------------------------------------------------------------------",
-        "----------------------------------------------------------------------------------------------------",
-        "----------------------------------------------------------------------------------------------------",
-        "--------------------------------------------------o-o-o-------------------------------------G-------",
-        "------------------------------------------------------------?----------------------------N----------",
-        "----------o-o--N--------o-o------------------------------------o-o---------------------#####--------",
-        "---P---------------------?------------H-----------b-------------------------------------------------",
-        "------------------------------------#####------o-o--------------------------------------------------",
-        "--------------------v------------v----------v------------------#####------v----------v--------------",
-        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXX",
-        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXX",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------------o-o-o-------------------o-o-o-----------------------------------------------o-o-o-----------------------------------------G---",
+        "---------------------------------------------------------------------------------------------------------------------------------------------N--------",
+        "----------------N-------------------------------------------------------------------o-o-o-------------------------------N---o-o-o----------#####------",
+        "----P---------------------?-------------H---------b-----------####------------?-----------------U---------------------?-------------------------------",
+        "--------------------------------------#####-----------------------------------------------------------------------------------------------------------",
+        "----------------------v---------------------v-------------v-------------------------#####-v-----------------------v-####------------------v-----------",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXX",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXX",
       ]
     }
   ];
@@ -309,7 +309,7 @@
   loadStage(0);
 
   // ---------- ゲーム状態 ----------
-  let solids, coins, enemies, questionBlocks, goal, player, nuts, flowers, feathers, seeds;
+  let solids, coins, enemies, questionBlocks, goal, player, nuts, flowers, feathers, breads, seeds;
   let enemySpawns = [];
   let camX = 0;
   let score = 0, coinsGot = 0, lives = 3;
@@ -327,6 +327,7 @@
     nuts = [];
     flowers = [];
     feathers = [];
+    breads = [];
     seeds = [];
     questionBlocks = [];
     enemySpawns = [];
@@ -340,6 +341,10 @@
         else if (ch === "#") solids.push({ x, y, w: TILE, h: TILE, type: "brick" });
         else if (ch === "?") {
           const b = { x, y, w: TILE, h: TILE, type: "question", used: false };
+          solids.push(b); questionBlocks.push(b);
+        }
+        else if (ch === "U") {   // 1UP（フランスパン）が出るはてなブロック
+          const b = { x, y, w: TILE, h: TILE, type: "question", used: false, prize: "bread" };
           solids.push(b); questionBlocks.push(b);
         }
         else if (ch === "o") coins.push({ x: x + 8, y: y + 8, w: 24, h: 24, got: false, t: Math.random() * 6 });
@@ -599,6 +604,13 @@
 
   function hitQuestion(b) {
     b.used = true; b.type = "brick";
+    if (b.prize === "bread") {
+      // 1UP：フランスパンがブロックの上に出てくる
+      sfx.power();
+      breads.push({ x: b.x + 4, y: b.y - TILE + 8, w: 32, h: 20, vx: 1.3, vy: -1, got: false, t: 0 });
+      spawnParticles(b.x + TILE/2, b.y, "#e7b96a", 8);
+      return;
+    }
     sfx.coin();
     score += 100; coinsGot++;
     spawnParticles(b.x + TILE/2, b.y, "#ffd34d", 8);
@@ -742,6 +754,33 @@
       }
     }
 
+    // フランスパン（1UP）：ブロックから出て歩き、取るとライフ+1
+    for (const br of breads) {
+      if (br.got) continue;
+      br.t++;
+      // 横移動＋壁で反転
+      br.x += br.vx;
+      for (const s of solids) {
+        if (rectHit(br, s)) {
+          if (br.vx > 0) br.x = s.x - br.w; else br.x = s.x + s.w;
+          br.vx *= -1; break;
+        }
+      }
+      // 重力＋床
+      br.vy += GRAVITY; if (br.vy > 12) br.vy = 12;
+      br.y += br.vy;
+      for (const s of solids) {
+        if (rectHit(br, s) && br.vy > 0) { br.y = s.y - br.h; br.vy = 0; }
+      }
+      // まるりんが取ったら1UP
+      if (rectHit(p, br)) {
+        br.got = true; lives++; score += 500; sfx.win(); playVoice("get");
+        spawnParticles(br.x + br.w/2, br.y, "#e7b96a", 12);
+        particles.push({ x: br.x + br.w/2, y: br.y - 8, vx: 0, vy: -3, life: 55, color: "#fff", oneUp: true });
+      }
+    }
+    breads = breads.filter(br => !br.got && br.y < LEVEL_H + 120);
+
     // 種の飛び道具の更新
     for (const sd of seeds) {
       sd.t++;
@@ -869,11 +908,9 @@
       state = "boss";
       return;
     }
-    // 通常：P位置へ戻して敵を復活
-    let sx = 2*TILE, sy = 6*TILE;
-    for (let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(LEVEL[r][c]==="P"){sx=c*TILE;sy=r*TILE;}
-    player.x = sx; player.y = sy; player.invuln = 90;
-    resetEnemies();
+    // 通常：ステージを組み直して敵もアイテムも全部復活（プレイヤーも開始位置へ）
+    buildLevel();
+    player.invuln = 90;
     startBGM();
     state = "play";
   }
@@ -918,7 +955,7 @@
   // 1画面の平らな闘技場を作り、プレイヤーとボスを配置
   function setupBossArena() {
     LEVEL_W = W; LEVEL_H = H; camX = 0;
-    solids = []; coins = []; nuts = []; flowers = []; feathers = [];
+    solids = []; coins = []; nuts = []; flowers = []; feathers = []; breads = [];
     enemies = []; questionBlocks = []; seeds = []; goal = null; particles = [];
     for (let x = 0; x < W; x += TILE) {
       solids.push({ x, y: BOSS_GROUND, w: TILE, h: TILE, type: "ground" });
@@ -1087,6 +1124,7 @@
     drawNuts();
     drawFlowers();
     drawFeathers();
+    drawBreads();
     if (goal) drawGoal(goal);
     drawSeeds();
     drawEnemies();
@@ -1251,12 +1289,12 @@
   function drawTownDecor() {
     const Lc = camX - 360, R = camX + W + 80;
     const put = (x, fn) => { if (x > Lc && x < R) fn(); };
-    put(560,  () => sevenEleven(560));
-    put(1300, () => signBuilding(1300, 220, 150, "#f2f2f2", "#e0342f", "ヤオコー", "#e0342f", "#fff"));
-    put(1900, () => signBuilding(1900, 230, 160, "#eef0f2", "#f07a1a", "コーナン", "#f07a1a", "#fff"));
-    put(2560, () => rotary(2560));
-    put(2980, () => txTrain(2980));
-    put(3270, () => stationSign(3270));
+    put(700,  () => sevenEleven(700));
+    put(1800, () => signBuilding(1800, 220, 150, "#f2f2f2", "#e0342f", "ヤオコー", "#e0342f", "#fff"));
+    put(2700, () => signBuilding(2700, 230, 160, "#eef0f2", "#f07a1a", "コーナン", "#f07a1a", "#fff"));
+    put(3700, () => rotary(3700));
+    put(4600, () => txTrain(4600));
+    put(5300, () => stationSign(5300));
   }
 
   // ===== ひまわり（たねまるりんアイテム）=====
@@ -1446,10 +1484,10 @@
   function drawNaritaDecor() {
     const Lc = camX - 460, R = camX + W + 80;
     const put = (x, fn) => { if (x > Lc && x < R) fn(); };
-    put(240,  () => naritaStation(240));
-    put(1150, () => pagoda(1150));
-    put(1900, () => signBuilding(1900, 240, 150, "#f4eef4", "#e5007e", "イオン成田", "#e5007e", "#fff"));
-    put(2700, () => airportRoadSign(2700));
+    put(300,  () => naritaStation(300));
+    put(1700, () => pagoda(1700));
+    put(3100, () => signBuilding(3100, 240, 150, "#f4eef4", "#e5007e", "イオン成田", "#e5007e", "#fff"));
+    put(4500, () => airportRoadSign(4500));
   }
 
   // 成田駅
@@ -1573,6 +1611,35 @@
       ctx.strokeStyle = "#9cc7e6"; ctx.lineWidth = 1.2;
       ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(0, 13); ctx.stroke();
       ctx.restore();
+    }
+  }
+
+  // フランスパン（1UP）
+  function drawBreads() {
+    for (const br of breads) {
+      if (br.got) continue;
+      if (br.x + br.w < camX - 40 || br.x > camX + W + 40) continue;
+      const cx = br.x + br.w/2, cy = br.y + br.h/2;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(-0.18);
+      // 本体（こんがりバゲット）
+      ctx.fillStyle = "#d19a41";
+      ctx.beginPath(); ctx.ellipse(0, 0, 17, 8, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#e7b96a";
+      ctx.beginPath(); ctx.ellipse(-2, -1.5, 14, 5.5, 0, 0, 7); ctx.fill();
+      // 両端の焼き色濃いめ
+      ctx.fillStyle = "#b9822f";
+      ctx.beginPath(); ctx.ellipse(-15, 0, 3, 6, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(15, 0, 3, 6, 0, 0, 7); ctx.fill();
+      // 斜めの切れ込み
+      ctx.strokeStyle = "#8a5a20"; ctx.lineWidth = 1.4; ctx.lineCap = "round";
+      for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(i*6 - 2, -4); ctx.lineTo(i*6 + 2, 4); ctx.stroke(); }
+      ctx.restore();
+      // 1UP 表示
+      ctx.fillStyle = "#2f7d32"; ctx.font = "bold 9px 'Segoe UI', sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("1UP", cx, br.y - 6);
     }
   }
 
@@ -1777,7 +1844,11 @@
     for (const pt of particles) {
       ctx.globalAlpha = Math.max(0, Math.min(1, pt.life/20));
       ctx.fillStyle = pt.color;
-      if (pt.coin) {
+      if (pt.oneUp) {
+        ctx.font = "bold 14px 'Segoe UI', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillStyle = "#2f7d32"; ctx.fillText("1UP", pt.x + 1, pt.y + 1);
+        ctx.fillStyle = "#fff"; ctx.fillText("1UP", pt.x, pt.y);
+      } else if (pt.coin) {
         ctx.beginPath(); ctx.arc(pt.x, pt.y, 8, 0, 7); ctx.fill();
       } else {
         ctx.fillRect(pt.x-2, pt.y-2, 4, 4);
