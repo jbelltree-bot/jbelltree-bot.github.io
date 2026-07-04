@@ -251,11 +251,11 @@
         "------------------------------------------------------------------------------------------------------------------------------------------------------",
         "------------------------------------------------------------------------------------------------------------------------------------------------------",
         "--------------------o-o-o-------------------------o-o-o-------------o-o-o---------------------------o-o-o-----------------------------------------G---",
-        "---------------------------------------------------------------------------------------------------------------------------------------------N--------",
+        "---------------------------------------------------------------------------------------------------------------------------------------------B--------",
         "----------------N-------------------------------------------------------o-o------------------------------N----------------------o-o-o------#####------",
         "----P---------------?-----------------------U-------------?-------------####--------------?-----------------------------?-----------------------------",
         "----------------------------####--------------------------------------------------------------------------------####----------------------------------",
-        "-------------------------e----------------------#####--e------------------------e---------e-####--------------e---------------------E-----------------",
+        "-------------------------e----------------------#####--e------------------------e---------e-####--------------e--------------------------E------------",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXX",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXX",
       ]
@@ -271,7 +271,7 @@
         "------------------------o-o-o---------------o-o-o-----------------------------------------------o-o-o---------------------------------------------G---",
         "---------------------------------------------------------------------------------------------------------------------------------------------N--------",
         "------------------N---------------------------------------------------------------------o-o---------N-----------------------o-o-o----------#####------",
-        "----P-----------------------?----------------b------F-------####--?-------------U-----------------------------?----b----------------------------------",
+        "----P-----------------------?----------------b------F-------####--?-------------U-----------------------------?----b-------------------F--------------",
         "-------------------------------------------------------------------------------------b--####----------------------------------------------------------",
         "------------------------c-----------------------#####-------c-----------------------------------c-------------------####c-------------------c---------",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXX",
@@ -353,6 +353,7 @@
         else if (ch === "N") nuts.push({ x: x + 6, y: y + 6, w: 28, h: 28, got: false, t: Math.random() * 6 });
         else if (ch === "F") flowers.push({ x: x + 4, y: y + 4, w: 32, h: 32, got: false, t: Math.random() * 6 });
         else if (ch === "H") feathers.push({ x: x + 4, y: y + 4, w: 30, h: 32, got: false, t: Math.random() * 6 });
+        else if (ch === "B") breads.push({ x: x + 4, y: y + 10, w: 32, h: 20, vx: 0, vy: 0, got: false, t: 0 });  // 置きフランスパン（1UP）
         else if (ch === "e") { enemySpawns.push({ x, y, kind: "kuri" }); enemies.push(makeEnemy(x, y, { kind: "kuri" })); }
         else if (ch === "E") { enemySpawns.push({ x, y, kind: "kuri", slow: true }); enemies.push(makeEnemy(x, y, { kind: "kuri", slow: true })); }
         else if (ch === "c") { enemySpawns.push({ x, y, kind: "cat" }); enemies.push(makeEnemy(x, y, { kind: "cat" })); }
@@ -1005,7 +1006,7 @@
       // ペギ：すばやい・よくジャンプ・キュウリは投げない
       return { kind, name: "ペギ", x, y: BOSS_GROUND - 56, w: 48, h: 56,
         vx: -1, vy: 0, onGround: false, face: -1,
-        hp: 6, maxHp: 6, stompDmg: 2, seedDmg: 1, hpPerHeart: 2,
+        hp: 2, maxHp: 2, stompDmg: 1, seedDmg: 1, hpPerHeart: 1,
         invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
         jumpCd: 50 + Math.floor(Math.random()*30), speedBase: 2.6, throws: false, alive: true, dyingT: 0 };
     }
@@ -1013,7 +1014,7 @@
       // にせぺぎ：のんびり・ジャンプしない・キュウリを山なりに投げる
       return { kind, name: "にせぺぎ", x, y: BOSS_GROUND - 56, w: 48, h: 56,
         vx: 1, vy: 0, onGround: false, face: 1,
-        hp: 6, maxHp: 6, stompDmg: 2, seedDmg: 1, hpPerHeart: 2,
+        hp: 2, maxHp: 2, stompDmg: 1, seedDmg: 1, hpPerHeart: 1,
         invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
         jumpCd: 1e9, throwCd: 70 + Math.floor(Math.random()*40), speedBase: 1.0, throws: true, alive: true, dyingT: 0 };
     }
@@ -1113,13 +1114,14 @@
       for (const s of solids) {
         if (rectHit(b, s) && b.vy > 0 && (b.y + b.h) - s.y < 42) { b.y = s.y - b.h; b.vy = 0; b.onGround = true; }
       }
-      // プレイヤーとの当たり
+      // プレイヤーとの当たり（足がボスの上のほうにあれば踏みつけ。速い・小さいボスでも踏めるように寛容に）
       if (rectHit(p, b)) {
-        const fromAbove = p.vy > 0 && (p.y + p.h) - b.y < b.h * 0.5;
+        const fromAbove = p.vy > 0 && (p.y + p.h) - b.y < b.h * 0.7 + Math.max(0, p.vy);
         if (fromAbove) {
           if (b.invuln <= 0) damageBoss(b, false);
           const timed = jumpKey() || jumpBuffer > 0;
           p.vy = timed ? -15 : -10; p.bounceLock = 12; jumpBuffer = 0; p.squash = 0.7;
+          p.invuln = Math.max(p.invuln, 8);   // 踏んだ直後の誤爆被弾を防ぐ
         } else if (p.invuln <= 0) {
           hurtPlayer();
         }
@@ -2077,7 +2079,7 @@
   function drawPlayer() {
     const p = player;
     const playing = state === "play" || state === "boss";
-    if (p.invuln > 0 && Math.floor(p.invuln/4) % 2 === 0 && playing) return; // 点滅
+    if (p.invuln > 10 && Math.floor(p.invuln/4) % 2 === 0 && playing) return; // 点滅（被弾時のみ）
 
     const cx = p.x + p.w/2;
     const cy = p.y + p.h/2;
