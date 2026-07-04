@@ -245,6 +245,7 @@
     {
       name: "ステージ1 くさはら",
       theme: "grass",
+      boss: "kuri",
       level: [
         "----------------------------------------------------------------------------------------------------",
         "----------------------------------------------------------------------------------------------------",
@@ -312,10 +313,12 @@
   let enemySpawns = [];
   let camX = 0;
   let score = 0, coinsGot = 0, lives = 3;
-  let state = "menu"; // menu, play, dead, clear, stageclear, pause
+  let state = "menu"; // menu, play, dead, clear, stageclear, pause, boss
   let elapsed = 0;
   let particles = [];
   let stageClearT = 0;
+  let boss = null;      // ボス戦のボス（クリだいおう等）
+  let inBoss = false;   // ボス戦中かどうか（ミス時のやり直し判定用）
 
   function buildLevel() {
     solids = [];
@@ -613,6 +616,7 @@
   function update() {
     elapsed++;
     if (state === "play") updatePlay();
+    else if (state === "boss") { updatePlay(); updateBossOnly(); }
     else if (state === "dead") updateDead();
     else if (state === "clear") { player.winPose++; }
     else if (state === "stageclear") {
@@ -838,15 +842,23 @@
   }
 
   function respawn() {
-    // 位置を戻し、パワーアップは解除
-    let sx = 2*TILE, sy = 6*TILE;
-    for (let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(LEVEL[r][c]==="P"){sx=c*TILE;sy=r*TILE;}
+    // パワーアップは解除
     player.powered = false; player.seed = false; player.w = 28; player.h = 30; player.powerAnim = 0;
     player.wing = false; player.gliding = false; player.glideUsed = false;
-    player.x = sx; player.y = sy; player.vx = 0; player.vy = 0;
-    player.alive = true; player.invuln = 90; player.deadT = 0;
+    player.vx = 0; player.vy = 0;
+    player.alive = true; player.deadT = 0;
     seeds = [];
-    // 敵を全員復活させる
+    if (inBoss) {
+      // ボス戦をやり直し（ボスも体力満タンで復活）
+      setupBossArena();
+      startBGM();
+      state = "boss";
+      return;
+    }
+    // 通常：P位置へ戻して敵を復活
+    let sx = 2*TILE, sy = 6*TILE;
+    for (let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(LEVEL[r][c]==="P"){sx=c*TILE;sy=r*TILE;}
+    player.x = sx; player.y = sy; player.invuln = 90;
     resetEnemies();
     startBGM();
     state = "play";
@@ -856,8 +868,16 @@
     enemies = enemySpawns.map(s => makeEnemy(s.x, s.y, s));
   }
 
+  // ゴール到達：ボスがいれば画面を切り替えてボス戦へ。いなければ従来どおりクリア
   function winGame() {
-    if (state === "clear" || state === "stageclear") return;
+    if (state === "clear" || state === "stageclear" || state === "boss") return;
+    if (STAGES[stageIndex].boss) { startBoss(); }
+    else { stageCleared(); }
+  }
+
+  // ボス撃破 or ボス無しステージ：クリア処理
+  function stageCleared() {
+    inBoss = false; boss = null;
     player.winPose = 0;
     score += Math.max(0, 2000 - Math.floor(elapsed / 3));
     stopBGM();
@@ -868,6 +888,115 @@
       stageClearT = 0;
     } else {
       state = "clear";          // 全ステージクリア
+    }
+  }
+
+  // ---------- ボス戦 ----------
+  const BOSS_GROUND = 360;   // 闘技場の地面の上端
+
+  function startBoss() {
+    inBoss = true;
+    setupBossArena();
+    state = "boss";           // BGMはそのまま継続
+  }
+
+  // 1画面の平らな闘技場を作り、プレイヤーとボスを配置
+  function setupBossArena() {
+    LEVEL_W = W; LEVEL_H = H; camX = 0;
+    solids = []; coins = []; nuts = []; flowers = []; feathers = [];
+    enemies = []; questionBlocks = []; seeds = []; goal = null; particles = [];
+    for (let x = 0; x < W; x += TILE) {
+      solids.push({ x, y: BOSS_GROUND, w: TILE, h: TILE, type: "ground" });
+      solids.push({ x, y: BOSS_GROUND + TILE, w: TILE, h: TILE, type: "ground" });
+    }
+    const p = player;
+    p.x = 70; p.y = BOSS_GROUND - p.h; p.vx = 0; p.vy = 0;
+    p.onGround = false; p.face = 1; p.invuln = 50;
+    p.gliding = false; p.glideUsed = false;
+    boss = makeBoss(STAGES[stageIndex].boss || "kuri");
+    elapsed = 0;
+  }
+
+  function makeBoss(kind) {
+    return {
+      kind, x: W - 170, y: BOSS_GROUND - 90, w: 96, h: 90,
+      vx: -1.4, vy: 0, onGround: false, face: -1,
+      hp: 15, maxHp: 15, invuln: 0, hurtFlash: 0,
+      t: 0, squash: 1, jumpCd: 120, alive: true, dyingT: 0
+    };
+  }
+
+  function bossPhase() { return boss.hp <= 5 ? 2 : (boss.hp <= 10 ? 1 : 0); }
+
+  function damageBoss(amount, seed) {
+    const b = boss;
+    b.hp -= amount;
+    b.invuln = seed ? 45 : 70;
+    b.hurtFlash = b.invuln;
+    b.squash = seed ? 0.78 : 0.6;
+    sfx.stomp();
+    spawnParticles(b.x + b.w/2, b.y + b.h*0.3, seed ? "#ffd34d" : "#a56b3e", seed ? 8 : 12);
+    if (b.hp <= 0) {
+      b.hp = 0; b.alive = false; b.dyingT = 0; b.vx = 0;
+      score += 1000;
+    } else {
+      score += seed ? 100 : 300;
+    }
+  }
+
+  function updateBossOnly() {
+    const b = boss, p = player;
+    if (!b) return;
+    b.t++;
+    if (b.invuln > 0) b.invuln--;
+    if (b.hurtFlash > 0) b.hurtFlash--;
+    b.squash += (1 - b.squash) * 0.2;
+
+    if (b.alive) {
+      const phase = bossPhase();
+      const speed = 1.4 + phase * 0.7;
+      // 横移動＋壁で反転
+      b.x += (b.vx > 0 ? 1 : -1) * speed;
+      if (b.x < 16) { b.x = 16; b.vx = Math.abs(b.vx); }
+      if (b.x + b.w > W - 16) { b.x = W - 16 - b.w; b.vx = -Math.abs(b.vx); }
+      b.face = b.vx > 0 ? 1 : -1;
+      // ジャンプ（怒るほど頻繁・高く）
+      b.jumpCd--;
+      if (b.onGround && b.jumpCd <= 0) { b.vy = -12.5 - phase * 1.6; b.jumpCd = 140 - phase * 34; }
+      // 重力＋床
+      b.vy += GRAVITY; if (b.vy > 18) b.vy = 18;
+      b.y += b.vy; b.onGround = false;
+      for (const s of solids) {
+        if (rectHit(b, s) && b.vy > 0 && (b.y + b.h) - s.y < 42) {
+          b.y = s.y - b.h; b.vy = 0; b.onGround = true;
+        }
+      }
+      // プレイヤーとの当たり
+      if (rectHit(p, b)) {
+        const fromAbove = p.vy > 0 && (p.y + p.h) - b.y < 28;
+        if (fromAbove) {
+          if (b.invuln <= 0) damageBoss(5, false);
+          const timed = jumpKey() || jumpBuffer > 0;
+          p.vy = timed ? -15 : -10; p.bounceLock = 12; jumpBuffer = 0; p.squash = 0.7;
+        } else if (p.invuln <= 0) {
+          hurtPlayer();
+        }
+      }
+      // たね vs ボス
+      if (b.invuln <= 0) {
+        for (const sd of seeds) {
+          if (rectHit({ x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 }, b)) {
+            damageBoss(3, true); sd.life = 0; break;
+          }
+        }
+      }
+    } else {
+      // 撃破演出：つぶれて消える
+      b.dyingT++;
+      b.squash += (0.15 - b.squash) * 0.2;
+      if (b.dyingT === 1) { sfx.win(); playVoice("get"); }
+      if (b.dyingT % 6 === 0) spawnParticles(b.x + b.w/2, b.y + b.h/2, "#ffd34d", 6);
+      if (b.dyingT > 90) stageCleared();
     }
   }
 
@@ -892,6 +1021,7 @@
 
   function resetGame() {
     lives = 3; score = 0; coinsGot = 0;
+    inBoss = false; boss = null;
     loadStage(0);
     buildLevel();
     stageBgm().currentTime = 0;
@@ -943,6 +1073,7 @@
     if (goal) drawGoal(goal);
     drawSeeds();
     drawEnemies();
+    if (boss) drawBoss();
     drawParticles();
     if (state !== "gameover") drawPlayer();
 
@@ -1555,6 +1686,76 @@
     }
   }
 
+  // ===== ボス：クリだいおう =====
+  function drawBoss() {
+    const b = boss;
+    const cx = b.x + b.w/2, by = b.y + b.h;
+    ctx.save();
+    ctx.translate(cx, by);
+    const sq = b.squash;
+    ctx.scale(1 + (1 - sq) * 0.4, sq);
+    if (!b.alive) ctx.globalAlpha = Math.max(0, 1 - b.dyingT / 90);
+    const dir = b.face;
+    const flash = b.hurtFlash > 0 && Math.floor(b.hurtFlash / 4) % 2 === 0;
+
+    // 影
+    ctx.fillStyle = "rgba(0,0,0,0.15)";
+    ctx.beginPath(); ctx.ellipse(0, 2, 66, 12, 0, 0, 7); ctx.fill();
+    // 足
+    ctx.fillStyle = "#4a3220";
+    ctx.beginPath(); ctx.ellipse(-30, -6, 20, 11, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(30, -6, 20, 11, 0, 0, 7); ctx.fill();
+    // 腕（こぶし）
+    ctx.fillStyle = "#7a4d2c";
+    ctx.beginPath(); ctx.arc(-58, -58, 15, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(58, -58, 15, 0, 7); ctx.fill();
+    // 体（クリ）
+    ctx.fillStyle = flash ? "#ffd0d0" : "#9a6238";
+    ctx.beginPath(); ctx.ellipse(0, -58, 60, 58, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = flash ? "#ffe2e2" : "#b5793f";
+    ctx.beginPath(); ctx.ellipse(-16, -74, 38, 40, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = flash ? "#ffeaea" : "#e6bd8b";
+    ctx.beginPath(); ctx.ellipse(0, -34, 42, 30, 0, 0, 7); ctx.fill();
+    // 帽子（クリのかさ）
+    ctx.fillStyle = "#5f3d1c";
+    ctx.beginPath(); ctx.ellipse(0, -104, 52, 27, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#754a22";
+    ctx.beginPath(); ctx.ellipse(-8, -110, 32, 16, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#4a2f16";
+    ctx.beginPath(); ctx.moveTo(-6, -126); ctx.lineTo(6, -126); ctx.lineTo(0, -140); ctx.closePath(); ctx.fill();
+    // 王冠
+    ctx.fillStyle = "#f2c94c"; ctx.strokeStyle = "#d19a1f"; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-34, -120); ctx.lineTo(-34, -134); ctx.lineTo(-22, -125);
+    ctx.lineTo(-11, -140); ctx.lineTo(0, -125); ctx.lineTo(11, -140);
+    ctx.lineTo(22, -125); ctx.lineTo(34, -134); ctx.lineTo(34, -120);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#e0453f"; ctx.beginPath(); ctx.arc(0, -124, 4, 0, 7); ctx.fill();
+    ctx.fillStyle = "#4fa3e0"; ctx.beginPath(); ctx.arc(-18, -123, 3, 0, 7); ctx.arc(18, -123, 3, 0, 7); ctx.fill();
+    // 顔
+    if (b.alive) {
+      ctx.strokeStyle = "#3a2414"; ctx.lineWidth = 6; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(-34, -78); ctx.lineTo(-10, -66);
+      ctx.moveTo(34, -78); ctx.lineTo(10, -66); ctx.stroke();
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.ellipse(-18, -58, 13, 15, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(18, -58, 13, 15, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#141414";
+      ctx.beginPath(); ctx.arc(-18 + dir*3, -56, 6, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(18 + dir*3, -56, 6, 0, 7); ctx.fill();
+      ctx.fillStyle = "#3a2113";
+      ctx.beginPath(); ctx.moveTo(-22, -30); ctx.quadraticCurveTo(0, -14, 22, -30);
+      ctx.quadraticCurveTo(0, -24, -22, -30); ctx.closePath(); ctx.fill();
+    } else {
+      ctx.strokeStyle = "#3a2414"; ctx.lineWidth = 3; ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(-24, -64); ctx.lineTo(-12, -52); ctx.moveTo(-12, -64); ctx.lineTo(-24, -52);
+      ctx.moveTo(12, -64); ctx.lineTo(24, -52); ctx.moveTo(24, -64); ctx.lineTo(12, -52);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   function drawParticles() {
     for (const pt of particles) {
       ctx.globalAlpha = Math.max(0, Math.min(1, pt.life/20));
@@ -1571,12 +1772,13 @@
   // ===== まるりん本人の描画 =====
   function drawPlayer() {
     const p = player;
-    if (p.invuln > 0 && Math.floor(p.invuln/4) % 2 === 0 && state==="play") return; // 点滅
+    const playing = state === "play" || state === "boss";
+    if (p.invuln > 0 && Math.floor(p.invuln/4) % 2 === 0 && playing) return; // 点滅
 
     const cx = p.x + p.w/2;
     const cy = p.y + p.h/2;
-    const run = state === "play" && Math.abs(p.vx) > 0.5 && p.onGround;
-    const airborne = !p.onGround && state === "play";
+    const run = playing && Math.abs(p.vx) > 0.5 && p.onGround;
+    const airborne = !p.onGround && playing;
     const legPhase = Math.sin(p.animT * 0.4);
 
     // パワーアップ時の点滅（取得直後）
@@ -1602,7 +1804,7 @@
     const bodyR = 17;
 
     // 影
-    if (state === "play") {
+    if (playing) {
       ctx.save(); ctx.scale(1/sx, 1/sy);
       ctx.fillStyle = "rgba(0,0,0,0.18)";
       ctx.beginPath(); ctx.ellipse(0, 18, 15, 4, 0, 0, 7); ctx.fill();
@@ -1677,7 +1879,7 @@
     // 口（にっこり）
     ctx.strokeStyle = "#3a3128"; ctx.lineWidth = 1.4; ctx.lineCap = "round";
     ctx.beginPath();
-    if (state === "clear" || state === "play") {
+    if (state === "clear" || playing) {
       ctx.moveTo(8, 4); ctx.quadraticCurveTo(5, 8, 2, 5.5);
       ctx.moveTo(8, 4); ctx.quadraticCurveTo(11, 8, 14, 5.5);
     } else {
@@ -1742,16 +1944,40 @@
     ctx.textAlign = "right";
     ctx.fillText("SCORE " + String(score).padStart(6, "0"), W - 14, 18);
 
-    // 進捗バー
+    // 進捗バー / ボスの体力
     ctx.textAlign = "center";
-    const prog = Math.min(1, (player.x) / (goal ? goal.x : LEVEL_W));
-    ctx.fillStyle = "rgba(255,255,255,0.25)";
-    ctx.fillRect(W/2 - 90, 14, 180, 7);
-    ctx.fillStyle = "#66cc44";
-    ctx.fillRect(W/2 - 90, 14, 180*prog, 7);
-    ctx.font = "12px sans-serif"; ctx.fillStyle="#fff";
-    ctx.fillText("🚩", W/2 + 90 + 6, 18);
+    if (state === "boss" && boss) {
+      // ボスの体力（♥3つ。踏むと1つ、たねは3分の1くらいずつ減る）
+      const hearts = Math.ceil(boss.hp / 5);   // 15→3, 10→2, 5→1
+      ctx.font = "bold 13px 'Segoe UI', sans-serif"; ctx.fillStyle = "#fff";
+      ctx.fillText("クリだいおう", W/2 - 44, 18);
+      for (let i = 0; i < 3; i++) {
+        ctx.fillStyle = i < hearts ? "#e0453f" : "rgba(255,255,255,0.28)";
+        ctx.beginPath(); ctx.arc(W/2 + 18 + i*22, 17, 8, 0, 7); ctx.fill();
+      }
+      ctx.font = "bold 16px 'Segoe UI', sans-serif";
+    } else {
+      const prog = Math.min(1, (player.x) / (goal ? goal.x : LEVEL_W));
+      ctx.fillStyle = "rgba(255,255,255,0.25)";
+      ctx.fillRect(W/2 - 90, 14, 180, 7);
+      ctx.fillStyle = "#66cc44";
+      ctx.fillRect(W/2 - 90, 14, 180*prog, 7);
+      ctx.font = "12px sans-serif"; ctx.fillStyle="#fff";
+      ctx.fillText("🚩", W/2 + 90 + 6, 18);
+    }
     ctx.restore();
+
+    // ボス出現の演出（数秒だけ）
+    if (state === "boss" && boss && boss.alive && elapsed < 120) {
+      ctx.save();
+      ctx.globalAlpha = elapsed < 80 ? 1 : (120 - elapsed) / 40;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(120,0,0,0.4)";
+      ctx.fillRect(W/2 - 200, H/2 - 40, 400, 64);
+      ctx.fillStyle = "#ffdd55"; ctx.font = "bold 30px 'Segoe UI', sans-serif";
+      ctx.fillText("ボスしゅつげん！", W/2, H/2 - 8);
+      ctx.restore();
+    }
 
     // ステージ開始時に名前を数秒だけ表示
     if (state === "play" && elapsed < 150) {
