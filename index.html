@@ -160,21 +160,35 @@
     display: flex; flex-direction: column; align-items: center;
     gap: 12px; max-width: 660px; width: 100%;
   }
-  #overlay h2 { font-size: 28px; text-shadow: 2px 2px 0 #e94560; }
-  #overlay p { font-size: 15px; line-height: 1.6; opacity: .9; }
+  /* SUPER MARURIN WORLD ロゴ（スーパーマリオワールド風） */
+  #overlay .logo { display: flex; flex-direction: column; align-items: center; gap: 4px;
+    font-family: 'Arial Black', 'Segoe UI', sans-serif; user-select: none; }
+  #overlay .logo .super { font-size: 34px; }
+  #overlay .logo .main { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 24px; font-size: 58px; }
+  #overlay .logo .word { display: inline-flex; }
+  #overlay .logo span { display: inline-block; font-weight: 900; line-height: 1;
+    -webkit-text-stroke: 3px #000; paint-order: stroke fill;
+    text-shadow: 3px 4px 0 rgba(0,0,0,.45); transform: rotate(-3deg); }
+  #overlay .logo .super span:nth-child(even),
+  #overlay .logo .word span:nth-child(even) { transform: rotate(3deg); }
+  #overlay .menu { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 6px; }
+  #overlay #contNote { font-size: 13px; opacity: .85; }
   #overlay button {
     font-size: 18px; padding: 12px 30px; border: none; border-radius: 30px;
     background: #e94560; color: #fff; cursor: pointer; font-weight: bold;
     box-shadow: 0 4px 0 #a82a42; transition: transform .05s; flex: none;
   }
   #overlay button:active { transform: translateY(3px); box-shadow: 0 1px 0 #a82a42; }
+  #overlay button.disabled, #overlay button:disabled { opacity: .4; cursor: default; box-shadow: 0 4px 0 #6a1a2a; }
+  #overlay button.disabled:active { transform: none; box-shadow: 0 4px 0 #6a1a2a; }
   /* 背の低い画面（横向きスマホ・アプリ内ブラウザ）では小さめに表示して収める */
   @media (max-height: 540px) {
     #overlay { padding: 8px; }
-    #overlay .inner { gap: 7px; }
-    #overlay h2 { font-size: 19px; }
-    #overlay p { font-size: 11.5px; line-height: 1.35; }
-    #overlay button { font-size: 15px; padding: 7px 22px; box-shadow: 0 3px 0 #a82a42; }
+    #overlay .inner { gap: 10px; }
+    #overlay .logo .super { font-size: 22px; }
+    #overlay .logo .main { font-size: 36px; gap: 2px 16px; }
+    #overlay .logo span { -webkit-text-stroke-width: 2px; text-shadow: 2px 3px 0 rgba(0,0,0,.45); }
+    #overlay button { font-size: 15px; padding: 8px 22px; box-shadow: 0 3px 0 #a82a42; }
   }
   .hidden { display: none !important; }
   #hint { font-size: 12px; opacity: .55; }
@@ -191,18 +205,20 @@
     <canvas id="game" width="800" height="450"></canvas>
     <div id="overlay">
      <div class="inner">
-      <h2>まるりんワールド</h2>
-      <p>
-        ハムスターの<b>まるりん</b>を動かしてゴールを目指そう！<br>
-        <span class="keycap">←</span><span class="keycap">→</span> または
-        <span class="keycap">A</span><span class="keycap">D</span> で移動<br>
-        <span class="keycap">Space</span> / <span class="keycap">↑</span> / <span class="keycap">W</span> でジャンプ<br>
-        📱 スマホ・タブレットは画面の<b>十字キー</b>と<b>A（ジャンプ）B（ダッシュ）</b>ボタンで操作<br>
-        敵は上から踏むとやっつけられるよ。🌰ナッツでパワーアップ！ ？ボックスから出る🥖フランスパンで1UP！<br>
-        🌻ひまわりを取ると<b>たねまるりん</b>に！ <b>B</b>ボタンで<b>種</b>を飛ばして敵を倒せる🌰<br>
-        🪶はねを取ると<b>はねまるりん</b>に！ ジャンプ中に<b>A</b>ボタンをもう一度で、少しのあいだ<b>ぷかぷか飛べる</b>✈️
-      </p>
-      <button id="startBtn">スタート！</button>
+      <div class="logo" aria-label="SUPER MARURIN WORLD">
+        <div class="super">
+          <span style="color:#e4322b">S</span><span style="color:#29b6e8">U</span><span style="color:#ffcb05">P</span><span style="color:#4caf27">E</span><span style="color:#e4322b">R</span>
+        </div>
+        <div class="main">
+          <span class="word"><span style="color:#4caf27">M</span><span style="color:#29b6e8">A</span><span style="color:#ffcb05">R</span><span style="color:#e4322b">U</span><span style="color:#4caf27">R</span><span style="color:#29b6e8">I</span><span style="color:#ffcb05">N</span></span>
+          <span class="word"><span style="color:#4caf27">W</span><span style="color:#ffcb05">O</span><span style="color:#29b6e8">R</span><span style="color:#4caf27">L</span><span style="color:#e4322b">D</span></span>
+        </div>
+      </div>
+      <div class="menu">
+        <button id="newBtn">はじめから</button>
+        <button id="contBtn">つづきから</button>
+      </div>
+      <div id="contNote"></div>
      </div>
     </div>
   </div>
@@ -241,7 +257,9 @@
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height;
   const overlay = document.getElementById("overlay");
-  const startBtn = document.getElementById("startBtn");
+  const newBtn = document.getElementById("newBtn");
+  const contBtn = document.getElementById("contBtn");
+  const contNote = document.getElementById("contNote");
 
   // ---------- 定数 ----------
   const TILE = 40;             // タイルサイズ
@@ -338,6 +356,18 @@
   let bosses = [];      // ボス戦のボス（1〜2体）
   let cukes = [];       // にせぺぎが投げるキュウリ
   let inBoss = false;   // ボス戦中かどうか（ミス時のやり直し判定用）
+
+  // つづきから用：到達したステージを保存（ゲームオーバーしたステージからやり直せる）
+  let continueStage = 0, hasSave = false;
+  try {
+    const s = localStorage.getItem("maruring_stage");
+    if (s !== null) { hasSave = true; continueStage = Math.min(STAGES.length - 1, Math.max(0, parseInt(s, 10) || 0)); }
+  } catch (e) {}
+  function saveProgress(i) {
+    continueStage = i; hasSave = true;
+    try { localStorage.setItem("maruring_stage", String(i)); } catch (e) {}
+    updateContinueUI();
+  }
 
   function buildLevel() {
     solids = [];
@@ -439,7 +469,10 @@
       state = state === "play" ? "pause" : "play";
       if (state === "pause") stopBGM(); else startBGM();
     }
-    if (k === "r") { resetGame(); }
+    if (k === "r") {
+      if (state === "gameover" || state === "clear") showMenu();
+      else if (state === "play" || state === "boss" || state === "pause") resetGameAt(0);
+    }
   }
   // タッチ入力の状態
   const touch = { left: false, right: false, up: false, down: false, dash: false };
@@ -985,6 +1018,12 @@
   // ---------- ボス戦 ----------
   const BOSS_GROUND = 360;   // 闘技場の地面の上端
 
+  // ボス登場時に出す名前
+  function bossTitle() {
+    const k = STAGES[stageIndex].boss;
+    return k === "penguins" ? "ペギ＆ニセペギ" : k === "sumo" ? "こうよう" : "くりだいおう";
+  }
+
   function startBoss() {
     inBoss = true;
     setupBossArena();
@@ -1201,6 +1240,7 @@
   function advanceStage() {
     const keepPowered = player.powered, keepSeed = player.seed, keepWing = player.wing;
     loadStage(stageIndex + 1);
+    saveProgress(stageIndex);       // 新しいステージに到達したので記録
     buildLevel();
     if (keepPowered) setPowered(true);
     player.seed = keepSeed; player.wing = keepWing;
@@ -1216,15 +1256,17 @@
     particles = particles.filter(pt => pt.life > 0);
   }
 
-  function resetGame() {
+  function resetGameAt(startIndex) {
     lives = 3; score = 0; coinsGot = 0;
     inBoss = false; bosses = []; cukes = [];
-    loadStage(0);
+    loadStage(startIndex || 0);
+    saveProgress(stageIndex);       // 今いるステージを記録
     buildLevel();
     stageBgm().currentTime = 0;
     startBGM();
     state = "play";
   }
+  function resetGame() { resetGameAt(0); }
 
   // ---------- 描画 ----------
   function draw() {
@@ -2467,15 +2509,20 @@
     }
     ctx.restore();
 
-    // ボス出現の演出（数秒だけ）
+    // ボス出現の演出（数秒だけ）：ボスの名前を大きく出す
     if (state === "boss" && bosses.some(b => b.alive) && elapsed < 120) {
       ctx.save();
       ctx.globalAlpha = elapsed < 80 ? 1 : (120 - elapsed) / 40;
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillStyle = "rgba(120,0,0,0.4)";
-      ctx.fillRect(W/2 - 200, H/2 - 40, 400, 64);
-      ctx.fillStyle = "#ffdd55"; ctx.font = "bold 30px 'Segoe UI', sans-serif";
-      ctx.fillText("ボスしゅつげん！", W/2, H/2 - 8);
+      const name = bossTitle();
+      ctx.font = "bold 34px 'Segoe UI', sans-serif";
+      const bw = Math.max(360, ctx.measureText(name).width + 90);
+      ctx.fillStyle = "rgba(120,0,0,0.42)";
+      ctx.fillRect(W/2 - bw/2, H/2 - 44, bw, 60);
+      ctx.fillStyle = "#ffe38a"; ctx.font = "16px 'Segoe UI', sans-serif";
+      ctx.fillText("しゅつげん！", W/2, H/2 + 30);
+      ctx.fillStyle = "#ffdd55"; ctx.font = "bold 34px 'Segoe UI', sans-serif";
+      ctx.fillText(name, W/2, H/2 - 12);
       ctx.restore();
     }
 
@@ -2510,7 +2557,7 @@
     ctx.fillStyle="#fff"; ctx.font="20px sans-serif";
     ctx.fillText("スコア: " + score, W/2, H/2 + 20);
     ctx.font="16px sans-serif"; ctx.fillStyle="#ffd34d";
-    ctx.fillText("Rキー / 画面タップ でもう一度", W/2, H/2 + 56);
+    ctx.fillText("Rキー / 画面タップ でメニューへ（つづきから選べるよ）", W/2, H/2 + 56);
     ctx.restore();
   }
 
@@ -2533,7 +2580,7 @@
     ctx.font="18px sans-serif";
     ctx.fillText("スコア: " + score, W/2, H/2 + 40);
     ctx.font="15px sans-serif"; ctx.fillStyle="#ffd34d";
-    ctx.fillText("Rキー / 画面タップ でもう一度あそぶ", W/2, H/2 + 72);
+    ctx.fillText("Rキー / 画面タップ でメニューへ", W/2, H/2 + 72);
     ctx.restore();
   }
 
@@ -2569,16 +2616,43 @@
     requestAnimationFrame(loop);
   }
 
-  startBtn.addEventListener("click", () => {
+  // つづきからボタンの表示更新（セーブがあれば有効・何ステージからか表示）
+  function updateContinueUI() {
+    if (!contBtn) return;
+    if (hasSave) {
+      contBtn.disabled = false; contBtn.classList.remove("disabled");
+      contNote.textContent = "つづき：ステージ" + (continueStage + 1) + " から";
+      contNote.style.visibility = "visible";
+    } else {
+      contBtn.disabled = true; contBtn.classList.add("disabled");
+      contNote.textContent = "はじめてだね！";
+      contNote.style.visibility = "visible";
+    }
+  }
+  updateContinueUI();
+
+  // スタート画面（メニュー）を表示する
+  function showMenu() {
+    stopBGM();
+    state = "menu";
+    document.body.classList.remove("playing");
+    updateContinueUI();
+    overlay.classList.remove("hidden");
+  }
+
+  function beginPlay(startIndex) {
     ac(); primeAudio(); // ユーザー操作でオーディオ解禁
     overlay.classList.add("hidden");
     document.body.classList.add("playing");
-    resetGame();
-  });
+    resetGameAt(startIndex);
+  }
 
-  // ゲームオーバー/クリア時は画面タップでリスタート（モバイル用）
+  newBtn.addEventListener("click", () => beginPlay(0));
+  contBtn.addEventListener("click", () => { if (!contBtn.disabled) beginPlay(continueStage); });
+
+  // ゲームオーバー/クリア時は画面タップでメニューへ（もう一度／つづきを選べる）
   canvas.addEventListener("pointerdown", (e) => {
-    if (state === "gameover" || state === "clear") { e.preventDefault(); ac(); primeAudio(); resetGame(); }
+    if (state === "gameover" || state === "clear") { e.preventDefault(); showMenu(); }
   });
 
   // 実際に見えている高さに合わせる（スマホでアドレスバー分がはみ出さないように）
