@@ -516,22 +516,36 @@
     new Audio("audio/bgm_stage3.mp3")    // ステージ3
   ];
   BGM.forEach(a => { a.loop = true; a.volume = 0.15; });  // 小さめ・ループ
+  // ボス戦BGM（ステージ別。無いステージはnull＝通常BGMのまま）
+  const BOSS_BGM = [
+    new Audio("audio/bgm_boss1.mp3"),  // ステージ1ボス（クリだいおう）
+    null,                              // ステージ2ボス（未定）
+    null                               // ステージ3ボス（未定）
+  ];
+  BOSS_BGM.forEach(a => { if (a) { a.loop = true; a.volume = 0.2; } });
   let bgm = BGM[0];                           // 今鳴らしているBGM
   function stageBgm() { return BGM[Math.min(stageIndex, BGM.length - 1)]; }
+  function currentBgm() {
+    if (inBoss && BOSS_BGM[stageIndex]) return BOSS_BGM[stageIndex];  // ボス戦中はボスBGM
+    return stageBgm();
+  }
   function startBGM() {
-    const want = stageBgm();
-    if (want !== bgm) { try { bgm.pause(); } catch (e) {} bgm = want; } // 別ステージのは止める
+    const want = currentBgm();
+    if (want !== bgm) { try { bgm.pause(); } catch (e) {} bgm = want; } // 別の曲は止める
     try { bgm.play().catch(() => {}); } catch (e) {}
   }
-  function stopBGM()  { BGM.forEach(a => { try { a.pause(); } catch (e) {} }); }
+  function stopBGM()  {
+    BGM.forEach(a => { try { a.pause(); } catch (e) {} });
+    BOSS_BGM.forEach(a => { if (a) { try { a.pause(); } catch (e) {} } });
+  }
 
   // iOS等で最初のタッチ/クリック時に音声を解禁しておく
   let audioPrimed = false;
   function primeAudio() {
     if (audioPrimed) return;
     audioPrimed = true;
-    // ステージ2以降のBGMも先に解禁（ステージ1は開始時に鳴るので除外）
-    [VOICE.get, VOICE.sad].concat(BGM.slice(1)).forEach(a => {
+    // ステージ2以降のBGM＋ボスBGMも先に解禁（ステージ1は開始時に鳴るので除外）
+    [VOICE.get, VOICE.sad].concat(BGM.slice(1), BOSS_BGM.filter(Boolean)).forEach(a => {
       try { a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(() => {}); } catch (e) {}
     });
   }
@@ -897,7 +911,8 @@
   function startBoss() {
     inBoss = true;
     setupBossArena();
-    state = "boss";           // BGMはそのまま継続
+    state = "boss";
+    startBGM();               // ボス戦BGMに切り替え（あれば）
   }
 
   // 1画面の平らな闘技場を作り、プレイヤーとボスを配置
@@ -914,6 +929,8 @@
     p.onGround = false; p.face = 1; p.invuln = 50;
     p.gliding = false; p.glideUsed = false;
     boss = makeBoss(STAGES[stageIndex].boss || "kuri");
+    const bb = BOSS_BGM[stageIndex];
+    if (bb) { try { bb.currentTime = 0; } catch (e) {} }   // ボス曲を頭出し
     elapsed = 0;
   }
 
