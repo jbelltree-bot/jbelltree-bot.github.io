@@ -480,18 +480,27 @@
     try { const a = VOICE[name]; a.currentTime = 0; a.play().catch(() => {}); } catch (e) {}
   }
 
-  const bgm = new Audio("audio/bgm_stage1.mp3");
-  bgm.loop = true;
-  bgm.volume = 0.15;                          // 小さめ
-  function startBGM() { try { bgm.play().catch(() => {}); } catch (e) {} }
-  function stopBGM()  { try { bgm.pause(); } catch (e) {} }
+  const BGM = [
+    new Audio("audio/bgm_stage1.mp3"),   // ステージ1
+    new Audio("audio/bgm_stage2.mp3")    // ステージ2
+  ];
+  BGM.forEach(a => { a.loop = true; a.volume = 0.15; });  // 小さめ・ループ
+  let bgm = BGM[0];                           // 今鳴らしているBGM
+  function stageBgm() { return BGM[Math.min(stageIndex, BGM.length - 1)]; }
+  function startBGM() {
+    const want = stageBgm();
+    if (want !== bgm) { try { bgm.pause(); } catch (e) {} bgm = want; } // 別ステージのは止める
+    try { bgm.play().catch(() => {}); } catch (e) {}
+  }
+  function stopBGM()  { BGM.forEach(a => { try { a.pause(); } catch (e) {} }); }
 
   // iOS等で最初のタッチ/クリック時に音声を解禁しておく
   let audioPrimed = false;
   function primeAudio() {
     if (audioPrimed) return;
     audioPrimed = true;
-    [VOICE.get, VOICE.sad].forEach(a => {
+    // ステージ2以降のBGMも先に解禁（ステージ1は開始時に鳴るので除外）
+    [VOICE.get, VOICE.sad].concat(BGM.slice(1)).forEach(a => {
       try { a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(() => {}); } catch (e) {}
     });
   }
@@ -814,7 +823,7 @@
     buildLevel();
     if (keepPowered) setPowered(true);
     player.seed = keepSeed;
-    bgm.currentTime = 0;
+    stageBgm().currentTime = 0;
     startBGM();
     state = "play";
   }
@@ -830,7 +839,7 @@
     lives = 3; score = 0; coinsGot = 0;
     loadStage(0);
     buildLevel();
-    bgm.currentTime = 0;
+    stageBgm().currentTime = 0;
     startBGM();
     state = "play";
   }
@@ -1384,11 +1393,11 @@
     ctx.fillStyle = p.seed ? "#d9ad3a" : "#a7abb4";
     ctx.beginPath(); ctx.ellipse(-6, -2, bodyR*0.7, bodyR*0.85, 0, 0, 7); ctx.fill();
 
-    // 耳（グレー＋薄ピンク内側）
-    ctx.fillStyle = "#b0b4bc";
+    // 耳（クリーム色＋少し濃い内側）※実物に合わせて
+    ctx.fillStyle = "#efe1c6";
     ctx.beginPath(); ctx.ellipse(-9, -15, 5, 6, -0.3, 0, 7); ctx.fill();
     ctx.beginPath(); ctx.ellipse(9, -15, 5, 6, 0.3, 0, 7); ctx.fill();
-    ctx.fillStyle = "#f3c9c0";
+    ctx.fillStyle = "#e2d0ac";
     ctx.beginPath(); ctx.ellipse(-9, -14, 2.4, 3, -0.3, 0, 7); ctx.fill();
     ctx.beginPath(); ctx.ellipse(9, -14, 2.4, 3, 0.3, 0, 7); ctx.fill();
 
@@ -1401,24 +1410,25 @@
     ctx.beginPath(); ctx.arc(-2, 2, 3.2, 0, 7); ctx.fill();
     ctx.beginPath(); ctx.arc(12, 2, 3.2, 0, 7); ctx.fill();
 
-    // 目（青→左、黒→右 に似せて。向きで見えるほう）
-    // 大きい目・キラキラ
-    ctx.fillStyle = "#1c2b3a";
+    // 目（両目とも青いキラキラ）※実物に合わせて
+    // 青いキラキラの土台
+    ctx.fillStyle = "#4fb4ea";
+    ctx.beginPath(); ctx.arc(2, -4, 5.4, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(13, -4, 4.8, 0, 7); ctx.fill();
+    // 黒目
+    ctx.fillStyle = "#15151a";
     ctx.beginPath(); ctx.arc(2, -4, 4.2, 0, 7); ctx.fill();
     ctx.beginPath(); ctx.arc(13, -4, 3.6, 0, 7); ctx.fill();
-    // 青いリング（片目）
-    ctx.strokeStyle = "#3aa8e0"; ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.arc(2, -4, 4.2, 0, 7); ctx.stroke();
     // ハイライト
     ctx.fillStyle = "#fff";
     ctx.beginPath(); ctx.arc(3.4, -5.2, 1.4, 0, 7); ctx.fill();
     ctx.beginPath(); ctx.arc(14, -5, 1.2, 0, 7); ctx.fill();
 
-    // 鼻（黒くつやっと）
-    ctx.fillStyle = "#1a1a1a";
-    ctx.beginPath(); ctx.ellipse(8, 1, 3, 2.4, 0, 0, 7); ctx.fill();
+    // 鼻（大きめの黒・つやっと）※実物に合わせて
+    ctx.fillStyle = "#161619";
+    ctx.beginPath(); ctx.ellipse(8, 1, 4.6, 3.9, 0, 0, 7); ctx.fill();
     ctx.fillStyle = "rgba(255,255,255,0.6)";
-    ctx.beginPath(); ctx.arc(7.3, 0.3, 0.9, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(6.6, -0.4, 1.3, 0, 7); ctx.fill();
 
     // 口（にっこり）
     ctx.strokeStyle = "#3a3128"; ctx.lineWidth = 1.4; ctx.lineCap = "round";
@@ -1431,10 +1441,16 @@
     }
     ctx.stroke();
 
-    // 前足（クリーム色・小さな手）
+    // 前足（両手：体の左右に小さく。走ると少しだけ振る／クリアでバンザイ）※実物寄せ
+    const swing = run ? legPhase * 2 : 0;   // 走行中だけ交互にほんの少し
+    const lift  = airborne ? -2 : (state === "clear" ? -6 - Math.sin(p.winPose*0.2)*3 : 0);
+    const lhx = -13, rhx = 15, hy = 8;
     ctx.fillStyle = "#f6e2c0";
-    const armSwing = run ? -legPhase*5 : (airborne ? -5 : (state==="clear"? -8 - Math.sin(p.winPose*0.2)*4 : -1));
-    ctx.beginPath(); ctx.ellipse(6, 8 + armSwing*0.2, 4, 5, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(lhx, hy + lift - swing, 3.3, 4.2, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(rhx, hy + lift + swing, 3.3, 4.2, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#f0bd98";  // ピーチの肉球
+    ctx.beginPath(); ctx.arc(lhx, hy + lift - swing + 1, 1.5, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(rhx, hy + lift + swing + 1, 1.5, 0, 7); ctx.fill();
 
     ctx.restore();
 
