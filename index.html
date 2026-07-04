@@ -149,19 +149,33 @@
   }
   #overlay {
     position: absolute; inset: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
+    display: flex;
     background: rgba(20,20,40,.82);
-    text-align: center; gap: 14px; padding: 20px;
+    text-align: center; padding: 16px;
+    /* 内容が画面より高いときはスクロールできるように（上下が切れない） */
+    overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y;
   }
-  #overlay h2 { font-size: 30px; text-shadow: 2px 2px 0 #e94560; }
-  #overlay p { font-size: 15px; line-height: 1.7; opacity: .9; }
+  #overlay .inner {
+    margin: auto;   /* 収まるときは中央、はみ出すときは上詰め＋スクロール */
+    display: flex; flex-direction: column; align-items: center;
+    gap: 12px; max-width: 660px; width: 100%;
+  }
+  #overlay h2 { font-size: 28px; text-shadow: 2px 2px 0 #e94560; }
+  #overlay p { font-size: 15px; line-height: 1.6; opacity: .9; }
   #overlay button {
     font-size: 18px; padding: 12px 30px; border: none; border-radius: 30px;
     background: #e94560; color: #fff; cursor: pointer; font-weight: bold;
-    box-shadow: 0 4px 0 #a82a42; transition: transform .05s;
+    box-shadow: 0 4px 0 #a82a42; transition: transform .05s; flex: none;
   }
   #overlay button:active { transform: translateY(3px); box-shadow: 0 1px 0 #a82a42; }
+  /* 背の低い画面（横向きスマホ・アプリ内ブラウザ）では小さめに表示して収める */
+  @media (max-height: 540px) {
+    #overlay { padding: 8px; }
+    #overlay .inner { gap: 7px; }
+    #overlay h2 { font-size: 19px; }
+    #overlay p { font-size: 11.5px; line-height: 1.35; }
+    #overlay button { font-size: 15px; padding: 7px 22px; box-shadow: 0 3px 0 #a82a42; }
+  }
   .hidden { display: none !important; }
   #hint { font-size: 12px; opacity: .55; }
   .keycap {
@@ -176,6 +190,7 @@
   <div id="stage">
     <canvas id="game" width="800" height="450"></canvas>
     <div id="overlay">
+     <div class="inner">
       <h2>まるりんワールド</h2>
       <p>
         ハムスターの<b>まるりん</b>を動かしてゴールを目指そう！<br>
@@ -188,6 +203,7 @@
         🪶はねを取ると<b>はねまるりん</b>に！ ジャンプ中に<b>A</b>ボタンをもう一度で、少しのあいだ<b>ぷかぷか飛べる</b>✈️
       </p>
       <button id="startBtn">スタート！</button>
+     </div>
     </div>
   </div>
   <div id="hint">P：ポーズ ／ R：リスタート</div>
