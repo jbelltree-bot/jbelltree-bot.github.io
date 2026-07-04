@@ -184,7 +184,8 @@
         <span class="keycap">Space</span> / <span class="keycap">↑</span> / <span class="keycap">W</span> でジャンプ<br>
         📱 スマホ・タブレットは画面の<b>十字キー</b>と<b>A（ジャンプ）B（ダッシュ）</b>ボタンで操作<br>
         敵は上から踏むとやっつけられるよ。🌰ナッツでパワーアップ！<br>
-        🌻ひまわりを取ると<b>たねまるりん</b>に！ <b>B</b>ボタンで<b>種</b>を飛ばして敵を倒せる🌰
+        🌻ひまわりを取ると<b>たねまるりん</b>に！ <b>B</b>ボタンで<b>種</b>を飛ばして敵を倒せる🌰<br>
+        🪶はねを取ると<b>はねまるりん</b>に！ ジャンプ中に<b>B</b>ボタンで少しのあいだ<b>ぷかぷか飛べる</b>✈️
       </p>
       <button id="startBtn">スタート！</button>
     </div>
@@ -237,8 +238,8 @@
 
   // ---------- レベルデザイン ----------
   // X=床/地面ブロック  #=硬いブロック  ?=はてなブロック(コイン)  o=コイン
-  // N=ナッツ(でかまるりん)  F=ひまわり(たねまるりん・種の飛び道具)
-  // e=クリの敵  E=動かないクリ  c=ネコ(地上)  b=カラス(飛ぶ)
+  // N=ナッツ(でかまるりん)  F=ひまわり(たねまるりん・種の飛び道具)  H=はね(はねまるりん・滑空)
+  // e=クリの敵  E=動かないクリ  c=ネコ(地上)  b=カラス(飛ぶ)  v=車(地上・速い)
   // P=プレイヤー開始  G=ゴール  -=空
   const STAGES = [
     {
@@ -274,6 +275,23 @@
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
       ]
+    },
+    {
+      name: "ステージ3 成田",
+      theme: "narita",
+      level: [
+        "----------------------------------------------------------------------------------------------------",
+        "----------------------------------------------------------------------------------------------------",
+        "----------------------------------------------------------------------------------------------------",
+        "--------------------------------------------------o-o-o-------------------------------------G-------",
+        "------------------------------------------------------------?----------------------------N----------",
+        "----------o-o--N--------o-o------------------------------------o-o------F--------------#####--------",
+        "---P---------------------?------------H-----------b-------------------------------------------------",
+        "------------------------------------#####------o-o--------------------------------------------------",
+        "--------------------v-----------------------v------------------#####-----------------v--------------",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXX",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXX",
+      ]
     }
   ];
   let stageIndex = 0;
@@ -290,7 +308,7 @@
   loadStage(0);
 
   // ---------- ゲーム状態 ----------
-  let solids, coins, enemies, questionBlocks, goal, player, nuts, flowers, seeds;
+  let solids, coins, enemies, questionBlocks, goal, player, nuts, flowers, feathers, seeds;
   let enemySpawns = [];
   let camX = 0;
   let score = 0, coinsGot = 0, lives = 3;
@@ -305,6 +323,7 @@
     enemies = [];
     nuts = [];
     flowers = [];
+    feathers = [];
     seeds = [];
     questionBlocks = [];
     enemySpawns = [];
@@ -323,10 +342,12 @@
         else if (ch === "o") coins.push({ x: x + 8, y: y + 8, w: 24, h: 24, got: false, t: Math.random() * 6 });
         else if (ch === "N") nuts.push({ x: x + 6, y: y + 6, w: 28, h: 28, got: false, t: Math.random() * 6 });
         else if (ch === "F") flowers.push({ x: x + 4, y: y + 4, w: 32, h: 32, got: false, t: Math.random() * 6 });
+        else if (ch === "H") feathers.push({ x: x + 4, y: y + 4, w: 30, h: 32, got: false, t: Math.random() * 6 });
         else if (ch === "e") { enemySpawns.push({ x, y, kind: "kuri" }); enemies.push(makeEnemy(x, y, { kind: "kuri" })); }
         else if (ch === "E") { enemySpawns.push({ x, y, kind: "kuri", slow: true }); enemies.push(makeEnemy(x, y, { kind: "kuri", slow: true })); }
         else if (ch === "c") { enemySpawns.push({ x, y, kind: "cat" }); enemies.push(makeEnemy(x, y, { kind: "cat" })); }
         else if (ch === "b") { enemySpawns.push({ x, y, kind: "crow" }); enemies.push(makeEnemy(x, y, { kind: "crow" })); }
+        else if (ch === "v") { enemySpawns.push({ x, y, kind: "car" }); enemies.push(makeEnemy(x, y, { kind: "car" })); }
         else if (ch === "P") start = { x, y };
         else if (ch === "G") goal = { x: x + TILE / 2, y: y, top: y };
       }
@@ -338,7 +359,8 @@
       x: start.x, y: start.y, w: 28, h: 30,
       vx: 0, vy: 0, onGround: false, face: 1,
       coyote: 0, animT: 0, invuln: 0, squash: 1, alive: true, winPose: 0,
-      powered: false, seed: false, powerAnim: 0, bounceLock: 0, seedCool: 0
+      powered: false, seed: false, powerAnim: 0, bounceLock: 0, seedCool: 0,
+      wing: false, gliding: false, glideTimer: 0, glideT: 0, glideUsed: false
     };
     camX = 0; elapsed = 0; particles = [];
   }
@@ -361,6 +383,11 @@
       const baseY = y + 2;
       return { kind, x: x + 3, y: baseY, w: 34, h: 24, vx: opts.slow ? -0.9 : -1.5,
                alive: true, t: Math.random()*6, squash: 1, fly: true, baseY, homeX: x + 3, range: 130 };
+    }
+    if (kind === "car") {
+      // 車：地上を速く走る（他の敵より速い）
+      return { kind, x: x + 2, y: y + TILE - 28, w: 46, h: 28, vx: -2.8,
+               alive: true, t: Math.random()*6, squash: 1, car: true };
     }
     // 地上の敵（kuri=クリ / cat=ネコ）
     const speed = opts.slow ? 0 : (kind === "cat" ? -1.5 : -1.1);
@@ -482,7 +509,8 @@
 
   const BGM = [
     new Audio("audio/bgm_stage1.mp3"),   // ステージ1
-    new Audio("audio/bgm_stage2.mp3")    // ステージ2
+    new Audio("audio/bgm_stage2.mp3"),   // ステージ2
+    new Audio("audio/bgm_stage3.mp3")    // ステージ3
   ];
   BGM.forEach(a => { a.loop = true; a.volume = 0.15; });  // 小さめ・ループ
   let bgm = BGM[0];                           // 今鳴らしているBGM
@@ -521,8 +549,8 @@
         p.vx = 0;
       }
     }
-    // 縦移動
-    p.vy += GRAVITY;
+    // 縦移動（滑空中は重力をほぼ効かせない：ぷかぷか）
+    if (!p.gliding) p.vy += GRAVITY;
     if (p.vy > 18) p.vy = 18;
     p.y += p.vy;
     p.onGround = false;
@@ -600,10 +628,25 @@
     p.animT++;
     // 横入力（Bボタン/Shiftでダッシュ）
     const dashing = running();
-    // Bボタン（ダッシュ）を押した瞬間に種を発射（押しっぱなしはダッシュのまま）
-    if (dashing && !dashPrev) fireSeed();
+    // Bボタン（ダッシュ）を押した瞬間の特殊アクション
+    if (dashing && !dashPrev) {
+      if (p.seed) {
+        fireSeed();                 // たねまるりん：種を発射
+      } else if (p.wing && !p.onGround && !p.glideUsed) {
+        // はねまるりん：ジャンプ後にもう一度Bで、少しの間ぷかぷか飛ぶ
+        p.gliding = true; p.glideUsed = true; p.glideTimer = 78; p.glideT = 0;
+        p.vy = -1.6; sfx.jump();
+        spawnParticles(p.x + p.w/2, p.y + p.h/2, "#ffffff", 6);
+      }
+    }
     dashPrev = dashing;
     if (p.seedCool > 0) p.seedCool--;
+    // 滑空の更新（ぷかぷか上下しながらゆっくり降下）
+    if (p.gliding) {
+      p.glideT++; p.glideTimer--;
+      p.vy = Math.sin(p.glideT * 0.16) * 1.3 + 0.35;
+      if (p.glideTimer <= 0) p.gliding = false;
+    }
     const accel = dashing ? MOVE * 1.35 : MOVE;
     const maxSp = dashing ? 7.6 : MAX_SPEED;
     if (left())  { p.vx -= accel; p.face = -1; }
@@ -638,6 +681,9 @@
 
     moveAndCollide();
 
+    // 着地したら滑空をリセット（次のジャンプでまた飛べる）
+    if (p.onGround) { p.gliding = false; p.glideUsed = false; }
+
     // コイン
     for (const c of coins) {
       if (!c.got && rectHit(p, c)) {
@@ -664,9 +710,21 @@
         f.got = true; score += 500; sfx.power(); playVoice("get");
         p.powerAnim = 40;
         if (!p.powered) setPowered(true);
-        p.seed = true;
+        p.seed = true; p.wing = false; p.gliding = false;
         spawnParticles(f.x + f.w/2, f.y + f.h/2, "#ffd34d", 12);
         spawnParticles(f.x + f.w/2, f.y + f.h/2, "#8a5a2c", 6);
+      }
+    }
+
+    // はね（はねまるりんにパワーアップ）
+    for (const f of feathers) {
+      if (!f.got && rectHit(p, f)) {
+        f.got = true; score += 500; sfx.power(); playVoice("get");
+        p.powerAnim = 40;
+        if (!p.powered) setPowered(true);
+        p.wing = true; p.seed = false;
+        spawnParticles(f.x + f.w/2, f.y + f.h/2, "#ffffff", 12);
+        spawnParticles(f.x + f.w/2, f.y + f.h/2, "#bfe3ff", 8);
       }
     }
 
@@ -752,9 +810,9 @@
 
   function hurtPlayer() {
     const p = player;
-    if (p.seed) {
-      // たねまるりん → でかまるりんに戻る（ミスにならない）
-      p.seed = false;
+    if (p.seed || p.wing) {
+      // たね／はねまるりん → でかまるりんに戻る（ミスにならない）
+      p.seed = false; p.wing = false; p.gliding = false;
       p.invuln = 90; p.powerAnim = 0;
       sfx.hurt(); playVoice("sad");
       p.vy = -6; p.vx = -p.face * 3;
@@ -788,6 +846,7 @@
     let sx = 2*TILE, sy = 6*TILE;
     for (let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(LEVEL[r][c]==="P"){sx=c*TILE;sy=r*TILE;}
     player.powered = false; player.seed = false; player.w = 28; player.h = 30; player.powerAnim = 0;
+    player.wing = false; player.gliding = false; player.glideUsed = false;
     player.x = sx; player.y = sy; player.vx = 0; player.vy = 0;
     player.alive = true; player.invuln = 90; player.deadT = 0;
     seeds = [];
@@ -818,11 +877,11 @@
 
   // 次のステージへ（パワーアップ状態は引き継ぐ）
   function advanceStage() {
-    const keepPowered = player.powered, keepSeed = player.seed;
+    const keepPowered = player.powered, keepSeed = player.seed, keepWing = player.wing;
     loadStage(stageIndex + 1);
     buildLevel();
     if (keepPowered) setPowered(true);
-    player.seed = keepSeed;
+    player.seed = keepSeed; player.wing = keepWing;
     stageBgm().currentTime = 0;
     startBGM();
     state = "play";
@@ -855,6 +914,15 @@
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
       drawClouds();
       drawSkyline();
+    } else if (theme === "narita") {
+      // 成田：やわらかい青空＋緑の木立
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#8fcdf0");
+      g.addColorStop(0.55, "#c6e7f4");
+      g.addColorStop(1, "#eaf6ef");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      drawClouds();
+      drawHills();
     } else {
       // 空グラデーション（くさはら）
       const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -870,10 +938,12 @@
     ctx.translate(-Math.round(camX), 0);
 
     if (theme === "town") drawTownDecor();
+    else if (theme === "narita") drawNaritaDecor();
     drawSolids();
     drawCoins();
     drawNuts();
     drawFlowers();
+    drawFeathers();
     if (goal) drawGoal(goal);
     drawSeeds();
     drawEnemies();
@@ -1183,6 +1253,7 @@
 
   function drawGoal(gl) {
     if (theme === "town") { drawGate(gl); return; }
+    if (theme === "narita") { drawAirport(gl); return; }
     const x = gl.x;
     // ポール
     ctx.fillStyle = "#cfcfcf"; ctx.fillRect(x-3, gl.top, 6, TILE*6);
@@ -1225,6 +1296,167 @@
       ctx.fillStyle = "#33aa55"; ctx.fillRect(gx + 5, chY + 20, 18, 9); // 通れる緑ランプ
       ctx.fillStyle = "#2b6cb0"; ctx.fillRect(gx + 6, chY + 36, 16, 22); // 読み取り部
     }
+  }
+
+  // ===== ステージ3：成田 =====
+  function drawNaritaDecor() {
+    const Lc = camX - 460, R = camX + W + 80;
+    const put = (x, fn) => { if (x > Lc && x < R) fn(); };
+    put(240,  () => naritaStation(240));
+    put(1150, () => pagoda(1150));
+    put(1900, () => signBuilding(1900, 240, 150, "#f4eef4", "#e5007e", "イオン成田", "#e5007e", "#fff"));
+    put(2700, () => airportRoadSign(2700));
+  }
+
+  // 成田駅
+  function naritaStation(x) {
+    const w = 210, h = 132, top = GROUND_Y - h;
+    ctx.fillStyle = "#e8ddc8"; ctx.fillRect(x, top, w, h);            // 壁
+    ctx.fillStyle = "#7a5230"; ctx.fillRect(x - 6, top - 14, w + 12, 18); // 屋根
+    ctx.fillStyle = "rgba(120,140,160,0.5)"; ctx.fillRect(x + w/2 - 34, GROUND_Y - 60, 68, 60); // 入口
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    for (let wy = top + 20; wy < GROUND_Y - 66; wy += 24)
+      for (let wx = x + 14; wx < x + w - 18; wx += 30)
+        ctx.fillRect(wx, wy, 20, 16);
+    const sw = 128, sx = x + (w - sw)/2, sy = top - 46;
+    ctx.fillStyle = "#0a5c3a"; ctx.fillRect(sx, sy, sw, 30);          // 駅名看板（JR系グリーン）
+    ctx.fillStyle = "#fff"; ctx.font = "bold 19px 'Segoe UI', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("成田駅", x + w/2, sy + 15);
+  }
+
+  // 成田山 三重塔（朱塗り）
+  function pagoda(x) {
+    const cx = x + 60, baseY = GROUND_Y;
+    ctx.fillStyle = "#cfc4a8"; ctx.fillRect(x + 22, baseY - 12, 76, 12); // 基壇
+    const tiers = [
+      { roofW: 96, bodyW: 36, bodyTop: baseY - 60, bodyH: 48 }, // 下層
+      { roofW: 78, bodyW: 30, bodyTop: baseY - 104, bodyH: 44 }, // 中層
+      { roofW: 62, bodyW: 24, bodyTop: baseY - 146, bodyH: 42 }  // 上層
+    ];
+    for (let i = 2; i >= 0; i--) {  // 上から描いて下の屋根を手前に
+      const t = tiers[i], ry = t.bodyTop;
+      ctx.fillStyle = "#c0392b"; ctx.fillRect(cx - t.bodyW/2, t.bodyTop, t.bodyW, t.bodyH); // 胴
+      ctx.fillStyle = "#9e2f24"; ctx.fillRect(cx - t.bodyW/2, t.bodyTop, 4, t.bodyH);        // 柱の陰
+      ctx.fillStyle = "#7a2f25";                                                              // 屋根
+      ctx.beginPath();
+      ctx.moveTo(cx - t.roofW/2, ry + 10);
+      ctx.quadraticCurveTo(cx - t.roofW/2 - 4, ry - 4, cx - t.roofW/2 + 10, ry - 6);
+      ctx.lineTo(cx + t.roofW/2 - 10, ry - 6);
+      ctx.quadraticCurveTo(cx + t.roofW/2 + 4, ry - 4, cx + t.roofW/2, ry + 10);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#efe6cf"; ctx.fillRect(cx - t.roofW/2 + 6, ry + 7, t.roofW - 12, 3);  // 軒先の白
+    }
+    const topY = tiers[2].bodyTop;                 // 相輪（金）
+    ctx.strokeStyle = "#d4af37"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(cx, topY - 6); ctx.lineTo(cx, topY - 30); ctx.stroke();
+    ctx.fillStyle = "#d4af37"; ctx.beginPath(); ctx.arc(cx, topY - 32, 3, 0, 7); ctx.fill();
+    ctx.fillStyle = "#5b3a1a"; ctx.fillRect(x + 32, baseY - 13, 56, 15);   // 立て札
+    ctx.fillStyle = "#fff"; ctx.font = "9px 'Segoe UI', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("成田山 三重塔", x + 60, baseY - 6);
+  }
+
+  // 「成田空港 →」の道路案内標識
+  function airportRoadSign(x) {
+    ctx.fillStyle = "#8a9099"; ctx.fillRect(x + 40, GROUND_Y - 120, 8, 120);
+    ctx.fillStyle = "#1b7a3a"; ctx.fillRect(x - 6, GROUND_Y - 134, 140, 34);
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.strokeRect(x - 4, GROUND_Y - 132, 136, 30);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 15px 'Segoe UI', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("成田空港 ✈ →", x + 64, GROUND_Y - 117);
+  }
+
+  // ゴール：成田空港
+  function drawAirport(gl) {
+    const x = gl.x;
+    const tw = 230, th = 122, top = GROUND_Y - th;
+    ctx.fillStyle = "#eef2f6"; ctx.fillRect(x - 44, top, tw, th);      // ターミナル
+    ctx.fillStyle = "#cdd7e0"; ctx.fillRect(x - 44, top, tw, 16);      // 屋根
+    ctx.fillStyle = "#8fc4e6";                                         // ガラス張りの窓
+    for (let wy = top + 26; wy < GROUND_Y - 18; wy += 22)
+      ctx.fillRect(x - 34, wy, tw - 20, 14);
+    ctx.fillStyle = "#dfe6ec"; ctx.fillRect(x + tw - 78, top - 70, 16, 70); // 管制塔
+    ctx.fillStyle = "#3a4652"; ctx.fillRect(x + tw - 86, top - 84, 32, 18);
+    ctx.fillStyle = "#8fc4e6"; ctx.fillRect(x + tw - 82, top - 80, 24, 8);
+    const sw = 200, sx = x - 30, sy = top - 48;                        // 看板
+    ctx.fillStyle = "#0a2e6b"; ctx.fillRect(sx, sy, sw, 36);
+    ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = "bold 18px 'Segoe UI', sans-serif"; ctx.fillText("✈ 成田空港", sx + sw/2, sy + 13);
+    ctx.font = "9px 'Segoe UI', sans-serif"; ctx.fillText("NARITA AIRPORT", sx + sw/2, sy + 27);
+    const py = top - 46 + Math.sin(elapsed*0.05)*6;                    // 飛行機（ふわふわ）
+    drawPlane(x + 46, py);
+    // ゴールのぼり
+    const wave = Math.sin(elapsed*0.15)*4;
+    ctx.fillStyle = "#cfcfcf"; ctx.fillRect(x - 3, gl.top, 6, TILE*3);
+    ctx.fillStyle = "#e94560";
+    ctx.beginPath();
+    ctx.moveTo(x + 3, gl.top); ctx.lineTo(x + 48 + wave, gl.top + 13); ctx.lineTo(x + 3, gl.top + 26);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("G", x + 20, gl.top + 13);
+  }
+
+  function drawPlane(x, y) {
+    ctx.save(); ctx.translate(x, y);
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.ellipse(0, 0, 34, 9, 0, 0, 7); ctx.fill();     // 胴体
+    ctx.beginPath(); ctx.moveTo(-30, 0); ctx.lineTo(-42, -14); ctx.lineTo(-24, -2); ctx.closePath(); ctx.fill(); // 尾翼
+    ctx.fillStyle = "#d3dbe2";
+    ctx.beginPath(); ctx.moveTo(-2, 2); ctx.lineTo(-16, 16); ctx.lineTo(8, 4); ctx.closePath(); ctx.fill();      // 主翼
+    ctx.fillStyle = "#5aa0d0";
+    for (let i = -1; i < 5; i++) ctx.fillRect(i*8, -3, 4, 4);           // 窓
+    ctx.fillStyle = "#e0453f"; ctx.fillRect(24, -3, 9, 6);             // 機首
+    ctx.restore();
+  }
+
+  // はね（はねまるりんアイテム）
+  function drawFeathers() {
+    for (const f of feathers) {
+      if (f.got) continue;
+      if (f.x + f.w < camX - 40 || f.x > camX + W + 40) continue;
+      f.t += 0.08;
+      const cx = f.x + f.w/2, cy = f.y + f.h/2 + Math.sin(f.t)*3;
+      ctx.save();
+      ctx.globalAlpha = 0.5 + Math.abs(Math.sin(f.t))*0.3;
+      ctx.fillStyle = "#eaf5ff";
+      ctx.beginPath(); ctx.arc(cx, cy, f.w/2 + 2, 0, 7); ctx.fill();
+      ctx.restore();
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(Math.sin(f.t*0.5)*0.15 - 0.2);
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.ellipse(0, 0, 6, 14, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#cfe8fb";
+      ctx.beginPath(); ctx.ellipse(2.4, 0, 2.6, 12, 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = "#9cc7e6"; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(0, 13); ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  // 車（地上の速い敵）
+  function drawCar(e) {
+    ctx.save();
+    const cx = e.x + e.w/2, by = e.y + e.h;
+    ctx.translate(cx, by);
+    if (!e.alive) { ctx.scale(1.05, 0.3); ctx.globalAlpha = 0.7; }
+    const dir = e.vx > 0 ? 1 : -1;
+    const bob = Math.sin(e.t*0.4)*0.8;
+    ctx.fillStyle = "#d33b3b"; ctx.fillRect(-23, -16 + bob, 46, 15);   // 車体
+    ctx.fillStyle = "#e05555";                                         // キャビン
+    ctx.beginPath();
+    ctx.moveTo(-13, -16 + bob); ctx.lineTo(-8, -27 + bob);
+    ctx.lineTo(11, -27 + bob); ctx.lineTo(16, -16 + bob); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#bfe0f2";                                         // 窓
+    ctx.beginPath(); ctx.moveTo(-9, -17 + bob); ctx.lineTo(-6, -25 + bob);
+    ctx.lineTo(1, -25 + bob); ctx.lineTo(1, -17 + bob); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(3, -17 + bob); ctx.lineTo(3, -25 + bob);
+    ctx.lineTo(9, -25 + bob); ctx.lineTo(13, -17 + bob); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#ffe9a8";                                         // ヘッドライト
+    ctx.beginPath(); ctx.arc(dir*20, -8 + bob, 2.4, 0, 7); ctx.fill();
+    ctx.fillStyle = "#222";                                            // タイヤ
+    ctx.beginPath(); ctx.arc(-13, -1, 5, 0, 7); ctx.arc(13, -1, 5, 0, 7); ctx.fill();
+    ctx.fillStyle = "#888";
+    ctx.beginPath(); ctx.arc(-13, -1, 2, 0, 7); ctx.arc(13, -1, 2, 0, 7); ctx.fill();
+    ctx.restore();
   }
 
   // ネコ（地上の敵）
@@ -1296,6 +1528,7 @@
       if (e.x + e.w < camX - 40 || e.x > camX + W + 40) continue;
       if (e.kind === "cat")  { drawCat(e);  continue; }
       if (e.kind === "crow") { drawCrow(e); continue; }
+      if (e.kind === "car")  { drawCar(e);  continue; }
       ctx.save();
       const cx = e.x + e.w/2, by = e.y + e.h;
       ctx.translate(cx, by);
@@ -1385,6 +1618,21 @@
     const footSwing = run ? legPhase*6 : (airborne ? -3 : 0);
     ctx.beginPath(); ctx.ellipse(-6, 15 - footSwing*0.3, 6, 5, 0, 0, 7); ctx.fill();
     ctx.beginPath(); ctx.ellipse(7, 15 + footSwing*0.3, 6, 5, 0, 0, 7); ctx.fill();
+
+    // はね（はねまるりん）：背中の白い羽（滑空中はパタパタ速く動く）
+    if (p.wing) {
+      const wf = p.gliding ? Math.sin(p.glideT*0.6)*0.55 : Math.sin(p.animT*0.15)*0.22;
+      for (const s of [-1, 1]) {
+        ctx.save();
+        ctx.translate(s*12, -4);
+        ctx.rotate(s*(0.55 + wf));
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.beginPath(); ctx.ellipse(0, 0, 6, 13, 0, 0, 7); ctx.fill();
+        ctx.strokeStyle = "rgba(150,200,240,0.75)"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.ellipse(0, 0, 6, 13, 0, 0, 7); ctx.stroke();
+        ctx.restore();
+      }
+    }
 
     // 体（グレーの丸／たねまるりんは黄金色）
     ctx.fillStyle = p.seed ? "#eac352" : "#b8bcc4";
@@ -1477,7 +1725,12 @@
     ctx.fillText("x " + coinsGot, 164, 18);
 
     // パワーアップ表示
-    if (player.seed) {
+    if (player.wing) {
+      ctx.fillStyle = "#cdeaff";
+      ctx.font = "bold 13px 'Segoe UI', sans-serif";
+      ctx.fillText("🪶 はねまるりん", 250, 18);
+      ctx.font = "bold 16px 'Segoe UI', sans-serif";
+    } else if (player.seed) {
       ctx.fillStyle = "#ffd34d";
       ctx.font = "bold 13px 'Segoe UI', sans-serif";
       ctx.fillText("🌻 たねまるりん", 250, 18);
