@@ -46,7 +46,9 @@
     #wrap  { height: 100dvh; }
     #stage { width: min(100vw, calc(100dvh * 1.72), 960px); }
   }
-  canvas { display: block; image-rendering: pixelated; width: 100%; height: auto; }
+  canvas { display: block; image-rendering: pixelated; width: 100%; height: auto;
+    touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  #stage { touch-action: none; }
 
   /* ===== タッチ操作 ===== */
   #touch-controls {
@@ -589,6 +591,24 @@
     if (matchMedia("(pointer: coarse)").matches || "ontouchstart" in window || navigator.maxTouchPoints > 0) {
       document.body.classList.add("has-touch");
     }
+  }
+
+  // iOSなどでの画面拡大（ピンチ／ダブルタップ）を防ぐ。
+  // iOSは viewport の user-scalable=no を無視するため、JSで明示的に止める。
+  // 拡大すると十字ボタンが画面外に出て操作できなくなるのを防ぐ。
+  function blockZoomGestures() {
+    // ピンチ拡大（Safariのgestureイベント）
+    ["gesturestart", "gesturechange", "gestureend"].forEach(ev =>
+      document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+    // ダブルタップ拡大（素早い2回タップ）。ボタンやメニュー以外の場所だけ止める。
+    let lastEnd = 0;
+    document.addEventListener("touchend", (e) => {
+      const now = Date.now();
+      const onControl = e.target.closest && e.target.closest("#touch-controls, #overlay");
+      if (now - lastEnd < 350 && !onControl) e.preventDefault();
+      lastEnd = now;
+    }, { passive: false });
+    document.addEventListener("dblclick", e => e.preventDefault(), { passive: false });
   }
 
   // ---------- サウンド (WebAudio) ----------
@@ -3472,6 +3492,7 @@
 
   // 初期化
   detectTouch();
+  blockZoomGestures();
   bindTouch();
   buildLevel();
   draw();
