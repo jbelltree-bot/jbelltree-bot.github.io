@@ -678,7 +678,7 @@
     get: new Audio("audio/voice_get.wav"),  // 001: ナッツ取得・クリア
     sad: new Audio("audio/voice_sad.wav"),  // 003: 被弾・落下・ゲームオーバー
     // ザガット（ステージ5ボス）の掛け声。ファイルを audio/ に置けば自動で鳴る（無ければ無音）
-    tiger:  new Audio("audio/voice_tiger.wav"),   // タイガーショット（上段）
+    tiger:  new Audio("audio/voice_gtiger.wav"),  // タイガーショット（上段）※voice_tiger.wavが不調のためgtigerを流用
     gtiger: new Audio("audio/voice_gtiger.wav"),  // グランドタイガーショット（下段）
     upper:  new Audio("audio/voice_upper.wav")    // タイガーアッパーカット（対空）
   };
@@ -688,7 +688,13 @@
   VOICE.gtiger.volume = 0.9;
   VOICE.upper.volume = 0.9;
   function playVoice(name) {
-    try { const a = VOICE[name]; a.currentTime = 0; a.play().catch(() => {}); } catch (e) {}
+    try {
+      const base = VOICE[name]; if (!base) return;
+      // クローンして鳴らす＝連続で撃っても声が途切れず、毎回頭から鳴る
+      const a = base.cloneNode ? base.cloneNode(true) : base;
+      a.volume = base.volume;
+      a.currentTime = 0; a.play().catch(() => {});
+    } catch (e) {}
   }
 
   const BGM = [
@@ -1363,6 +1369,7 @@
   // ステージ中（タイランド）に前から飛んでくるタイガーショット
   function spawnTigerShot() {
     const high = Math.random() < 0.5;
+    playVoice(high ? "tiger" : "gtiger");   // ステージでも撃った瞬間に掛け声（飛来の合図）
     hazards.push({ kind: high ? "tiger" : "gtiger", x: camX + W + 30,
                    y: high ? TIGER_HIGH_Y : TIGER_LOW_Y, vx: -3.4, t: 0 });
   }
@@ -1484,20 +1491,29 @@
     for (const s of solids) {
       if (rectHit(b, s) && b.vy > 0 && (b.y + b.h) - s.y < 46) { b.y = s.y - b.h; b.vy = 0; b.onGround = true; }
     }
-    // アッパー中でなければ、ホーム付近をゆっくり歩く（遠いと少し前に出る）
-    if (b.upperT <= 0) {
-      const far = Math.abs(pcx - bcx) > 300;
-      b.x += far ? b.face * 0.7 : (b.homeX - b.x) * 0.02;
-      if (b.x < 40) b.x = 40;
+    // 前後に動く（まるりんの方を向いたまま間合いを詰めたり離れたり＝ムエタイの足さばき）
+    if (b.upperT <= 0 && b.onGround) {
+      if (b.approach === undefined) b.approach = true;
+      b.stepCd--;
+      if (b.stepCd <= 0) { b.approach = !b.approach; b.stepCd = 40 + Math.floor(Math.random() * 45); }
+      const toPlayer = (pcx < bcx) ? -1 : 1;
+      const gap = Math.abs(pcx - bcx);
+      let mv = 0;
+      if (b.approach && gap > 120) mv = toPlayer;         // 詰める（近すぎない範囲で）
+      else if (!b.approach && gap < 360) mv = -toPlayer;  // 離れる（離れすぎない範囲で）
+      b.x += mv * 1.8;
+      if (b.x < 70) b.x = 70;
       if (b.x + b.w > W - 20) b.x = W - 20 - b.w;
     }
 
     if (b.upperCd > 0) b.upperCd--;
 
-    // 対空タイガーアッパーカット：近くでジャンプされたら出す（クールダウンあり＝すきま時間に踏める）
-    if (b.upperT <= 0 && b.upperCd <= 0 && !p.onGround && p.vy > -20 &&
-        Math.abs(pcx - bcx) < 150 && (p.y + p.h) < b.y + b.h * 0.8) {
-      b.upperT = 26; b.upperCd = 110; b.squash = 0.7; playVoice("upper"); sfx.jump();
+    // まるりんがジャンプ（上昇中）したら、それに合わせてタイガーアッパーカットで対空
+    if (b.upperT <= 0 && b.upperCd <= 0 && !p.onGround && p.vy < 0 &&
+        Math.abs(pcx - bcx) < 210) {
+      b.upperT = 40; b.upperCd = 78; b.squash = 0.7;
+      b.vy = -15; b.onGround = false;                     // 高く飛び上がって撃つ（対空）
+      playVoice("upper"); sfx.jump();
     }
     if (b.upperT > 0) {
       b.upperT--;
@@ -1511,10 +1527,10 @@
       if (b.shotCd <= 0 && b.onGround) {
         const low = b.nextLow; b.nextLow = !b.nextLow;
         const dir = b.face;
+        playVoice(low ? "gtiger" : "tiger");   // 撃った瞬間に掛け声（上段・下段どちらも）
         cukes.push({ kind: low ? "gtiger" : "tiger",
           x: bcx + dir * (b.w / 2 + 6), y: low ? TIGER_LOW_Y : TIGER_HIGH_Y,
           vx: dir * 4.0, t: 0 });
-        playVoice(low ? "gtiger" : "tiger");
         sfx.seed(); b.squash = 0.82;
         b.shotCd = 70 + Math.floor(Math.random() * 60);
       }
@@ -1757,12 +1773,13 @@
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
       drawClouds();
     } else if (inBoss && STAGES[stageIndex].boss === "zagat") {
-      // ザガット戦：夕方のムエタイ・リング（あたたかいオレンジの空）
+      // ザガット戦：青空の遺跡（寝釈迦仏のある広場）
       const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#e88a3c");
-      g.addColorStop(0.5, "#f0b46a");
-      g.addColorStop(1, "#f6d79c");
+      g.addColorStop(0, "#4aa8e0");
+      g.addColorStop(0.6, "#addcf0");
+      g.addColorStop(1, "#e7f5fb");
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      drawClouds();
     } else if (theme === "thailand") {
       // タイランド：あたたかい南国の空
       const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -2067,7 +2084,15 @@
         ctx.strokeStyle = "rgba(60,40,20,0.35)"; ctx.lineWidth = 1;
         ctx.strokeRect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);
         if (topEdge) { ctx.fillStyle = "#a5794a"; ctx.fillRect(s.x, s.y, s.w, 5); }
-      } else if (s.type === "ground" && (theme === "thailand" || (inBoss && STAGES[stageIndex].boss === "zagat"))) {
+      } else if (s.type === "ground" && inBoss && STAGES[stageIndex].boss === "zagat") {
+        // ザガット戦：石畳の広場
+        ctx.fillStyle = "#cfccc4"; ctx.fillRect(s.x, s.y, s.w, s.h);
+        ctx.strokeStyle = "rgba(120,115,105,0.5)"; ctx.lineWidth = 1;
+        ctx.strokeRect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);          // 目地
+        ctx.fillStyle = "#c3c0b7";
+        for (let i=0;i<2;i++) for(let j=0;j<2;j++) ctx.fillRect(s.x+8+i*18, s.y+12+j*14, 8, 5);
+        if (!isSolidAt(s.x, s.y - TILE)) { ctx.fillStyle = "#dedbd3"; ctx.fillRect(s.x, s.y, s.w, 5); }
+      } else if (s.type === "ground" && theme === "thailand") {
         // タイランド：赤茶けた大地
         ctx.fillStyle = "#a3623a"; ctx.fillRect(s.x, s.y, s.w, s.h);
         ctx.fillStyle = "#93552f";
@@ -2768,16 +2793,100 @@
   }
 
   // ===== ボス：ザガット（ムエタイの王者・オマージュ）=====
+  // 背景＝タイの遺跡広場（寝そべった大仏・ヤシ・石段の寺院・芝生・石畳）
   function drawZagatBackdrop() {
-    // 奥の寺院のシルエット
-    ctx.fillStyle = "rgba(150,90,40,0.35)";
-    thaiWat(90, 210); thaiWat(W - 260, 210);
-    // ムエタイ・リングのロープ
-    ctx.strokeStyle = "rgba(200,60,60,0.6)"; ctx.lineWidth = 5;
-    for (let r = 0; r < 3; r++) { ctx.beginPath(); ctx.moveTo(0, 150 + r*40); ctx.lineTo(W, 150 + r*40); ctx.stroke(); }
-    // 支柱
-    ctx.fillStyle = "rgba(90,60,40,0.5)";
-    ctx.fillRect(20, 140, 16, 220); ctx.fillRect(W - 36, 140, 16, 220);
+    const gY = BOSS_GROUND;   // 360
+    // 遠くの緑（かすんだ木立）
+    ctx.fillStyle = "#a9d98a";
+    for (let i = -1; i < 7; i++) { ctx.beginPath(); ctx.ellipse(i*130 + 60, 300, 90, 46, 0, Math.PI, 0); ctx.fill(); }
+    // 芝生
+    ctx.fillStyle = "#8fce5a"; ctx.fillRect(0, 300, W, gY - 300);
+    ctx.fillStyle = "#7cbf4a"; ctx.fillRect(0, 300, W, 7);
+
+    // 右奥：階段状の寺院（プラーン）
+    drawStepTemple(W - 168, 300);
+    // 右：ヤシの木
+    palm(W - 62, 1.15);
+    // 中央〜左：寝そべった大仏（この広場の主役）
+    drawRecliningBuddha(26, 300);
+  }
+
+  // 階段状の寺院（ずんぐりした石のピラミッド＋尖塔）
+  function drawStepTemple(x, baseY) {
+    const steps = 5, sh = 15, base = 150;
+    for (let i = 0; i < steps; i++) {
+      const w = base - i*22;
+      ctx.fillStyle = i % 2 ? "#c8b77e" : "#d6c58e";
+      ctx.fillRect(x + i*11, baseY - (i+1)*sh, w, sh);
+      ctx.fillStyle = "rgba(150,130,80,0.5)";
+      for (let gx = x + i*11 + 10; gx < x + i*11 + w - 6; gx += 20) ctx.fillRect(gx, baseY - (i+1)*sh + 3, 2, sh - 6);
+    }
+    // 頂上の尖り
+    const topW = base - steps*22, tx = x + steps*11;
+    ctx.fillStyle = "#c8b77e";
+    ctx.beginPath(); ctx.moveTo(tx, baseY - steps*sh); ctx.lineTo(tx + topW/2, baseY - steps*sh - 30); ctx.lineTo(tx + topW, baseY - steps*sh); ctx.closePath(); ctx.fill();
+  }
+
+  // 寝釈迦仏（横たわった大仏の石像）
+  function drawRecliningBuddha(x, baseY) {
+    const white = "#e9e6dd", shade = "#d3cfc2", line = "#b8b3a4";
+    // 台座
+    ctx.fillStyle = "#cfcabb"; ctx.fillRect(x, baseY - 8, 540, 18);
+    ctx.fillStyle = "#bdb8a8"; ctx.fillRect(x, baseY + 6, 540, 6);
+
+    // 体（左の頭〜右の足まで一続きの丸みのある白い体）
+    ctx.fillStyle = white;
+    ctx.beginPath();
+    ctx.moveTo(x + 40, baseY - 6);
+    ctx.quadraticCurveTo(x + 60, baseY - 150, x + 175, baseY - 150);   // 肩〜背
+    ctx.quadraticCurveTo(x + 330, baseY - 150, x + 425, baseY - 108);  // 腰
+    ctx.quadraticCurveTo(x + 520, baseY - 78, x + 545, baseY - 6);     // 足先
+    ctx.closePath(); ctx.fill();
+    // 体の陰
+    ctx.fillStyle = shade;
+    ctx.beginPath();
+    ctx.moveTo(x + 70, baseY - 6);
+    ctx.quadraticCurveTo(x + 320, baseY - 54, x + 545, baseY - 6);
+    ctx.closePath(); ctx.fill();
+
+    // オレンジの袈裟（模様入り）を腰〜足にかける
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x + 185, baseY - 148);
+    ctx.quadraticCurveTo(x + 340, baseY - 150, x + 430, baseY - 102);
+    ctx.quadraticCurveTo(x + 500, baseY - 60, x + 505, baseY - 6);
+    ctx.lineTo(x + 185, baseY - 6);
+    ctx.closePath(); ctx.clip();
+    ctx.fillStyle = "#c96b3a"; ctx.fillRect(x + 150, baseY - 160, 400, 160);
+    ctx.fillStyle = "#b95c2e"; ctx.fillRect(x + 150, baseY - 30, 400, 30);   // 折り返しの陰
+    ctx.strokeStyle = "rgba(110,45,18,0.55)"; ctx.lineWidth = 2;             // 格子模様
+    for (let gx = x + 168; gx < x + 520; gx += 26) { ctx.beginPath(); ctx.moveTo(gx, baseY - 160); ctx.lineTo(gx, baseY); ctx.stroke(); }
+    for (let gy = baseY - 150; gy < baseY; gy += 24) { ctx.beginPath(); ctx.moveTo(x + 150, gy); ctx.lineTo(x + 545, gy); ctx.stroke(); }
+    ctx.fillStyle = "rgba(255,220,160,0.35)";                                // 点の飾り
+    for (let gx = x + 181; gx < x + 520; gx += 26) for (let gy = baseY - 138; gy < baseY; gy += 24) { ctx.beginPath(); ctx.arc(gx, gy, 2.4, 0, 7); ctx.fill(); }
+    ctx.restore();
+
+    // 支える腕（頭の下へ伸びる）
+    ctx.fillStyle = white; ctx.fillRect(x + 60, baseY - 40, 120, 34);
+    ctx.fillStyle = shade; ctx.beginPath(); ctx.ellipse(x + 66, baseY - 24, 16, 14, 0, 0, 7); ctx.fill();  // 手
+
+    // 頭（左・手枕）
+    const hx = x + 96, hy = baseY - 96;
+    ctx.fillStyle = white; ctx.beginPath(); ctx.arc(hx, hy, 44, 0, 7); ctx.fill();   // 顔
+    // 螺髪（つぶつぶの髪）＋肉髻
+    ctx.fillStyle = shade;
+    ctx.beginPath(); ctx.arc(hx - 4, hy - 20, 42, Math.PI * 1.02, Math.PI * 1.98); ctx.fill();
+    ctx.beginPath(); ctx.arc(hx - 2, hy - 50, 11, 0, 7); ctx.fill();                 // 肉髻（頭頂の盛り上がり）
+    ctx.fillStyle = line;
+    for (let r = 0; r < 5; r++) for (let c = 0; c < 7; c++) { ctx.beginPath(); ctx.arc(hx - 34 + c*11, hy - 42 + r*7, 2.2, 0, 7); ctx.fill(); }
+    // 穏やかな顔
+    ctx.strokeStyle = "#9a958a"; ctx.lineWidth = 2; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.arc(hx - 14, hy - 2, 7, 0.15, Math.PI - 0.15); ctx.stroke();   // 伏し目
+    ctx.beginPath(); ctx.arc(hx + 10, hy - 2, 7, 0.15, Math.PI - 0.15); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(hx - 2, hy + 2); ctx.lineTo(hx - 2, hy + 12); ctx.stroke();  // 鼻
+    ctx.beginPath(); ctx.arc(hx - 2, hy + 20, 8, 0.15, Math.PI - 0.15); ctx.stroke();        // 口
+    // 長い耳たぶ
+    ctx.fillStyle = white; ctx.beginPath(); ctx.ellipse(hx - 40, hy + 6, 7, 17, 0, 0, 7); ctx.fill();
   }
   function drawZagat(b) {
     const cx = b.x + b.w/2, by = b.y + b.h;
@@ -2788,56 +2897,112 @@
     ctx.scale(1 + (1 - sq) * 0.2, sq);
     if (!b.alive) ctx.globalAlpha = Math.max(0, 1 - b.dyingT / 90);
     const flash = b.hurtFlash > 0 && Math.floor(b.hurtFlash / 4) % 2 === 0;
-    const skin = flash ? "#ffd9b0" : "#e0965a";
-    const skinD = "#c67c44";
+    const skin  = flash ? "#ffdcb4" : "#e2a064";   // 日焼けした肌
+    const skinD = "#c07c44";
+    const wrap  = "#f2efe6";                        // 白いテープ（拳・足首）
     const H2 = b.h, W2 = b.w;
     const upper = b.upperT > 0;
     // 影
     ctx.fillStyle = "rgba(0,0,0,0.12)";
-    ctx.beginPath(); ctx.ellipse(0, 2, W2*0.55, 7, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, 2, W2*0.62, 7, 0, 0, 7); ctx.fill();
+
+    // 脚（太もも→ふくらはぎ）
+    ctx.fillStyle = skin;
+    ctx.beginPath(); roundRectPath(-W2*0.37, -H2*0.34, W2*0.3, H2*0.34, 6); ctx.fill();
+    ctx.beginPath(); roundRectPath(W2*0.07, -H2*0.34, W2*0.3, H2*0.34, 6); ctx.fill();
+    // 足首の白テープ
+    ctx.fillStyle = wrap;
+    ctx.fillRect(-W2*0.37, -H2*0.11, W2*0.3, H2*0.06);
+    ctx.fillRect(W2*0.07, -H2*0.11, W2*0.3, H2*0.06);
     // 足
     ctx.fillStyle = skinD;
-    ctx.fillRect(-W2*0.34, -H2*0.34, W2*0.26, H2*0.34);
-    ctx.fillRect(W2*0.08, -H2*0.34, W2*0.26, H2*0.34);
-    // 赤いトランクス
-    ctx.fillStyle = "#c62c2c";
-    ctx.fillRect(-W2*0.4, -H2*0.5, W2*0.8, H2*0.2);
-    ctx.fillStyle = "#e0b23a"; ctx.fillRect(-W2*0.4, -H2*0.5, W2*0.8, 4);
-    // 胴（筋肉質）
+    ctx.beginPath(); ctx.ellipse(-W2*0.2, -2, W2*0.18, 5, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(W2*0.24, -2, W2*0.18, 5, 0, 0, 7); ctx.fill();
+
+    // 青いトランクス（赤サイドライン＋白ベルト）
+    ctx.fillStyle = "#2a4fb5";
+    ctx.beginPath(); roundRectPath(-W2*0.45, -H2*0.53, W2*0.9, H2*0.26, 7); ctx.fill();
+    ctx.fillStyle = skin;                 // 股の切れ込み
+    ctx.beginPath(); ctx.moveTo(-W2*0.07, -H2*0.27); ctx.lineTo(0, -H2*0.42); ctx.lineTo(W2*0.07, -H2*0.27); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#d62c2c";            // 赤サイドライン
+    ctx.fillRect(-W2*0.45, -H2*0.53, W2*0.08, H2*0.26);
+    ctx.fillRect(W2*0.37, -H2*0.53, W2*0.08, H2*0.26);
+    ctx.fillStyle = wrap;                 // 白ベルト
+    ctx.fillRect(-W2*0.45, -H2*0.53, W2*0.9, H2*0.05);
+    ctx.fillStyle = "#cfcabb"; ctx.fillRect(-W2*0.07, -H2*0.525, W2*0.14, H2*0.035);  // バックル
+
+    // 胴（広い肩・逆三角の筋肉質）
     ctx.fillStyle = skin;
-    ctx.beginPath(); ctx.moveTo(-W2*0.4, -H2*0.5);
-    ctx.lineTo(W2*0.4, -H2*0.5); ctx.lineTo(W2*0.34, -H2*0.86);
-    ctx.lineTo(-W2*0.34, -H2*0.86); ctx.closePath(); ctx.fill();
-    // 胸筋・腹筋のライン
-    ctx.strokeStyle = skinD; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(0, -H2*0.5); ctx.lineTo(0, -H2*0.78); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-W2*0.24, -H2*0.7); ctx.lineTo(W2*0.24, -H2*0.7); ctx.stroke();
-    // 腕
-    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.moveTo(-W2*0.4, -H2*0.5);
+    ctx.lineTo(W2*0.4, -H2*0.5);
+    ctx.lineTo(W2*0.52, -H2*0.82);
+    ctx.quadraticCurveTo(W2*0.42, -H2*0.9, W2*0.22, -H2*0.88);
+    ctx.lineTo(-W2*0.22, -H2*0.88);
+    ctx.quadraticCurveTo(-W2*0.42, -H2*0.9, -W2*0.52, -H2*0.82);
+    ctx.closePath(); ctx.fill();
+    // 胸筋・腹筋
+    ctx.strokeStyle = skinD; ctx.lineWidth = 1.5; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(0, -H2*0.52); ctx.lineTo(0, -H2*0.8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-W2*0.28, -H2*0.72); ctx.lineTo(W2*0.28, -H2*0.72); ctx.stroke();
+    for (let i = 1; i <= 2; i++) { const yy = -H2*(0.52 + i*0.055); ctx.beginPath(); ctx.moveTo(-W2*0.15, yy); ctx.lineTo(W2*0.15, yy); ctx.stroke(); }
+    // 胸の大きな傷跡
+    ctx.strokeStyle = "#a85a3a"; ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.moveTo(-W2*0.28, -H2*0.82); ctx.lineTo(W2*0.22, -H2*0.55); ctx.stroke();
+
+    // 拳（白いテープ）を描くヘルパー。白いのは肩ではなく“こぶし”だけ。
+    const fist = (fx, fy) => {
+      ctx.fillStyle = wrap;
+      ctx.beginPath(); ctx.arc(fx, fy, W2*0.17, 0, 7); ctx.fill();
+      ctx.strokeStyle = "#cfcabb"; ctx.lineWidth = 1.4;
+      for (let k = -1; k <= 1; k++) { ctx.beginPath(); ctx.moveTo(fx - W2*0.09, fy + k*3.4); ctx.lineTo(fx + W2*0.09, fy + k*3.4); ctx.stroke(); }  // ナックル
+    };
+    // 腕は肌色の太いストローク（曲げた腕）。先端に白い拳を置く。
+    ctx.strokeStyle = skin; ctx.lineWidth = W2*0.2; ctx.lineCap = "round"; ctx.lineJoin = "round";
     if (upper) {
-      // タイガーアッパーカット：前の腕を大きく振り上げる
-      ctx.save(); ctx.translate(W2*0.3, -H2*0.82); ctx.rotate(-1.1);
-      ctx.fillRect(0, -H2*0.5, W2*0.22, H2*0.5); ctx.restore();
-      // 拳のきらめき
-      ctx.fillStyle = "#fff2b0";
-      ctx.beginPath(); ctx.arc(W2*0.55, -H2*1.15, 9, 0, 7); ctx.fill();
+      // タイガーアッパーカット：前腕をまっすぐ上へ突き上げる（後ろ腕はガード）
+      ctx.beginPath(); ctx.moveTo(-W2*0.4, -H2*0.8); ctx.lineTo(-W2*0.3, -H2*0.56); ctx.lineTo(-W2*0.08, -H2*0.66); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(W2*0.34, -H2*0.82); ctx.lineTo(W2*0.3, -H2*1.02); ctx.lineTo(W2*0.27, -H2*1.2); ctx.stroke();
+      fist(-W2*0.08, -H2*0.66);
+      fist(W2*0.27, -H2*1.24);
+      // 突き上げのきらめき
+      ctx.fillStyle = "#fff2b0"; ctx.beginPath(); ctx.arc(W2*0.27, -H2*1.38, 9, 0, 7); ctx.fill();
+      ctx.fillStyle = "#ffd34d"; ctx.beginPath(); ctx.arc(W2*0.27, -H2*1.38, 4, 0, 7); ctx.fill();
     } else {
-      ctx.fillRect(W2*0.28, -H2*0.82, W2*0.2, H2*0.4);   // 前の腕（構え）
+      // 構え：両腕を曲げて、こぶしを胸の前に上げるガード
+      ctx.beginPath(); ctx.moveTo(-W2*0.4, -H2*0.82); ctx.lineTo(-W2*0.34, -H2*0.58); ctx.lineTo(-W2*0.06, -H2*0.72); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(W2*0.4, -H2*0.82); ctx.lineTo(W2*0.46, -H2*0.58); ctx.lineTo(W2*0.18, -H2*0.78); ctx.stroke();
+      fist(-W2*0.06, -H2*0.72);
+      fist(W2*0.18, -H2*0.78);
     }
-    ctx.fillRect(-W2*0.48, -H2*0.82, W2*0.2, H2*0.38);    // 後ろの腕
-    // 頭
-    ctx.fillStyle = skin;
-    ctx.beginPath(); ctx.arc(0, -H2*0.92, W2*0.3, 0, 7); ctx.fill();
-    // ムエタイのはちまき（モンコン）
-    ctx.fillStyle = "#c62c2c";
-    ctx.fillRect(-W2*0.32, -H2*1.02, W2*0.64, 7);
-    ctx.fillStyle = "#e0b23a"; ctx.fillRect(-W2*0.05, -H2*1.14, W2*0.1, 14);
-    // 顔
+
+    // 首
+    ctx.fillStyle = skin; ctx.fillRect(-W2*0.13, -H2*0.92, W2*0.26, H2*0.1);
+    // つるつる頭
+    ctx.beginPath(); ctx.arc(0, -H2*1.0, W2*0.31, 0, 7); ctx.fill();
+    // 耳
+    ctx.beginPath(); ctx.arc(-W2*0.29, -H2*1.0, 4, 0, 7); ctx.arc(W2*0.29, -H2*1.0, 4, 0, 7); ctx.fill();
     if (b.alive) {
-      ctx.fillStyle = "#3a2418";
-      ctx.beginPath(); ctx.arc(W2*0.1, -H2*0.94, 2.6, 0, 7); ctx.fill();       // 目
-      ctx.strokeStyle = "#3a2418"; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(W2*0.0, -H2*1.0); ctx.lineTo(W2*0.2, -H2*0.96); ctx.stroke();  // 怒り眉
+      // 怒り眉（前の目）
+      ctx.strokeStyle = "#3a2418"; ctx.lineWidth = 2.6; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(-W2*0.02, -H2*1.07); ctx.lineTo(W2*0.2, -H2*1.01); ctx.stroke();
+      // 前の目
+      ctx.fillStyle = "#3a2418"; ctx.beginPath(); ctx.arc(W2*0.13, -H2*0.99, 2.7, 0, 7); ctx.fill();
+      // 眼帯（奥の目＋ストラップ）
+      ctx.strokeStyle = "#242424"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(-W2*0.3, -H2*1.11); ctx.lineTo(-W2*0.02, -H2*0.96); ctx.stroke();
+      ctx.fillStyle = "#1c1c1c";
+      ctx.beginPath(); ctx.ellipse(-W2*0.13, -H2*1.02, 6, 4.6, -0.3, 0, 7); ctx.fill();
+      // への字口
+      ctx.strokeStyle = "#7a4a2a"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(W2*0.03, -H2*0.9); ctx.lineTo(W2*0.19, -H2*0.9); ctx.stroke();
+    } else {
+      // やられ目（＞＜）
+      ctx.strokeStyle = "#3a2418"; ctx.lineWidth = 2.6; ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(W2*0.02, -H2*1.05); ctx.lineTo(W2*0.16, -H2*0.99);
+      ctx.moveTo(W2*0.16, -H2*1.05); ctx.lineTo(W2*0.02, -H2*0.99);
+      ctx.stroke();
     }
     ctx.restore();
   }
