@@ -641,7 +641,7 @@
     new Audio("audio/bgm_boss1.mp3"),  // ステージ1ボス（クリだいおう）
     new Audio("audio/bgm_boss1.mp3"),  // ステージ2ボス（ペンギン）※ボス1と同じ曲
     new Audio("audio/bgm_boss3.mp3"),  // ステージ3ボス（こうよう）※太鼓連打
-    new Audio("audio/bgm_boss1.mp3")   // ステージ4ボス（メガロドン）※仮：ボス1と同じ曲（あとで差し替え）
+    new Audio("audio/bgm_boss4.mp3")   // ステージ4ボス（メガロドン）※Will you still cry
   ];
   BOSS_BGM.forEach(a => { if (a) { a.loop = true; a.volume = 0.2; } });
   let bgm = BGM[0];                           // 今鳴らしているBGM
@@ -1086,6 +1086,13 @@
 
   // ---------- ボス戦 ----------
   const BOSS_GROUND = 360;   // 闘技場の地面の上端
+  // メガロドン戦（真ん中で割れた船：左右のデッキ＋中央の割れ目＋左右の端も海）
+  const LDECK_L = 80,  LDECK_R = 320;   // 左のデッキ [80,320]
+  const RDECK_L = 440, RDECK_R = 680;   // 右のデッキ [440,680]
+  const GAP_L = 320, GAP_R = 440;       // 中央の割れ目（狭め・120px）
+  const GAP_CX = (GAP_L + GAP_R) / 2;   // 割れ目の中央x（=380）
+  const SEA_Y = 372;                    // 海の水面（サメのヒレが出る高さ）
+  // デッキの外（[0,80] と [680,800]）も海＝落ちると水没
 
   // ボス登場時に出す名前
   function bossTitle() {
@@ -1105,12 +1112,16 @@
     LEVEL_W = W; LEVEL_H = H; camX = 0;
     solids = []; coins = []; nuts = []; flowers = []; feathers = []; breads = [];
     enemies = []; questionBlocks = []; seeds = []; goal = null; particles = []; cukes = [];
+    const megaArena = STAGES[stageIndex].boss === "mega";
     for (let x = 0; x < W; x += TILE) {
+      if (megaArena && !((x >= LDECK_L && x < LDECK_R) || (x >= RDECK_L && x < RDECK_R))) continue;   // デッキ以外は海（床なし）
       solids.push({ x, y: BOSS_GROUND, w: TILE, h: TILE, type: "ground" });
       solids.push({ x, y: BOSS_GROUND + TILE, w: TILE, h: TILE, type: "ground" });
     }
     const p = player;
-    p.x = W/2 - p.w/2; p.y = BOSS_GROUND - p.h; p.vx = 0; p.vy = 0;
+    // メガロドン戦は中央が割れ目（海）なので左のデッキに立たせる
+    p.x = (STAGES[stageIndex].boss === "mega") ? 150 : (W/2 - p.w/2);
+    p.y = BOSS_GROUND - p.h; p.vx = 0; p.vy = 0;
     p.onGround = false; p.face = 1; p.invuln = 50;
     p.gliding = false; p.glideUsed = false;
     // ステージごとのボス編成
@@ -1121,7 +1132,7 @@
     } else if (type === "sumo") {
       bosses = [ makeBoss("sumo", W - 180) ];
     } else if (type === "mega") {
-      bosses = [ makeBoss("mega", W - 200) ];
+      bosses = [ makeBoss("mega", 80) ];
     } else {
       bosses = [ makeBoss("kuri", W - 170) ];
     }
@@ -1148,15 +1159,16 @@
         jumpCd: 1e9, throwCd: 70 + Math.floor(Math.random()*40), throwBase: 80, speedBase: 1.0, throws: true, alive: true, dyingT: 0 };
     }
     if (kind === "mega") {
-      // メガロドン（巨大ザメ）：海面バトル。もぐって突進かみつき＋水しぶきを飛ばす＋ときどき飛び出す。
-      // 踏み6回（4ダメージ×6=24）またはたね8発（3ダメージ×8=24）で撃破。ハート6個表示。
-      return { kind, name: "メガロドン", x, y: BOSS_GROUND - 72, w: 118, h: 72,
-        vx: -1, vy: 0, onGround: false, face: -1,
-        hp: 24, maxHp: 24, stompDmg: 4, seedDmg: 3, hpPerHeart: 4,
+      // メガロドン（巨大ザメ）：船のデッキの両脇の海にもぐり、水中から飛び出してデッキに乗り上げて攻撃。
+      // もぐっている間は小魚を呼ぶ。飛び出して乗り上げた頭を踏む／種で当てる。
+      // 踏み5回（8ダメージ×5=40）またはたね8発（5ダメージ×8=40）で撃破。ハート5個表示。
+      return { kind, name: "メガロドン", x: GAP_CX - 59, y: SEA_Y - 40, w: 118, h: 72,
+        vx: 0, vy: 0, onGround: false, face: 1,
+        hp: 40, maxHp: 40, stompDmg: 8, seedDmg: 5, hpPerHeart: 8,
         invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
-        jumpCd: 150, throwCd: 80 + Math.floor(Math.random()*40), throwBase: 120,
-        charges: true, chargeCd: 170 + Math.floor(Math.random()*70), charging: false, chargeT: 0, windup: 0,
-        speedBase: 1.7, throws: true, alive: true, dyingT: 0 };
+        throws: false, alive: true, dyingT: 0,
+        mode: "dive", side: -1, diveT: 60, windup: 0, chargeT: 0, chargeDir: 1, vulnerable: false,
+        gull: { x: 120, y: 74, vx: 2.2, dropCd: 40 } };
     }
     if (kind === "sumo") {
       // こうよう（子供力士）：ぶちかまし突進＋塩まき。踏み5回orたね5発で撃破
@@ -1210,12 +1222,12 @@
       cu.vy += 0.42;                    // 山なりに落ちる
       cu.x += cu.vx; cu.y += cu.vy;
       const box = { x: cu.x - 10, y: cu.y - 6, w: 20, h: 12 };
-      const puff = cu.kind === "salt" ? "#ffffff" : (cu.kind === "water" ? "#8fd0ee" : "#6cae3e");
+      const puff = cu.kind === "salt" ? "#ffffff" : (cu.kind === "water" ? "#8fd0ee" : (cu.kind === "egg" ? "#f3e6c8" : "#6cae3e"));
       // 地面に落ちたら割れる
       for (const s of solids) { if (rectHit(box, s)) { cu.dead = true; spawnParticles(cu.x, cu.y, puff, 6); break; } }
       // たねで撃ち落とせる
       if (!cu.dead) for (const sd of seeds) {
-        if (rectHit({ x: sd.x-5, y: sd.y-5, w: 10, h: 10 }, box)) { cu.dead = true; sd.life = 0; score += 50; sfx.stomp(); spawnParticles(cu.x, cu.y, cu.kind === "salt" ? "#ffffff" : (cu.kind === "water" ? "#8fd0ee" : "#8cc655"), 8); break; }
+        if (rectHit({ x: sd.x-5, y: sd.y-5, w: 10, h: 10 }, box)) { cu.dead = true; sd.life = 0; score += 50; sfx.stomp(); spawnParticles(cu.x, cu.y, cu.kind === "salt" ? "#ffffff" : (cu.kind === "water" ? "#8fd0ee" : (cu.kind === "egg" ? "#f3e6c8" : "#8cc655")), 8); break; }
       }
       // プレイヤーに当たると被弾
       if (!cu.dead && rectHit(p, box) && p.invuln <= 0) { cu.dead = true; hurtPlayer(); }
@@ -1242,6 +1254,7 @@
       }
 
       b.squash += (1 - b.squash) * 0.2;
+      if (b.kind === "mega") { updateMega(b); continue; }
       const phase = b.kind === "kuri" ? (b.hp <= 5 ? 2 : (b.hp <= 10 ? 1 : 0)) : 0;
       let speed = b.speedBase + phase * 0.7;
       // こうよう／メガロドン：構え（windup）→ 突進（charging）
@@ -1320,6 +1333,123 @@
     if (bosses.every(b => !b.alive && b.dyingT > 90)) stageCleared();
   }
 
+  // メガロドン専用の動き：中央の割れ目にもぐる→まず噛みつき→左右どちらかのデッキへジャンプ→突進→また割れ目へ
+  const MEGA_MID_X = GAP_CX - 59;   // 割れ目の中央（サメの左端x）
+  function updateMega(b) {
+    const p = player;
+    const GMEGA = 0.6;
+    updateGull(b);   // カモメ（もぐっている間、上から卵を落とす）
+
+    if (b.mode === "dive") {
+      // 割れ目の水中にもぐって待つ（無敵）。時間が来たら中央から噛みつく。
+      b.vulnerable = false;
+      b.x = MEGA_MID_X; b.y = SEA_Y + 8; b.vx = 0; b.vy = 0;
+      b.diveT--;
+      if (b.diveT <= 0) {
+        b.mode = "bite"; b.vulnerable = true;
+        b.x = MEGA_MID_X; b.y = SEA_Y - 14; b.vy = -14.5; b.vx = 0;
+        b.face = (p.x + p.w/2 < GAP_CX) ? 1 : -1;   // まるりんの方へ噛みつく
+        spawnParticles(GAP_CX, SEA_Y, "#ffffff", 16);
+        spawnParticles(GAP_CX, SEA_Y, "#bfe1f0", 8);
+      }
+      return;
+    }
+
+    if (b.mode === "bite") {
+      // 中央からがぶっと飛び出して噛みつき、落ちてきたらデッキへジャンプ
+      b.vulnerable = true;
+      b.vy += GMEGA; b.y += b.vy;
+      if (b.vy > 0 && (b.y + b.h*0.5) >= SEA_Y) {
+        b.side = Math.random() < 0.5 ? -1 : 1;      // 左右どちらかのデッキへ
+        b.mode = "jump";
+        b.vy = -13; b.vx = b.side * 4.6; b.face = b.side;
+        spawnParticles(GAP_CX, SEA_Y, "#bfe1f0", 10);
+      }
+      megaHitChecks(b);
+      return;
+    }
+
+    if (b.mode === "jump") {
+      // 割れ目から左右のデッキへジャンプ
+      b.vulnerable = true;
+      b.vy += GMEGA; b.x += b.vx; b.y += b.vy;
+      if (Math.abs(b.vx) > 0.4) b.face = b.vx > 0 ? 1 : -1;
+      if (b.vy > 0) {
+        for (const s of solids) {
+          if (rectHit(b, s) && (b.y + b.h) - s.y < 40) {
+            b.y = s.y - b.h; b.vy = 0; b.vx = 0; b.onGround = true;
+            b.mode = "charge"; b.windup = 22;
+            b.chargeDir = -b.side;                  // デッキの外側→割れ目へ突進
+            b.face = b.chargeDir; break;
+          }
+        }
+      }
+      megaHitChecks(b);
+      return;
+    }
+
+    if (b.mode === "charge") {
+      // 構え → 割れ目に向かって突進 → 割れ目に達したらダイブ
+      b.vulnerable = true;
+      if (b.windup > 0) {
+        b.windup--; b.vx = 0;
+        if (b.windup === 0) b.chargeT = 60;
+      } else {
+        b.vx = b.chargeDir * 6.6; b.x += b.vx; b.chargeT--;
+        const nx = b.x + b.w/2;
+        // 割れ目に到達 or 足元の床が切れた → 海へダイブしてもぐる
+        if ((nx > GAP_L && nx < GAP_R) || !isSolidAt(nx, BOSS_GROUND + 4) || b.chargeT <= 0) {
+          spawnParticles(nx, SEA_Y, "#ffffff", 12);
+          b.mode = "dive"; b.diveT = 55 + Math.floor(Math.random()*35);
+          b.vulnerable = false;
+        }
+      }
+      megaHitChecks(b);
+      return;
+    }
+
+    // 保険：想定外はダイブへ
+    b.mode = "dive"; b.diveT = 55; b.vulnerable = false; b.x = MEGA_MID_X; b.y = SEA_Y + 8; b.vy = 0;
+  }
+
+  // メガロドンとの当たり判定（水上のときだけ：踏み or 被弾、種）
+  function megaHitChecks(b) {
+    if (!b.vulnerable) return;
+    const p = player;
+    if (rectHit(p, b)) {
+      const fromAbove = p.vy > 0 && (p.y + p.h) - b.y < b.h * 0.7 + Math.max(0, p.vy);
+      if (fromAbove) {
+        if (b.invuln <= 0) damageBoss(b, false);
+        const timed = jumpKey() || jumpBuffer > 0;
+        p.vy = timed ? -15 : -10; p.bounceLock = 12; jumpBuffer = 0; p.squash = 0.7;
+        p.invuln = Math.max(p.invuln, 8);
+      } else if (p.invuln <= 0) {
+        hurtPlayer();
+      }
+    }
+    if (b.invuln <= 0) {
+      for (const sd of seeds) {
+        if (rectHit({ x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 }, b)) { damageBoss(b, true); sd.life = 0; break; }
+      }
+    }
+  }
+
+  // カモメ：ずっと上を飛び、メガロドンがもぐっている間だけ卵を落とす
+  function updateGull(b) {
+    const g = b.gull;
+    if (!g) return;
+    g.x += g.vx;
+    if (g.x < 50) { g.x = 50; g.vx = Math.abs(g.vx); }
+    if (g.x > W - 50) { g.x = W - 50; g.vx = -Math.abs(g.vx); }
+    if (b.mode === "dive") {
+      g.dropCd--;
+      if (g.dropCd <= 0) {
+        cukes.push({ x: g.x, y: g.y + 14, vx: g.vx * 0.4, vy: 1.2, t: 0, kind: "egg" });
+        g.dropCd = 42 + Math.floor(Math.random() * 30);
+      }
+    }
+  }
+
   // 次のステージへ（パワーアップ状態は引き継ぐ）
   function advanceStage() {
     const keepPowered = player.powered, keepSeed = player.seed, keepWing = player.wing;
@@ -1367,17 +1497,13 @@
       g.addColorStop(1, "#f6ecd6");
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     } else if (inBoss && STAGES[stageIndex].boss === "mega") {
-      // 深海（メガロドン戦）：暗い青のグラデーション＋光のすじ
+      // メガロドン戦：船の上（どんよりした海の空）
       const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#0b5a86");
-      g.addColorStop(0.55, "#0a4266");
-      g.addColorStop(1, "#062c47");
+      g.addColorStop(0, "#3f6076");
+      g.addColorStop(0.5, "#5f8ea6");
+      g.addColorStop(1, "#83b3c8");
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = "rgba(160,220,255,0.10)";
-      for (let i = 0; i < 5; i++) {
-        const rx = 90 + i * 150 + Math.sin(elapsed * 0.01 + i) * 20;
-        ctx.beginPath(); ctx.moveTo(rx, 0); ctx.lineTo(rx + 40, 0); ctx.lineTo(rx + 90, H); ctx.lineTo(rx + 40, H); ctx.closePath(); ctx.fill();
-      }
+      drawClouds();
     } else if (theme === "hawaii") {
       // 前半＝ビーチの空／後半＝海の中（カメラ位置でクロスフェード）
       const t = Math.max(0, Math.min(1, (camX + W/2 - 2720) / 620));
@@ -2171,6 +2297,17 @@
         ctx.restore();
         continue;
       }
+      if (cu.kind === "egg") {   // カモメが落とす卵
+        ctx.save();
+        ctx.translate(cu.x, cu.y);
+        ctx.rotate(Math.sin(cu.t*0.1)*0.3);
+        ctx.fillStyle = "#f7efdc"; ctx.beginPath(); ctx.ellipse(0, 0, 7, 9, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = "#fffaf0"; ctx.beginPath(); ctx.ellipse(-2, -2, 3, 4.5, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = "rgba(196,176,138,0.5)";
+        ctx.beginPath(); ctx.arc(2.5, 3, 1.3, 0, 7); ctx.arc(-3, 3.5, 1, 0, 7); ctx.arc(1, -4, 0.9, 0, 7); ctx.fill();
+        ctx.restore();
+        continue;
+      }
       ctx.save();
       ctx.translate(cu.x, cu.y);
       ctx.rotate(cu.t * 0.18);
@@ -2613,23 +2750,68 @@
     ctx.fillText("G", x + 20, gl.top + 13);
   }
 
-  // ===== 深海（メガロドン戦）の背景 =====
+  // ===== メガロドン戦の背景（真ん中で割れた船＋左右＆中央の海）=====
   function drawDeepSeaBackdrop() {
-    ctx.fillStyle = "rgba(8,40,62,0.55)";
-    ctx.save(); ctx.translate(W*0.5, 250); ctx.rotate(-0.08);
-    ctx.beginPath(); ctx.moveTo(-90, 0); ctx.quadraticCurveTo(0, 30, 100, 0); ctx.lineTo(84, -40); ctx.lineTo(-72, -40); ctx.closePath(); ctx.fill();
-    ctx.fillRect(-10, -100, 6, 60);
-    ctx.restore();
-    ctx.strokeStyle = "rgba(10,60,60,0.5)"; ctx.lineWidth = 8; ctx.lineCap = "round";
-    for (let i = 0; i < 8; i++) {
-      const sx = 40 + i*100, sway = Math.sin(elapsed*0.03 + i)*14;
-      ctx.beginPath(); ctx.moveTo(sx, BOSS_GROUND); ctx.quadraticCurveTo(sx + sway, BOSS_GROUND - 40, sx + sway*0.5, BOSS_GROUND - 80); ctx.stroke();
+    // 遠くの海（水平線）
+    ctx.fillStyle = "#6fb4d6"; ctx.fillRect(0, 246, W, 26);
+    ctx.fillStyle = "#4f9fc4"; ctx.fillRect(0, 272, W, 20);
+    // 海（左どなり／中央の割れ目／右どなり・落ちると水没）
+    const sea = ctx.createLinearGradient(0, BOSS_GROUND, 0, H);
+    sea.addColorStop(0, "#2f9fd0"); sea.addColorStop(1, "#0e6690");
+    ctx.fillStyle = sea;
+    const seaZones = [[0, LDECK_L], [GAP_L, GAP_R], [RDECK_R, W]];
+    for (const [a, c] of seaZones) ctx.fillRect(a, BOSS_GROUND, c - a, H - BOSS_GROUND);
+    // 波がしら（各海）
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    for (const [a, c] of seaZones) {
+      for (let i = 0; i < 6; i++) {
+        const wx = a + ((i*17 + elapsed*0.5) % Math.max(14, c - a - 8));
+        ctx.fillRect(wx, BOSS_GROUND + 6 + (i*11) % 46, 6, 2);
+      }
     }
-    for (let i = 0; i < 16; i++) {
-      const bx = (i*53 + 20) % W, by = BOSS_GROUND - ((elapsed*1.1 + i*47) % BOSS_GROUND);
-      ctx.fillStyle = "rgba(190,230,255,0.28)";
-      ctx.beginPath(); ctx.arc(bx + Math.sin(elapsed*0.03 + i)*6, by, 2 + (i%3), 0, 7); ctx.fill();
+    // 立ちのぼる泡（割れ目＝サメがいる）
+    for (let i = 0; i < 6; i++) {
+      const bx = GAP_L + 14 + (i*20) % (GAP_R - GAP_L - 20);
+      const by = H - ((elapsed*1.0 + i*40) % (H - BOSS_GROUND));
+      ctx.fillStyle = "rgba(210,240,255,0.4)"; ctx.beginPath(); ctx.arc(bx, by, 2 + i%3, 0, 7); ctx.fill();
     }
+    // 左右の船体（外の端＝船首/船尾、中央側＝割れた断面）
+    drawHullHalf(LDECK_L, LDECK_R, "right");   // 左半分：右が割れ目
+    drawHullHalf(RDECK_L, RDECK_R, "left");    // 右半分：左が割れ目
+    // 折れかけたマスト（左デッキ）＋帆
+    const mx = (LDECK_L + LDECK_R) / 2;
+    ctx.strokeStyle = "#5a3b20"; ctx.lineWidth = 8; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(mx, BOSS_GROUND); ctx.lineTo(mx - 24, 120); ctx.stroke();
+    ctx.fillStyle = "#e7dcc0";
+    ctx.beginPath(); ctx.moveTo(mx - 22, 134); ctx.quadraticCurveTo(mx - 80, 168, mx - 18, 202); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#c94d4d"; ctx.fillRect(mx - 26, 116, 5, 6);
+  }
+  // 割れた船の片側（brokenAt="right"→右が割れた断面・左が船首 / "left"→左が断面・右が船尾）
+  function drawHullHalf(x0, x1, brokenAt) {
+    const deckTop = BOSS_GROUND + 2, yBot = H - 6, rightBreak = brokenAt === "right";
+    // 船体（デッキの下・大半は板で隠れるが下と外側に見える）
+    ctx.fillStyle = "#8a5a2c"; ctx.fillRect(x0, deckTop, x1 - x0, yBot - deckTop);
+    ctx.fillStyle = "#6b4420"; ctx.fillRect(x0, deckTop, x1 - x0, 7);
+    ctx.strokeStyle = "rgba(70,45,20,0.4)"; ctx.lineWidth = 2;
+    for (let yy = deckTop + 16; yy < yBot - 4; yy += 12) { ctx.beginPath(); ctx.moveTo(x0+2, yy); ctx.lineTo(x1-2, yy); ctx.stroke(); }
+    // 船首／船尾（外側の端を三角にとがらせて海へ突き出す＝船っぽく）
+    ctx.fillStyle = "#8a5a2c";
+    ctx.beginPath();
+    if (rightBreak) { ctx.moveTo(x0, deckTop); ctx.lineTo(x0 - 28, deckTop + 22); ctx.lineTo(x0, yBot); }
+    else            { ctx.moveTo(x1, deckTop); ctx.lineTo(x1 + 28, deckTop + 22); ctx.lineTo(x1, yBot); }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#6b4420";
+    if (rightBreak) ctx.fillRect(x0 - 26, deckTop + 3, 28, 6); else ctx.fillRect(x1 - 2, deckTop + 3, 28, 6);
+    // 割れた断面（割れ目に向かってギザギザの板が突き出す）
+    const bx = rightBreak ? x1 : x0, jdir = rightBreak ? 1 : -1;
+    const segs = 7, segH = (yBot - deckTop) / segs;
+    for (let k = 0; k < segs; k++) {
+      const yy = deckTop + k*segH, jag = (k % 2 === 0 ? 22 : 9) * jdir;
+      ctx.fillStyle = k % 2 === 0 ? "#8a5a2c" : "#7a4d24";
+      ctx.beginPath(); ctx.moveTo(bx, yy); ctx.lineTo(bx + jag, yy + segH*0.5); ctx.lineTo(bx, yy + segH); ctx.closePath(); ctx.fill();
+    }
+    // 断面の明るい木肌（割れたての木）
+    ctx.fillStyle = "#b98a52"; ctx.fillRect(rightBreak ? x1 - 3 : x0, deckTop, 3, yBot - deckTop);
   }
 
   // ===== カニ（地上の速い敵）=====
@@ -2726,8 +2908,51 @@
     ctx.restore();
   }
 
+  // 水中にもぐっているとき（割れ目）のサメのヒレ＋泡（予告）
+  function drawSharkFin(b) {
+    const fx = GAP_CX, fy = SEA_Y;
+    ctx.fillStyle = "rgba(20,55,80,0.4)";                  // 水中の影
+    ctx.beginPath(); ctx.ellipse(fx, fy + 20, 46, 14, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#6b8494";                             // 背びれ
+    ctx.beginPath();
+    ctx.moveTo(fx - 20, fy);
+    ctx.quadraticCurveTo(fx + 2, fy - 6, fx + 6, fy - 34);
+    ctx.quadraticCurveTo(fx + 10, fy - 6, fx + 22, fy);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = 2;  // 波紋
+    ctx.beginPath(); ctx.moveTo(fx - 36, fy); ctx.quadraticCurveTo(fx, fy + 6, fx + 36, fy); ctx.stroke();
+    // 立ちのぼる泡
+    for (let i = 0; i < 4; i++) {
+      const by = fy + 8 - ((elapsed*1.2 + i*22) % 60);
+      ctx.fillStyle = "rgba(210,240,255,0.5)";
+      ctx.beginPath(); ctx.arc(fx - 16 + i*11 + Math.sin(elapsed*0.05+i)*4, by, 2 + i%2, 0, 7); ctx.fill();
+    }
+  }
+
+  // ボスのカモメ（上を飛び、もぐっている間に卵を落とす）
+  function drawBossGull(g) {
+    if (!g) return;
+    ctx.save();
+    ctx.translate(g.x, g.y);
+    const dir = g.vx > 0 ? 1 : -1, flap = Math.sin(elapsed*0.25)*11;
+    ctx.fillStyle = "#f4f6f8";
+    ctx.beginPath(); ctx.moveTo(0, -2); ctx.quadraticCurveTo(-15, -6 - flap, -24, 2 - flap*0.4); ctx.quadraticCurveTo(-11, 2, 0, 5); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(0, -2); ctx.quadraticCurveTo(15, -6 - flap, 24, 2 - flap*0.4); ctx.quadraticCurveTo(11, 2, 0, 5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#c9d2d8";
+    ctx.beginPath(); ctx.arc(-22, 2 - flap*0.4, 2.6, 0, 7); ctx.arc(22, 2 - flap*0.4, 2.6, 0, 7); ctx.fill();
+    ctx.fillStyle = "#fafcff";
+    ctx.beginPath(); ctx.ellipse(0, 2, 11, 8, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(dir*9, -3, 6.5, 0, 7); ctx.fill();
+    ctx.fillStyle = "#f3a71e";
+    ctx.beginPath(); ctx.moveTo(dir*14, -3); ctx.lineTo(dir*24, -1); ctx.lineTo(dir*14, 1); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#222"; ctx.beginPath(); ctx.arc(dir*10, -4, 1.7, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+
   // ===== ボス：メガロドン（巨大ザメ）=====
   function drawMegaBoss(b) {
+    if (b.gull) drawBossGull(b.gull);                        // カモメは常に上を飛ぶ
+    if (b.alive && b.mode === "dive") { drawSharkFin(b); return; }
     const cx = b.x + b.w/2, by = b.y + b.h, W2 = b.w, H2 = b.h;
     ctx.save();
     ctx.translate(cx, by);
@@ -2739,7 +2964,7 @@
     const body = flash ? "#d7e6ee" : "#7f97a6";
     const bodyD = flash ? "#c2d4de" : "#6b8494";
     const belly = flash ? "#ffffff" : "#eef3f5";
-    const bite = b.charging ? 1 : (b.windup > 0 ? -0.4 : 0);
+    const bite = (b.mode === "bite" || b.mode === "jump" || b.mode === "charge") ? 1 : 0;   // 攻撃中は口を開く
     const midY = -H2*0.5;
     // 影
     ctx.fillStyle = "rgba(0,0,0,0.15)"; ctx.beginPath(); ctx.ellipse(0, 2, W2*0.55, 8, 0, 0, 7); ctx.fill();
