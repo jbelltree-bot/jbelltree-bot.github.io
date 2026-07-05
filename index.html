@@ -349,6 +349,24 @@
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXX",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXX",
       ]
+    },
+    {
+      name: "ステージ5 タイランド",
+      theme: "thailand",
+      boss: "zagat",
+      level: [
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "--------------------o-o-o-o---------------------------------------------o-o-o-------------------------------------------------------o-o-o-o-------G---",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "----------------N-------------------------------------o-o-o-----------------------------------------o-o-o-----------------------H---------------------",
+        "----P---------------------?-------------------------b-----F-----?-------####----U---------------b-------------?---------------------#####-?-b---------",
+        "------------------------------------------------------#####-------------------------------------------------------------------------------------------",
+        "----------------------m-------------s-------------------------------m---------------s---------------#####---m---------------s-------------------------",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      ]
     }
   ];
   let stageIndex = 0;
@@ -375,6 +393,8 @@
   let stageClearT = 0;
   let bosses = [];      // ボス戦のボス（1〜2体）
   let cukes = [];       // にせぺぎが投げるキュウリ
+  let hazards = [];     // ステージ中に前から飛んでくるタイガーショット（タイランド）
+  let tigerCd = 0;      // 次のタイガーショットまでのカウント
   let inBoss = false;   // ボス戦中かどうか（ミス時のやり直し判定用）
   let bossNutSpawned = false;   // ボス戦の開始10秒でナッツを出したか（各ボス戦で1回）
 
@@ -433,6 +453,8 @@
         else if (ch === "g") { enemySpawns.push({ x, y, kind: "gull" }); enemies.push(makeEnemy(x, y, { kind: "gull" })); }
         else if (ch === "f") { enemySpawns.push({ x, y, kind: "puffer" }); enemies.push(makeEnemy(x, y, { kind: "puffer" })); }
         else if (ch === "j") { enemySpawns.push({ x, y, kind: "jelly" }); enemies.push(makeEnemy(x, y, { kind: "jelly" })); }
+        else if (ch === "m") { enemySpawns.push({ x, y, kind: "monkey" }); enemies.push(makeEnemy(x, y, { kind: "monkey" })); }
+        else if (ch === "s") { enemySpawns.push({ x, y, kind: "snake" }); enemies.push(makeEnemy(x, y, { kind: "snake" })); }
         else if (ch === "P") start = { x, y };
         else if (ch === "G") goal = { x: x + TILE / 2, y: y, top: y };
       }
@@ -449,6 +471,8 @@
       shield: false, shieldT: 0
     };
     camX = 0; elapsed = 0; particles = [];
+    hazards = []; cukes = [];
+    tigerCd = (theme === "thailand") ? 150 : 1e9;   // タイランドだけ前からタイガーショットが飛んでくる
   }
 
   // パワーアップ状態に応じてサイズを設定（足元を基準に高さを変える）
@@ -496,6 +520,16 @@
     if (kind === "crab") {
       // カニ：地面を横に速く歩く
       return { kind, x: x + 4, y: y + TILE - 22, w: 36, h: 22, vx: opts.slow ? 0 : -1.9,
+               alive: true, t: Math.random()*6, squash: 1, slow: !!opts.slow };
+    }
+    if (kind === "monkey") {
+      // さる：地面をぴょこぴょこ歩く（タイランド）
+      return { kind, x: x + 3, y: y + TILE - 30, w: 32, h: 30, vx: opts.slow ? 0 : -1.3,
+               alive: true, t: Math.random()*6, squash: 1, slow: !!opts.slow };
+    }
+    if (kind === "snake") {
+      // へび：地面を低くはう（背が低い・踏める）
+      return { kind, x: x + 2, y: y + TILE - 18, w: 40, h: 18, vx: opts.slow ? 0 : -1.0,
                alive: true, t: Math.random()*6, squash: 1, slow: !!opts.slow };
     }
     // 地上の敵（kuri=クリ / cat=ネコ）
@@ -642,10 +676,17 @@
   // ---------- まるりんボイス & BGM（音声ファイル） ----------
   const VOICE = {
     get: new Audio("audio/voice_get.wav"),  // 001: ナッツ取得・クリア
-    sad: new Audio("audio/voice_sad.wav")   // 003: 被弾・落下・ゲームオーバー
+    sad: new Audio("audio/voice_sad.wav"),  // 003: 被弾・落下・ゲームオーバー
+    // ザガット（ステージ5ボス）の掛け声。ファイルを audio/ に置けば自動で鳴る（無ければ無音）
+    tiger:  new Audio("audio/voice_tiger.wav"),   // タイガーショット（上段）
+    gtiger: new Audio("audio/voice_gtiger.wav"),  // グランドタイガーショット（下段）
+    upper:  new Audio("audio/voice_upper.wav")    // タイガーアッパーカット（対空）
   };
   VOICE.get.volume = 0.85;
   VOICE.sad.volume = 0.85;
+  VOICE.tiger.volume = 0.9;
+  VOICE.gtiger.volume = 0.9;
+  VOICE.upper.volume = 0.9;
   function playVoice(name) {
     try { const a = VOICE[name]; a.currentTime = 0; a.play().catch(() => {}); } catch (e) {}
   }
@@ -654,7 +695,8 @@
     new Audio("audio/bgm_stage1.mp3"),   // ステージ1
     new Audio("audio/bgm_stage2.mp3"),   // ステージ2
     new Audio("audio/bgm_stage3.mp3"),   // ステージ3
-    new Audio("audio/bgm_stage4.mp3")    // ステージ4（ハワイ・サンシャインビーチ）
+    new Audio("audio/bgm_stage4.mp3"),   // ステージ4（ハワイ・サンシャインビーチ）
+    new Audio("audio/bgm_stage5.mp3")    // ステージ5（タイランド）※曲を置けば鳴る
   ];
   BGM.forEach(a => { a.loop = true; a.volume = 0.15; });  // 小さめ・ループ
   // ボス戦BGM（ステージ別。無いステージはnull＝通常BGMのまま）
@@ -662,7 +704,8 @@
     new Audio("audio/bgm_boss1.mp3"),  // ステージ1ボス（クリだいおう）
     new Audio("audio/bgm_boss1.mp3"),  // ステージ2ボス（ペンギン）※ボス1と同じ曲
     new Audio("audio/bgm_boss3.mp3"),  // ステージ3ボス（こうよう）※太鼓連打
-    new Audio("audio/bgm_boss4.mp3")   // ステージ4ボス（メガロドン）※Will you still cry
+    new Audio("audio/bgm_boss4.mp3"),  // ステージ4ボス（メガロドン）※Will you still cry
+    new Audio("audio/bgm_boss5.mp3")   // ステージ5ボス（ザガット）※曲を置けば鳴る
   ];
   BOSS_BGM.forEach(a => { if (a) { a.loop = true; a.volume = 0.2; } });
   let bgm = BGM[0];                           // 今鳴らしているBGM
@@ -1008,6 +1051,16 @@
       }
     }
 
+    // タイランド：前からタイガーショット（上段）／グランドタイガーショット（下段）が飛んでくる
+    if (tigerCd < 1e8 && !inBoss) {
+      const nearGoal = goal && (p.x + p.w/2 > goal.x - 260);   // ゴール直前は撃たない（ボス戦へ）
+      if (p.x > 7 * TILE && !nearGoal) {
+        tigerCd--;
+        if (tigerCd <= 0) { spawnTigerShot(); tigerCd = 120 + Math.floor(Math.random() * 90); }
+      }
+    }
+    updateHazards();
+
     // ゴール
     if (goal && p.x + p.w > goal.x - 10 && p.x < goal.x + 20 && p.y < goal.top + TILE*7) {
       if (p.x + p.w/2 > goal.x - 6) { winGame(); }
@@ -1122,7 +1175,7 @@
   // ボス登場時に出す名前
   function bossTitle() {
     const k = STAGES[stageIndex].boss;
-    return k === "penguins" ? "ペギ＆ニセペギ" : k === "sumo" ? "こうよう" : k === "mega" ? "メガロドン" : "くりだいおう";
+    return k === "penguins" ? "ペギ＆ニセペギ" : k === "sumo" ? "こうよう" : k === "mega" ? "メガロドン" : k === "zagat" ? "ザガット" : "くりだいおう";
   }
 
   function startBoss() {
@@ -1136,7 +1189,7 @@
   function setupBossArena() {
     LEVEL_W = W; LEVEL_H = H; camX = 0;
     solids = []; coins = []; nuts = []; flowers = []; feathers = []; breads = [];
-    enemies = []; questionBlocks = []; seeds = []; goal = null; particles = []; cukes = [];
+    enemies = []; questionBlocks = []; seeds = []; goal = null; particles = []; cukes = []; hazards = [];
     const megaArena = STAGES[stageIndex].boss === "mega";
     for (let x = 0; x < W; x += TILE) {
       if (megaArena && !((x >= LDECK_L && x < LDECK_R) || (x >= RDECK_L && x < RDECK_R))) continue;   // デッキ以外は海（床なし）
@@ -1158,6 +1211,8 @@
       bosses = [ makeBoss("sumo", W - 180) ];
     } else if (type === "mega") {
       bosses = [ makeBoss("mega", 80) ];
+    } else if (type === "zagat") {
+      bosses = [ makeBoss("zagat", W - 150) ];
     } else {
       bosses = [ makeBoss("kuri", W - 170) ];
     }
@@ -1208,6 +1263,17 @@
         mode: "dive", side: -1, diveT: 60, windup: 0, chargeT: 0, chargeDir: 1, vulnerable: false, diveCx: GAP_CX,
         gull: { x: 120, y: 74, vx: 2.2, dropCd: 80 } };
     }
+    if (kind === "zagat") {
+      // ザガット（ムエタイの王者・オマージュ）：タイガーショット（上段）／グランドタイガーショット（下段）を
+      // 前から撃ってくる。近づいてジャンプすると対空のタイガーアッパーカットで反撃。
+      // 頭を踏む5回（8×5=40）またはたね8発（5×8=40）で撃破。ハート5個表示。
+      return { kind, name: "ザガット", x, y: BOSS_GROUND - 96, w: 56, h: 96,
+        vx: 0, vy: 0, onGround: false, face: -1,
+        hp: 40, maxHp: 40, stompDmg: 8, seedDmg: 5, hpPerHeart: 8,
+        invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
+        throws: false, alive: true, dyingT: 0,
+        homeX: x, shotCd: 70, upperCd: 80, upperT: 0, nextLow: false, stepCd: 90 };
+    }
     if (kind === "sumo") {
       // こうよう（子供力士）：ぶちかまし突進＋塩まき。踏み5回orたね5発で撃破
       return { kind, name: "こうよう", x, y: BOSS_GROUND - 66, w: 66, h: 66,
@@ -1232,7 +1298,7 @@
     b.hurtFlash = b.invuln;
     b.squash = seed ? 0.8 : 0.6;
     sfx.stomp();
-    const col = seed ? "#ffd34d" : (b.kind === "pegi" ? "#aed4e7" : (b.kind === "nisepegi" ? "#c8d27c" : (b.kind === "sumo" ? "#f6cfa4" : (b.kind === "mega" ? "#bfe1f0" : "#a56b3e"))));
+    const col = seed ? "#ffd34d" : (b.kind === "pegi" ? "#aed4e7" : (b.kind === "nisepegi" ? "#c8d27c" : (b.kind === "sumo" ? "#f6cfa4" : (b.kind === "mega" ? "#bfe1f0" : (b.kind === "zagat" ? "#ffb020" : "#a56b3e")))));
     spawnParticles(b.x + b.w/2, b.y + b.h*0.3, col, seed ? 6 : 10);
     if (b.hp <= 0) {
       b.hp = 0; b.alive = false; b.dyingT = 0; b.vx = 0;
@@ -1257,6 +1323,7 @@
     const p = player;
     for (const cu of cukes) {
       cu.t++;
+      if (cu.kind === "tiger" || cu.kind === "gtiger") { stepTigerShot(cu, p); continue; }  // まっすぐ飛ぶ弾
       cu.vy += 0.42;                    // 山なりに落ちる
       cu.x += cu.vx; cu.y += cu.vy;
       const box = { x: cu.x - 10, y: cu.y - 6, w: 20, h: 12 };
@@ -1272,6 +1339,38 @@
       if (cu.y > LEVEL_H + 40 || cu.x < -40 || cu.x > LEVEL_W + 40) cu.dead = true;
     }
     cukes = cukes.filter(cu => !cu.dead);
+  }
+
+  // タイガーショット（上段=tiger／下段=gtiger）：まっすぐ飛ぶ。ステージでもボス戦でも共通の当たり処理。
+  const TIGER_HIGH_Y = 300;   // 上段の高さ（地上のまるりんの頭より上＝ジャンプすると当たる）
+  const TIGER_LOW_Y  = 348;   // 下段の高さ（地面すれすれ＝ジャンプでよける）
+  function stepTigerShot(cu, p) {
+    cu.x += cu.vx;
+    const high = cu.kind === "tiger";
+    const box = high ? { x: cu.x - 15, y: cu.y - 13, w: 30, h: 24 }
+                     : { x: cu.x - 16, y: cu.y - 10, w: 32, h: 20 };
+    // たねで撃ち消せる（たねまるりん）
+    for (const sd of seeds) {
+      if (rectHit({ x: sd.x-5, y: sd.y-5, w: 10, h: 10 }, box)) {
+        cu.dead = true; sd.life = 0; score += 50; sfx.stomp();
+        spawnParticles(cu.x, cu.y, "#ffb020", 8); return;
+      }
+    }
+    if (rectHit(p, box) && p.invuln <= 0) { cu.dead = true; hurtPlayer(); spawnParticles(cu.x, cu.y, "#ff7a1a", 8); return; }
+    if (cu.x < camX - 100 || cu.x < -60 || cu.x > LEVEL_W + 80) cu.dead = true;
+  }
+
+  // ステージ中（タイランド）に前から飛んでくるタイガーショット
+  function spawnTigerShot() {
+    const high = Math.random() < 0.5;
+    hazards.push({ kind: high ? "tiger" : "gtiger", x: camX + W + 30,
+                   y: high ? TIGER_HIGH_Y : TIGER_LOW_Y, vx: -3.4, t: 0 });
+  }
+  function updateHazards() {
+    if (!hazards.length) return;
+    const p = player;
+    for (const h of hazards) { h.t++; stepTigerShot(h, p); }
+    hazards = hazards.filter(h => !h.dead);
   }
 
   function updateBossOnly() {
@@ -1293,6 +1392,7 @@
 
       b.squash += (1 - b.squash) * 0.2;
       if (b.kind === "mega") { updateMega(b); continue; }
+      if (b.kind === "zagat") { updateZagat(b); continue; }
       const phase = b.kind === "kuri" ? (b.hp <= 5 ? 2 : (b.hp <= 10 ? 1 : 0)) : 0;
       let speed = b.speedBase + phase * 0.7;
       // こうよう／メガロドン：構え（windup）→ 突進（charging）
@@ -1369,6 +1469,77 @@
 
     // 全ボス撃破＆演出終了 → クリア
     if (bosses.every(b => !b.alive && b.dyingT > 90)) stageCleared();
+  }
+
+  // ザガット（ステージ5ボス）：立ち位置は右。タイガーショット（上段）／グランドタイガーショット（下段）を
+  // 交互に撃ち、近くでジャンプされるとタイガーアッパーカットで対空。頭を踏むかたねで撃破。
+  function updateZagat(b) {
+    const p = player;
+    const pcx = p.x + p.w/2, bcx = b.x + b.w/2;
+    b.face = (pcx < bcx) ? -1 : 1;
+
+    // 重力＋床
+    b.vy += GRAVITY; if (b.vy > 18) b.vy = 18;
+    b.y += b.vy; b.onGround = false;
+    for (const s of solids) {
+      if (rectHit(b, s) && b.vy > 0 && (b.y + b.h) - s.y < 46) { b.y = s.y - b.h; b.vy = 0; b.onGround = true; }
+    }
+    // アッパー中でなければ、ホーム付近をゆっくり歩く（遠いと少し前に出る）
+    if (b.upperT <= 0) {
+      const far = Math.abs(pcx - bcx) > 300;
+      b.x += far ? b.face * 0.7 : (b.homeX - b.x) * 0.02;
+      if (b.x < 40) b.x = 40;
+      if (b.x + b.w > W - 20) b.x = W - 20 - b.w;
+    }
+
+    if (b.upperCd > 0) b.upperCd--;
+
+    // 対空タイガーアッパーカット：近くでジャンプされたら出す（クールダウンあり＝すきま時間に踏める）
+    if (b.upperT <= 0 && b.upperCd <= 0 && !p.onGround && p.vy > -20 &&
+        Math.abs(pcx - bcx) < 150 && (p.y + p.h) < b.y + b.h * 0.8) {
+      b.upperT = 26; b.upperCd = 110; b.squash = 0.7; playVoice("upper"); sfx.jump();
+    }
+    if (b.upperT > 0) {
+      b.upperT--;
+      const uf = b.face;
+      const hb = { x: uf < 0 ? b.x - 30 : b.x + b.w - 26, y: b.y - 34, w: 56, h: b.h * 0.7 + 34 };
+      if (rectHit(p, hb) && p.invuln <= 0) hurtPlayer();
+      if (b.upperT === 20) spawnParticles(uf < 0 ? b.x : b.x + b.w, b.y - 6, "#ffd34d", 8);
+    } else {
+      // タイガーショット（上段）／グランドタイガーショット（下段）を交互に撃つ
+      b.shotCd--;
+      if (b.shotCd <= 0 && b.onGround) {
+        const low = b.nextLow; b.nextLow = !b.nextLow;
+        const dir = b.face;
+        cukes.push({ kind: low ? "gtiger" : "tiger",
+          x: bcx + dir * (b.w / 2 + 6), y: low ? TIGER_LOW_Y : TIGER_HIGH_Y,
+          vx: dir * 4.0, t: 0 });
+        playVoice(low ? "gtiger" : "tiger");
+        sfx.seed(); b.squash = 0.82;
+        b.shotCd = 70 + Math.floor(Math.random() * 60);
+      }
+    }
+
+    // 踏みつけ／被弾
+    if (rectHit(p, b)) {
+      const fromAbove = p.vy > 0 && (p.y + p.h) - b.y < b.h * 0.5 + Math.max(0, p.vy);
+      if (b.upperT > 0) {
+        if (p.invuln <= 0) hurtPlayer();          // アッパー中は踏めない（触れると被弾）
+      } else if (fromAbove) {
+        if (b.invuln <= 0) damageBoss(b, false);
+        const timed = jumpKey() || jumpBuffer > 0;
+        p.vy = timed ? -15 : -10; p.bounceLock = 12; jumpBuffer = 0; p.squash = 0.7;
+        p.invuln = Math.max(p.invuln, 8);
+      } else if (p.invuln <= 0) {
+        hurtPlayer();
+      }
+    }
+    // たね vs ボス
+    if (b.invuln <= 0) {
+      for (const sd of seeds) {
+        if (rectHit({ x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 }, b)) { damageBoss(b, true); sd.life = 0; break; }
+      }
+    }
   }
 
   // メガロドン専用の動き：海にもぐる→そこから噛みつき→近いデッキへジャンプ→突進→ランダムな海へ飛び込む
@@ -1585,6 +1756,21 @@
       g.addColorStop(1, "#83b3c8");
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
       drawClouds();
+    } else if (inBoss && STAGES[stageIndex].boss === "zagat") {
+      // ザガット戦：夕方のムエタイ・リング（あたたかいオレンジの空）
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#e88a3c");
+      g.addColorStop(0.5, "#f0b46a");
+      g.addColorStop(1, "#f6d79c");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    } else if (theme === "thailand") {
+      // タイランド：あたたかい南国の空
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#f0a94e");
+      g.addColorStop(0.5, "#f6cf86");
+      g.addColorStop(1, "#fdf0cf");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      drawClouds();
     } else if (theme === "hawaii") {
       // 前半＝ビーチの空／後半＝海の中（カメラ位置でクロスフェード）
       const t = Math.max(0, Math.min(1, (camX + W/2 - 2720) / 620));
@@ -1645,6 +1831,7 @@
     else if (theme === "town") drawTownDecor();
     else if (theme === "narita") drawNaritaDecor();
     else if (theme === "hawaii") drawHawaiiDecor();
+    else if (theme === "thailand") drawThaiDecor();
     drawSolids();
     drawCoins();
     drawNuts();
@@ -1657,6 +1844,7 @@
     drawEnemies();
     if (bosses.length) drawBosses();
     drawCukes();
+    drawHazards();
     drawParticles();
     if (state !== "gameover") drawPlayer();
 
@@ -1879,6 +2067,15 @@
         ctx.strokeStyle = "rgba(60,40,20,0.35)"; ctx.lineWidth = 1;
         ctx.strokeRect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);
         if (topEdge) { ctx.fillStyle = "#a5794a"; ctx.fillRect(s.x, s.y, s.w, 5); }
+      } else if (s.type === "ground" && (theme === "thailand" || (inBoss && STAGES[stageIndex].boss === "zagat"))) {
+        // タイランド：赤茶けた大地
+        ctx.fillStyle = "#a3623a"; ctx.fillRect(s.x, s.y, s.w, s.h);
+        ctx.fillStyle = "#93552f";
+        for (let i=0;i<3;i++) for(let j=0;j<3;j++) ctx.fillRect(s.x+4+i*13, s.y+13+j*10, 7, 5);
+        if (!isSolidAt(s.x, s.y - TILE)) {
+          ctx.fillStyle = "#6faf3f"; ctx.fillRect(s.x, s.y, s.w, 8);      // 草
+          ctx.fillStyle = "#82c74f"; ctx.fillRect(s.x, s.y, s.w, 4);
+        }
       } else if (s.type === "ground" && theme === "hawaii") {
         // ハワイ：砂浜／海底の砂
         const underwater = s.x + s.w/2 > 3000;
@@ -2292,6 +2489,8 @@
       if (e.kind === "gull") { drawGull(e); continue; }
       if (e.kind === "puffer") { drawPuffer(e); continue; }
       if (e.kind === "jelly") { drawJelly(e); continue; }
+      if (e.kind === "monkey") { drawMonkey(e); continue; }
+      if (e.kind === "snake") { drawSnake(e); continue; }
       ctx.save();
       const cx = e.x + e.w/2, by = e.y + e.h;
       ctx.translate(cx, by);
@@ -2337,6 +2536,7 @@
   function drawBossBackdrop() {
     if (STAGES[stageIndex].boss === "sumo") { drawSumoBackdrop(); return; }
     if (STAGES[stageIndex].boss === "mega") { drawDeepSeaBackdrop(); return; }
+    if (STAGES[stageIndex].boss === "zagat") { drawZagatBackdrop(); return; }
     if (STAGES[stageIndex].boss !== "penguins") return;
     // 奥の壁と柱
     ctx.fillStyle = "#cdd9e4"; ctx.fillRect(0, 150, W, 130);
@@ -2360,6 +2560,7 @@
       if (b.kind === "pegi" || b.kind === "nisepegi") drawPenguinBoss(b);
       else if (b.kind === "sumo") drawSumoBoss(b);
       else if (b.kind === "mega") drawMegaBoss(b);
+      else if (b.kind === "zagat") drawZagat(b);
       else drawKuriBoss(b);
     }
   }
@@ -2367,6 +2568,7 @@
   // にせぺぎが投げるキュウリ／こうようがまく塩
   function drawCukes() {
     for (const cu of cukes) {
+      if (cu.kind === "tiger" || cu.kind === "gtiger") { drawTigerShot(cu.x, cu.y, cu.kind === "tiger", cu.t); continue; }
       if (cu.kind === "salt") {   // 塩の一つかみ（白い粒のかたまり）
         ctx.save();
         ctx.translate(cu.x, cu.y);
@@ -2403,6 +2605,241 @@
       ctx.fillStyle = "#5a8f2f"; ctx.fillRect(11, -1.5, 4, 3);   // へた
       ctx.restore();
     }
+  }
+
+  // ===== タイガーショット（上段＝high／下段＝low）の描画 =====
+  function drawTigerShot(x, y, high, t) {
+    ctx.save();
+    ctx.translate(x, y);
+    const core = high ? "#fff0c0" : "#ffe0a8";
+    const c1 = high ? "#ffca38" : "#ff9a2e";
+    const c2 = high ? "#ff8c1a" : "#ff5a1a";
+    // 後ろへ伸びる炎の尾（右へ）
+    ctx.fillStyle = high ? "rgba(255,170,40,0.4)" : "rgba(255,110,30,0.4)";
+    ctx.beginPath(); ctx.moveTo(4, -7); ctx.lineTo(30 + Math.sin(t*0.5)*5, 0); ctx.lineTo(4, 7); ctx.closePath(); ctx.fill();
+    // 本体
+    ctx.fillStyle = c2; ctx.beginPath(); ctx.ellipse(0, 0, 17, 13, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = c1; ctx.beginPath(); ctx.ellipse(-1, -1, 13, 10, 0, 0, 7); ctx.fill();
+    // 虎のシマ
+    ctx.strokeStyle = "rgba(120,40,0,0.65)"; ctx.lineWidth = 2;
+    for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(i*6, -9); ctx.lineTo(i*6 - 2, 9); ctx.stroke(); }
+    // 中心の光
+    ctx.fillStyle = core; ctx.beginPath(); ctx.ellipse(-2, -2, 6, 4.5, 0, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+  function drawHazards() {
+    for (const h of hazards) {
+      if (h.x < camX - 60 || h.x > camX + W + 60) continue;
+      drawTigerShot(h.x, h.y, h.kind === "tiger", h.t);
+    }
+  }
+
+  // ===== タイランドの風景（寺院・ヤシ・ゾウ）=====
+  function thaiWat(x, h) {
+    const baseY = GROUND_Y, w = h * 0.9;
+    ctx.fillStyle = "#e7c46a";
+    ctx.fillRect(x, baseY - h*0.55, w, h*0.55);           // 本体
+    ctx.fillStyle = "#d8a94a";
+    // 段々の屋根
+    for (let i = 0; i < 3; i++) {
+      const ry = baseY - h*0.55 - i*h*0.14, rw = w*(0.9 - i*0.22);
+      ctx.beginPath(); ctx.moveTo(x + w/2 - rw/2, ry); ctx.lineTo(x + w/2, ry - h*0.16); ctx.lineTo(x + w/2 + rw/2, ry); ctx.closePath(); ctx.fill();
+    }
+    // 尖塔
+    ctx.fillStyle = "#c8952f";
+    ctx.beginPath(); ctx.moveTo(x + w/2 - 5, baseY - h*0.55 - 3*h*0.14);
+    ctx.lineTo(x + w/2, baseY - h - 6); ctx.lineTo(x + w/2 + 5, baseY - h*0.55 - 3*h*0.14); ctx.closePath(); ctx.fill();
+  }
+  function palm(x, sc) {
+    ctx.save(); ctx.translate(x, GROUND_Y); ctx.scale(sc, sc);
+    ctx.strokeStyle = "#8a5f38"; ctx.lineWidth = 8; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-6, -60, 6, -110); ctx.stroke();
+    ctx.fillStyle = "#3f9a4a";
+    for (let a = 0; a < 5; a++) {
+      const ang = -Math.PI/2 + (a - 2) * 0.6;
+      ctx.save(); ctx.translate(6, -110); ctx.rotate(ang);
+      ctx.beginPath(); ctx.ellipse(28, 0, 30, 9, 0, 0, 7); ctx.fill(); ctx.restore();
+    }
+    ctx.restore();
+  }
+  function elephant(x, sc) {
+    ctx.save(); ctx.translate(x, GROUND_Y); ctx.scale(sc, sc);
+    ctx.fillStyle = "#9aa1a8";
+    ctx.beginPath(); ctx.ellipse(0, -34, 40, 28, 0, 0, 7); ctx.fill();     // 体
+    ctx.beginPath(); ctx.ellipse(-38, -40, 20, 20, 0, 0, 7); ctx.fill();   // 頭
+    ctx.fillStyle = "#8b929a";
+    ctx.beginPath(); ctx.ellipse(-52, -30, 14, 16, 0.3, 0, 7); ctx.fill(); // 耳
+    // 鼻
+    ctx.strokeStyle = "#9aa1a8"; ctx.lineWidth = 11; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-50, -34); ctx.quadraticCurveTo(-66, -20, -58, -2); ctx.stroke();
+    // 足
+    ctx.fillStyle = "#8b929a";
+    for (const fx of [-24, -4, 16, 30]) ctx.fillRect(fx, -12, 12, 14);
+    // 目
+    ctx.fillStyle = "#333"; ctx.beginPath(); ctx.arc(-44, -42, 2.4, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+  function drawThaiDecor() {
+    const Lc = camX - 300, R = camX + W + 120;
+    const put = (x, fn) => { if (x > Lc && x < R) fn(); };
+    // 寺院（ワット）を要所に
+    put(360,  () => thaiWat(360, 190));
+    put(1500, () => thaiWat(1500, 150));
+    put(2600, () => thaiWat(2600, 200));
+    put(3700, () => thaiWat(3700, 160));
+    put(4900, () => thaiWat(4900, 200));
+    // ヤシの木を点々と
+    for (let x = 240; x < LEVEL_W; x += 520) put(x, () => palm(x, 1.0));
+    // ゾウ（地面の飾り。踏めない・当たらない背景）
+    for (const [ex, i] of [[900,0],[2200,1],[3400,2],[4600,3]]) {
+      put(ex, () => elephant(ex + Math.sin(elapsed*0.01 + i)*6, 1.0));
+    }
+  }
+
+  // ===== さる／へび（タイランドの敵）=====
+  function drawMonkey(e) {
+    ctx.save();
+    const cx = e.x + e.w/2, by = e.y + e.h;
+    ctx.translate(cx, by);
+    if (!e.alive) { ctx.scale(1.1, 0.25); ctx.globalAlpha = 0.7; }
+    const dir = e.vx > 0 ? 1 : -1;
+    const wob = Math.sin(e.t*0.3)*3;
+    // しっぽ
+    ctx.strokeStyle = "#8a5a34"; ctx.lineWidth = 4; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(dir*10, -8); ctx.quadraticCurveTo(dir*24, -14, dir*18, -26); ctx.stroke();
+    // 体
+    ctx.fillStyle = "#8a5a34";
+    ctx.beginPath(); ctx.ellipse(0, -e.h*0.42, e.w*0.42, e.h*0.44, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#c9a06a";
+    ctx.beginPath(); ctx.ellipse(0, -e.h*0.36, e.w*0.26, e.h*0.3, 0, 0, 7); ctx.fill();
+    // 足
+    ctx.fillStyle = "#6f4526";
+    ctx.beginPath(); ctx.ellipse(-7+wob, 0, 6, 4, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(7-wob, 0, 6, 4, 0, 0, 7); ctx.fill();
+    // 頭
+    ctx.fillStyle = "#8a5a34";
+    ctx.beginPath(); ctx.arc(0, -e.h*0.8, e.w*0.34, 0, 7); ctx.fill();
+    ctx.fillStyle = "#c9a06a";
+    ctx.beginPath(); ctx.arc(0, -e.h*0.74, e.w*0.22, 0, 7); ctx.fill();
+    // 耳
+    ctx.fillStyle = "#8a5a34";
+    ctx.beginPath(); ctx.arc(-e.w*0.34, -e.h*0.82, 5, 0, 7); ctx.arc(e.w*0.34, -e.h*0.82, 5, 0, 7); ctx.fill();
+    if (e.alive) {
+      ctx.fillStyle = "#000";
+      ctx.beginPath(); ctx.arc(-5, -e.h*0.82, 2.2, 0, 7); ctx.arc(5, -e.h*0.82, 2.2, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+  function drawSnake(e) {
+    ctx.save();
+    const cx = e.x + e.w/2, by = e.y + e.h;
+    ctx.translate(cx, by);
+    if (!e.alive) { ctx.scale(1.1, 0.3); ctx.globalAlpha = 0.7; }
+    const dir = e.vx > 0 ? 1 : -1;
+    // うねる胴体
+    ctx.strokeStyle = "#4a9e3f"; ctx.lineWidth = 12; ctx.lineCap = "round";
+    ctx.beginPath();
+    for (let i = 0; i <= 6; i++) {
+      const sx = -e.w*0.5 + i*(e.w/6);
+      const sy = -6 + Math.sin(e.t*0.25 + i*0.9)*4;
+      if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+    }
+    ctx.stroke();
+    // 背の模様
+    ctx.strokeStyle = "#357a2c"; ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let i = 0; i <= 6; i++) {
+      const sx = -e.w*0.5 + i*(e.w/6);
+      const sy = -6 + Math.sin(e.t*0.25 + i*0.9)*4;
+      if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+    }
+    ctx.stroke();
+    // 頭
+    ctx.fillStyle = "#4a9e3f";
+    ctx.beginPath(); ctx.ellipse(dir*e.w*0.5, -8, 9, 7, 0, 0, 7); ctx.fill();
+    if (e.alive) {
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(dir*e.w*0.5 + dir*3, -10, 2.2, 0, 7); ctx.fill();
+      ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(dir*e.w*0.5 + dir*3.5, -10, 1.1, 0, 7); ctx.fill();
+      // 舌
+      ctx.strokeStyle = "#d33"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(dir*e.w*0.5 + dir*9, -8); ctx.lineTo(dir*e.w*0.5 + dir*15, -8); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ===== ボス：ザガット（ムエタイの王者・オマージュ）=====
+  function drawZagatBackdrop() {
+    // 奥の寺院のシルエット
+    ctx.fillStyle = "rgba(150,90,40,0.35)";
+    thaiWat(90, 210); thaiWat(W - 260, 210);
+    // ムエタイ・リングのロープ
+    ctx.strokeStyle = "rgba(200,60,60,0.6)"; ctx.lineWidth = 5;
+    for (let r = 0; r < 3; r++) { ctx.beginPath(); ctx.moveTo(0, 150 + r*40); ctx.lineTo(W, 150 + r*40); ctx.stroke(); }
+    // 支柱
+    ctx.fillStyle = "rgba(90,60,40,0.5)";
+    ctx.fillRect(20, 140, 16, 220); ctx.fillRect(W - 36, 140, 16, 220);
+  }
+  function drawZagat(b) {
+    const cx = b.x + b.w/2, by = b.y + b.h;
+    ctx.save();
+    ctx.translate(cx, by);
+    const sq = b.squash;
+    ctx.scale(b.face, 1);                 // 向きに合わせて反転（内部は右向きで描く）
+    ctx.scale(1 + (1 - sq) * 0.2, sq);
+    if (!b.alive) ctx.globalAlpha = Math.max(0, 1 - b.dyingT / 90);
+    const flash = b.hurtFlash > 0 && Math.floor(b.hurtFlash / 4) % 2 === 0;
+    const skin = flash ? "#ffd9b0" : "#e0965a";
+    const skinD = "#c67c44";
+    const H2 = b.h, W2 = b.w;
+    const upper = b.upperT > 0;
+    // 影
+    ctx.fillStyle = "rgba(0,0,0,0.12)";
+    ctx.beginPath(); ctx.ellipse(0, 2, W2*0.55, 7, 0, 0, 7); ctx.fill();
+    // 足
+    ctx.fillStyle = skinD;
+    ctx.fillRect(-W2*0.34, -H2*0.34, W2*0.26, H2*0.34);
+    ctx.fillRect(W2*0.08, -H2*0.34, W2*0.26, H2*0.34);
+    // 赤いトランクス
+    ctx.fillStyle = "#c62c2c";
+    ctx.fillRect(-W2*0.4, -H2*0.5, W2*0.8, H2*0.2);
+    ctx.fillStyle = "#e0b23a"; ctx.fillRect(-W2*0.4, -H2*0.5, W2*0.8, 4);
+    // 胴（筋肉質）
+    ctx.fillStyle = skin;
+    ctx.beginPath(); ctx.moveTo(-W2*0.4, -H2*0.5);
+    ctx.lineTo(W2*0.4, -H2*0.5); ctx.lineTo(W2*0.34, -H2*0.86);
+    ctx.lineTo(-W2*0.34, -H2*0.86); ctx.closePath(); ctx.fill();
+    // 胸筋・腹筋のライン
+    ctx.strokeStyle = skinD; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(0, -H2*0.5); ctx.lineTo(0, -H2*0.78); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-W2*0.24, -H2*0.7); ctx.lineTo(W2*0.24, -H2*0.7); ctx.stroke();
+    // 腕
+    ctx.fillStyle = skin;
+    if (upper) {
+      // タイガーアッパーカット：前の腕を大きく振り上げる
+      ctx.save(); ctx.translate(W2*0.3, -H2*0.82); ctx.rotate(-1.1);
+      ctx.fillRect(0, -H2*0.5, W2*0.22, H2*0.5); ctx.restore();
+      // 拳のきらめき
+      ctx.fillStyle = "#fff2b0";
+      ctx.beginPath(); ctx.arc(W2*0.55, -H2*1.15, 9, 0, 7); ctx.fill();
+    } else {
+      ctx.fillRect(W2*0.28, -H2*0.82, W2*0.2, H2*0.4);   // 前の腕（構え）
+    }
+    ctx.fillRect(-W2*0.48, -H2*0.82, W2*0.2, H2*0.38);    // 後ろの腕
+    // 頭
+    ctx.fillStyle = skin;
+    ctx.beginPath(); ctx.arc(0, -H2*0.92, W2*0.3, 0, 7); ctx.fill();
+    // ムエタイのはちまき（モンコン）
+    ctx.fillStyle = "#c62c2c";
+    ctx.fillRect(-W2*0.32, -H2*1.02, W2*0.64, 7);
+    ctx.fillStyle = "#e0b23a"; ctx.fillRect(-W2*0.05, -H2*1.14, W2*0.1, 14);
+    // 顔
+    if (b.alive) {
+      ctx.fillStyle = "#3a2418";
+      ctx.beginPath(); ctx.arc(W2*0.1, -H2*0.94, 2.6, 0, 7); ctx.fill();       // 目
+      ctx.strokeStyle = "#3a2418"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(W2*0.0, -H2*1.0); ctx.lineTo(W2*0.2, -H2*0.96); ctx.stroke();  // 怒り眉
+    }
+    ctx.restore();
   }
 
   // ===== ボス：ペギ／にせぺぎ（ペンギン）=====
