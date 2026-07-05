@@ -1167,7 +1167,7 @@
         hp: 40, maxHp: 40, stompDmg: 8, seedDmg: 5, hpPerHeart: 8,
         invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
         throws: false, alive: true, dyingT: 0,
-        mode: "dive", side: -1, diveT: 60, windup: 0, chargeT: 0, chargeDir: 1, vulnerable: false,
+        mode: "dive", side: -1, diveT: 60, windup: 0, chargeT: 0, chargeDir: 1, vulnerable: false, diveCx: GAP_CX,
         gull: { x: 120, y: 74, vx: 2.2, dropCd: 40 } };
     }
     if (kind === "sumo") {
@@ -1333,37 +1333,47 @@
     if (bosses.every(b => !b.alive && b.dyingT > 90)) stageCleared();
   }
 
-  // メガロドン専用の動き：中央の割れ目にもぐる→まず噛みつき→左右どちらかのデッキへジャンプ→突進→また割れ目へ
+  // メガロドン専用の動き：海にもぐる→そこから噛みつき→近いデッキへジャンプ→突進→ランダムな海へ飛び込む
   const MEGA_MID_X = GAP_CX - 59;   // 割れ目の中央（サメの左端x）
+  const MEGA_ZONES = [60, GAP_CX, 740];   // もぐる海の中心x：左の海・中央の割れ目・右の海（ランダム）
   function updateMega(b) {
     const p = player;
     const GMEGA = 0.6;
     updateGull(b);   // カモメ（もぐっている間、上から卵を落とす）
 
     if (b.mode === "dive") {
-      // 割れ目の水中にもぐって待つ（無敵）。時間が来たら中央から噛みつく。
+      // 今いる海（b.diveCx）にもぐって待つ（無敵）。時間が来たらそこから噛みつく。
       b.vulnerable = false;
-      b.x = MEGA_MID_X; b.y = SEA_Y + 8; b.vx = 0; b.vy = 0;
+      const cz = b.diveCx;
+      b.x = cz - b.w/2; b.y = SEA_Y + 8; b.vx = 0; b.vy = 0;
       b.diveT--;
       if (b.diveT <= 0) {
         b.mode = "bite"; b.vulnerable = true;
-        b.x = MEGA_MID_X; b.y = SEA_Y - 14; b.vy = -14.5; b.vx = 0;
-        b.face = (p.x + p.w/2 < GAP_CX) ? 1 : -1;   // まるりんの方へ噛みつく
-        spawnParticles(GAP_CX, SEA_Y, "#ffffff", 16);
-        spawnParticles(GAP_CX, SEA_Y, "#bfe1f0", 8);
+        b.x = cz - b.w/2; b.y = SEA_Y - 14; b.vy = -14.5; b.vx = 0;
+        b.face = (p.x + p.w/2 < cz) ? 1 : -1;   // まるりんの方へ噛みつく
+        spawnParticles(cz, SEA_Y, "#ffffff", 16);
+        spawnParticles(cz, SEA_Y, "#bfe1f0", 8);
       }
       return;
     }
 
     if (b.mode === "bite") {
-      // 中央からがぶっと飛び出して噛みつき、落ちてきたらデッキへジャンプ
+      // その海からがぶっと飛び出して噛みつき、落ちてきたら近いデッキへジャンプ
       b.vulnerable = true;
       b.vy += GMEGA; b.y += b.vy;
       if (b.vy > 0 && (b.y + b.h*0.5) >= SEA_Y) {
-        b.side = Math.random() < 0.5 ? -1 : 1;      // 左右どちらかのデッキへ
-        b.mode = "jump";
-        b.vy = -13; b.vx = b.side * 4.6; b.face = b.side;
-        spawnParticles(GAP_CX, SEA_Y, "#bfe1f0", 10);
+        const startCx = b.x + b.w/2;
+        // いる海に近いデッキへ（中央の割れ目からはランダム）
+        let toLeft;
+        if (startCx < GAP_L) toLeft = true;
+        else if (startCx > GAP_R) toLeft = false;
+        else toLeft = Math.random() < 0.5;
+        b.side = toLeft ? -1 : 1;
+        const deckCx = toLeft ? (LDECK_L + LDECK_R)/2 : (RDECK_L + RDECK_R)/2;
+        b.mode = "jump"; b.vy = -13;
+        b.vx = Math.max(-13, Math.min(13, (deckCx - startCx) / 40));
+        b.face = b.vx > 0 ? 1 : -1;
+        spawnParticles(startCx, SEA_Y, "#bfe1f0", 10);
       }
       megaHitChecks(b);
       return;
@@ -1399,17 +1409,50 @@
         const nx = b.x + b.w/2;
         // 割れ目に到達 or 足元の床が切れた → 海へダイブしてもぐる
         if ((nx > GAP_L && nx < GAP_R) || !isSolidAt(nx, BOSS_GROUND + 4) || b.chargeT <= 0) {
-          spawnParticles(nx, SEA_Y, "#ffffff", 12);
-          b.mode = "dive"; b.diveT = 55 + Math.floor(Math.random()*35);
-          b.vulnerable = false;
+          startPlunge(b);   // 突進のあと、ランダムな海（左・中央・右）へ飛び込む
         }
       }
       megaHitChecks(b);
       return;
     }
 
-    // 保険：想定外はダイブへ
-    b.mode = "dive"; b.diveT = 55; b.vulnerable = false; b.x = MEGA_MID_X; b.y = SEA_Y + 8; b.vy = 0;
+    if (b.mode === "plunge") {
+      // 突進のあと、ランダムな海へアーチを描いて飛び込む
+      b.vulnerable = true;
+      b.vy += GMEGA; b.x += b.vx; b.y += b.vy;
+      if (Math.abs(b.vx) > 0.4) b.face = b.vx > 0 ? 1 : -1;
+      const cx = b.x + b.w/2;
+      const overSea = (cx < LDECK_L) || (cx > GAP_L && cx < GAP_R) || (cx >= RDECK_R);
+      if (b.vy > 0 && (b.y + b.h*0.5) >= SEA_Y && overSea) {
+        // 着水 → その海にもぐる
+        b.diveCx = MEGA_ZONES.reduce((a, z) => Math.abs(z - cx) < Math.abs(a - cx) ? z : a, MEGA_ZONES[0]);
+        b.mode = "dive"; b.diveT = 55 + Math.floor(Math.random()*35); b.vulnerable = false; b.vy = 0;
+        spawnParticles(b.diveCx, SEA_Y, "#ffffff", 12);
+      } else if (b.y > H + 70 || b.x < -90 || b.x > W + 90) {
+        forceDiveRandom(b);
+      }
+      megaHitChecks(b);
+      return;
+    }
+
+    // 保険：想定外はランダムな海へ
+    forceDiveRandom(b);
+  }
+
+  // 突進のあと、ランダムな海（左の海・中央の割れ目・右の海）へ飛び込む
+  function startPlunge(b) {
+    const startCx = b.x + b.w/2;
+    const targetCx = MEGA_ZONES[Math.floor(Math.random() * MEGA_ZONES.length)];
+    b.mode = "plunge"; b.vulnerable = true; b.onGround = false;
+    b.vy = -12; b.vx = Math.max(-13, Math.min(13, (targetCx - startCx) / 42));
+    b.face = b.vx >= 0 ? 1 : -1;
+    spawnParticles(startCx, BOSS_GROUND, "#bfe1f0", 8);
+  }
+  // 保険：すぐランダムな海へもぐる
+  function forceDiveRandom(b) {
+    b.diveCx = MEGA_ZONES[Math.floor(Math.random() * MEGA_ZONES.length)];
+    b.mode = "dive"; b.diveT = 55; b.vulnerable = false;
+    b.x = b.diveCx - b.w/2; b.y = SEA_Y + 8; b.vx = 0; b.vy = 0;
   }
 
   // メガロドンとの当たり判定（水上のときだけ：踏み or 被弾、種）
@@ -2910,7 +2953,7 @@
 
   // 水中にもぐっているとき（割れ目）のサメのヒレ＋泡（予告）
   function drawSharkFin(b) {
-    const fx = GAP_CX, fy = SEA_Y;
+    const fx = b.diveCx || GAP_CX, fy = SEA_Y;
     ctx.fillStyle = "rgba(20,55,80,0.4)";                  // 水中の影
     ctx.beginPath(); ctx.ellipse(fx, fy + 20, 46, 14, 0, 0, 7); ctx.fill();
     ctx.fillStyle = "#6b8494";                             // 背びれ
