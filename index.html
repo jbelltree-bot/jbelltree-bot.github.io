@@ -374,6 +374,7 @@
   let bosses = [];      // ボス戦のボス（1〜2体）
   let cukes = [];       // にせぺぎが投げるキュウリ
   let inBoss = false;   // ボス戦中かどうか（ミス時のやり直し判定用）
+  let bossNutSpawned = false;   // ボス戦の開始10秒でナッツを出したか（各ボス戦で1回）
 
   // つづきから用：到達したステージを保存（ゲームオーバーしたステージからやり直せる）
   let continueStage = 0, hasSave = false;
@@ -765,7 +766,11 @@
   function update() {
     elapsed++;
     if (state === "play") updatePlay();
-    else if (state === "boss") { updatePlay(); updateBossOnly(); }
+    else if (state === "boss") {
+      updatePlay(); updateBossOnly();
+      // ボス戦開始から10秒（約600フレーム）でナッツを1回だけ出す（ちびまるりんでの再戦をやさしく）
+      if (inBoss && !bossNutSpawned && elapsed >= 600) { bossNutSpawned = true; spawnBossNut(); }
+    }
     else if (state === "dead") updateDead();
     else if (state === "clear") { player.winPose++; }
     else if (state === "stageclear") {
@@ -1139,6 +1144,19 @@
     const bb = BOSS_BGM[stageIndex];
     if (bb) { try { bb.currentTime = 0; } catch (e) {} }   // ボス曲を頭出し
     elapsed = 0;
+    bossNutSpawned = false;   // このボス戦の10秒ナッツはまだ
+  }
+
+  // ボス戦の開始10秒後にナッツを出す（ちびまるりんでの再戦をやさしく）
+  function spawnBossNut() {
+    const megaBoss = STAGES[stageIndex].boss === "mega";
+    const pcx = player.x + player.w/2;
+    // メガロドンは中央が海なので、まるりんが今いるデッキの上に出す
+    const nx = megaBoss ? (pcx < GAP_CX ? (LDECK_L + LDECK_R)/2 : (RDECK_L + RDECK_R)/2) : W/2;
+    nuts.push({ x: nx - 14, y: BOSS_GROUND - 36, w: 28, h: 28, got: false, t: 0 });
+    spawnParticles(nx, BOSS_GROUND - 22, "#ffd34d", 14);
+    spawnParticles(nx, BOSS_GROUND - 22, "#c98a3a", 8);
+    sfx.power();
   }
 
   function makeBoss(kind, x) {
@@ -1168,7 +1186,7 @@
         invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
         throws: false, alive: true, dyingT: 0,
         mode: "dive", side: -1, diveT: 60, windup: 0, chargeT: 0, chargeDir: 1, vulnerable: false, diveCx: GAP_CX,
-        gull: { x: 120, y: 74, vx: 2.2, dropCd: 40 } };
+        gull: { x: 120, y: 74, vx: 2.2, dropCd: 80 } };
     }
     if (kind === "sumo") {
       // こうよう（子供力士）：ぶちかまし突進＋塩まき。踏み5回orたね5発で撃破
@@ -1488,7 +1506,7 @@
       g.dropCd--;
       if (g.dropCd <= 0) {
         cukes.push({ x: g.x, y: g.y + 14, vx: g.vx * 0.4, vy: 1.2, t: 0, kind: "egg" });
-        g.dropCd = 42 + Math.floor(Math.random() * 30);
+        g.dropCd = 88 + Math.floor(Math.random() * 60);   // 卵を落とす間隔（前の約2倍＝頻度は半分）
       }
     }
   }
