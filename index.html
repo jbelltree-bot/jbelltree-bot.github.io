@@ -367,6 +367,24 @@
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXX",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXX",
       ]
+    },
+    {
+      name: "ステージ6 ポルトガル",
+      theme: "portugal",
+      boss: "clovis",
+      level: [
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------o-o-o-o---------------------------------------------o-o-o-------------------------------------------------------o-o-o-o---------G---",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "--------------N-------------------------------------o-o-o-----------------------------------------o-o-o-----------------------H-----------------------",
+        "----P-------------------?-----------------------g-------F-----?-------####------U-------------g-------------?---------------------#####---?-----------",
+        "----------------------------------------------------#####---------------------------------------------------------------------------------------------",
+        "------------------O---r-----------i-------------------------O-----t---------------r---------------#####-O-i-------------O-t-----------------r---------",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      ]
     }
   ];
   let stageIndex = 0;
@@ -395,6 +413,10 @@
   let cukes = [];       // にせぺぎが投げるキュウリ
   let hazards = [];     // ステージ中に前から飛んでくるタイガーショット（タイランド）
   let tigerCd = 0;      // 次のタイガーショットまでのカウント
+  let balls = [];       // ポルトガル：道中に落ちている、蹴れるサッカーボール
+  let barrels = [];     // ポルトガル：転がってくるポルトワインの樽（障害物）
+  let barrelCd = 0;     // 次の樽までのカウント
+  let pk = null;        // PK戦（ポルトガルのボス戦）の状態。非nullのときPK戦
   let inBoss = false;   // ボス戦中かどうか（ミス時のやり直し判定用）
   let bossNutSpawned = false;   // ボス戦の開始10秒でナッツを出したか（各ボス戦で1回）
 
@@ -420,6 +442,7 @@
     breads = [];
     seeds = [];
     bubbles = [];
+    balls = [];
     questionBlocks = [];
     enemySpawns = [];
     goal = null;
@@ -455,6 +478,10 @@
         else if (ch === "j") { enemySpawns.push({ x, y, kind: "jelly" }); enemies.push(makeEnemy(x, y, { kind: "jelly" })); }
         else if (ch === "m") { enemySpawns.push({ x, y, kind: "monkey" }); enemies.push(makeEnemy(x, y, { kind: "monkey" })); }
         else if (ch === "s") { enemySpawns.push({ x, y, kind: "snake" }); enemies.push(makeEnemy(x, y, { kind: "snake" })); }
+        else if (ch === "r") { enemySpawns.push({ x, y, kind: "rooster" }); enemies.push(makeEnemy(x, y, { kind: "rooster" })); }
+        else if (ch === "i") { enemySpawns.push({ x, y, kind: "sardine" }); enemies.push(makeEnemy(x, y, { kind: "sardine" })); }
+        else if (ch === "t") { enemySpawns.push({ x, y, kind: "octopus" }); enemies.push(makeEnemy(x, y, { kind: "octopus" })); }
+        else if (ch === "O") { balls.push({ x: x + 7, y: y + 8, w: 26, h: 26, vx: 0, vy: 0, onGround: false, rot: 0 }); }   // 蹴れるサッカーボール
         else if (ch === "P") start = { x, y };
         else if (ch === "G") goal = { x: x + TILE / 2, y: y, top: y };
       }
@@ -471,8 +498,9 @@
       shield: false, shieldT: 0
     };
     camX = 0; elapsed = 0; particles = [];
-    hazards = []; cukes = [];
+    hazards = []; cukes = []; barrels = [];
     tigerCd = (theme === "thailand") ? 150 : 1e9;   // タイランドだけ前からタイガーショットが飛んでくる
+    barrelCd = (theme === "portugal") ? 240 : 1e9;  // ポルトガルだけ前から樽が転がってくる
   }
 
   // パワーアップ状態に応じてサイズを設定（足元を基準に高さを変える）
@@ -530,6 +558,23 @@
     if (kind === "snake") {
       // へび：地面を低くはう（背が低い・踏める）
       return { kind, x: x + 2, y: y + TILE - 18, w: 40, h: 18, vx: opts.slow ? 0 : -1.0,
+               alive: true, t: Math.random()*6, squash: 1, slow: !!opts.slow };
+    }
+    if (kind === "rooster") {
+      // バルセロスのオンドリ：地面をトコトコ歩き、ときどきぴょんと跳ねる（ポルトガル）
+      return { kind, x: x + 3, y: y + TILE - 32, w: 32, h: 32, vx: opts.slow ? 0 : -1.2,
+               alive: true, t: Math.random()*6, squash: 1, slow: !!opts.slow,
+               canHop: true, vy: 0, onGround: true, hopCd: 60 + Math.floor(Math.random()*60) };
+    }
+    if (kind === "sardine") {
+      // イワシくん：低くすばやく進み、ぴょんと跳ねる（ポルトガル名物・炭火焼きイワシ）
+      return { kind, x: x + 2, y: y + TILE - 20, w: 34, h: 20, vx: opts.slow ? 0 : -1.6,
+               alive: true, t: Math.random()*6, squash: 1, slow: !!opts.slow,
+               canHop: true, vy: 0, onGround: true, hopCd: 36 + Math.floor(Math.random()*40) };
+    }
+    if (kind === "octopus") {
+      // タコにいさん：足をウネウネさせながらゆっくり歩く（大きめ・ポルトガル料理のタコ）
+      return { kind, x: x + 2, y: y + TILE - 34, w: 40, h: 34, vx: opts.slow ? 0 : -0.7,
                alive: true, t: Math.random()*6, squash: 1, slow: !!opts.slow };
     }
     // 地上の敵（kuri=クリ / cat=ネコ）
@@ -697,7 +742,8 @@
     new Audio("audio/bgm_stage2.mp3"),   // ステージ2
     new Audio("audio/bgm_stage3.mp3"),   // ステージ3
     new Audio("audio/bgm_stage4.mp3"),   // ステージ4（ハワイ・サンシャインビーチ）
-    new Audio("audio/bgm_stage5.mp3")    // ステージ5（タイランド）※曲を置けば鳴る
+    new Audio("audio/bgm_stage5.mp3"),   // ステージ5（タイランド）※曲を置けば鳴る
+    new Audio("audio/bgm_stage6.mp3")    // ステージ6（ポルトガル）※曲を置けば鳴る
   ];
   BGM.forEach(a => { a.loop = true; a.volume = 0.15; });  // 小さめ・ループ
   // ボス戦BGM（ステージ別。無いステージはnull＝通常BGMのまま）
@@ -706,7 +752,8 @@
     new Audio("audio/bgm_boss1.mp3"),  // ステージ2ボス（ペンギン）※ボス1と同じ曲
     new Audio("audio/bgm_boss3.mp3"),  // ステージ3ボス（こうよう）※太鼓連打
     new Audio("audio/bgm_boss4.mp3"),  // ステージ4ボス（メガロドン）※Will you still cry
-    new Audio("audio/bgm_boss5.mp3")   // ステージ5ボス（ザガット）※曲を置けば鳴る
+    new Audio("audio/bgm_boss5.mp3"),  // ステージ5ボス（ザガット）※曲を置けば鳴る
+    new Audio("audio/bgm_boss6.mp3")   // ステージ6ボス（クリウド・PK戦）※曲を置けば鳴る
   ];
   BOSS_BGM.forEach(a => { if (a) { a.loop = true; a.volume = 0.2; } });
   let bgm = BGM[0];                           // 今鳴らしているBGM
@@ -831,9 +878,12 @@
     elapsed++;
     if (state === "play") updatePlay();
     else if (state === "boss") {
-      updatePlay(); updateBossOnly();
-      // ボス戦開始から10秒（約600フレーム）でナッツを1回だけ出す（ちびまるりんでの再戦をやさしく）
-      if (inBoss && !bossNutSpawned && elapsed >= 600) { bossNutSpawned = true; spawnBossNut(); }
+      if (pk) { updatePK(); }               // ポルトガル：PK戦
+      else {
+        updatePlay(); updateBossOnly();
+        // ボス戦開始から10秒（約600フレーム）でナッツを1回だけ出す（ちびまるりんでの再戦をやさしく）
+        if (inBoss && !bossNutSpawned && elapsed >= 600) { bossNutSpawned = true; spawnBossNut(); }
+      }
     }
     else if (state === "dead") updateDead();
     else if (state === "clear") { player.winPose++; }
@@ -1028,6 +1078,16 @@
         for (const s of solids) { if (rectHit(footProbe, s)) { hasFloor = true; break; } }
         if (hitWall || !hasFloor) e.vx *= -1;
       }
+      if (e.canHop) {
+        // ときどきぴょんと跳ねる（オンドリ・イワシ）
+        e.hopCd--;
+        if (e.onGround && e.hopCd <= 0) { e.vy = (e.kind === "sardine" ? -7.5 : -6.5); e.onGround = false; e.hopCd = 50 + Math.floor(Math.random()*60); }
+        e.vy = (e.vy || 0) + GRAVITY; if (e.vy > 14) e.vy = 14;
+        e.y += e.vy; e.onGround = false;
+        for (const s of solids) {
+          if (rectHit({ x: e.x, y: e.y, w: e.w, h: e.h }, s) && e.vy > 0 && (e.y + e.h) - s.y < 26) { e.y = s.y - e.h; e.vy = 0; e.onGround = true; }
+        }
+      }
       e.squash += (1 - e.squash) * 0.2;
 
       // プレイヤーとの衝突
@@ -1061,6 +1121,8 @@
       }
     }
     updateHazards();
+    updateBalls();
+    updateBarrels();
 
     // ゴール
     if (goal && p.x + p.w > goal.x - 10 && p.x < goal.x + 20 && p.y < goal.top + TILE*7) {
@@ -1124,7 +1186,8 @@
     seeds = [];
     if (inBoss) {
       // ボス戦をやり直し（ボスも体力満タンで復活）
-      setupBossArena();
+      if (STAGES[stageIndex].boss === "clovis") setupPK();
+      else setupBossArena();
       startBGM();
       state = "boss";
       return;
@@ -1149,7 +1212,7 @@
 
   // ボス撃破 or ボス無しステージ：クリア処理
   function stageCleared() {
-    inBoss = false; bosses = []; cukes = [];
+    inBoss = false; bosses = []; cukes = []; pk = null;
     player.winPose = 0;
     score += Math.max(0, 2000 - Math.floor(elapsed / 3));
     stopBGM();
@@ -1176,12 +1239,13 @@
   // ボス登場時に出す名前
   function bossTitle() {
     const k = STAGES[stageIndex].boss;
-    return k === "penguins" ? "ペギ＆ニセペギ" : k === "sumo" ? "こうよう" : k === "mega" ? "メガロドン" : k === "zagat" ? "ザガット" : "くりだいおう";
+    return k === "penguins" ? "ペギ＆ニセペギ" : k === "sumo" ? "こうよう" : k === "mega" ? "メガロドン" : k === "zagat" ? "ザガット" : k === "clovis" ? "クリウド" : "くりだいおう";
   }
 
   function startBoss() {
     inBoss = true;
-    setupBossArena();
+    if (STAGES[stageIndex].boss === "clovis") setupPK();   // ポルトガルはPK戦
+    else setupBossArena();
     state = "boss";
     startBGM();               // ボス戦BGMに切り替え（あれば）
   }
@@ -1367,6 +1431,112 @@
     const p = player;
     for (const h of hazards) { h.t++; stepTigerShot(h, p); }
     hazards = hazards.filter(h => !h.dead);
+  }
+
+  // ポルトガル：蹴れるサッカーボール。まるりんが触れると向いている方向へ蹴り出し、
+  // 転がったボールが当たった敵を（まとめて）倒す。壁で跳ね返り、止まるとまた蹴れる。
+  function updateBalls() {
+    if (!balls.length) return;
+    const p = player;
+    for (const ball of balls) {
+      // 重力
+      ball.vy += GRAVITY; if (ball.vy > 16) ball.vy = 16;
+      // 横移動＋壁で跳ね返る
+      ball.x += ball.vx;
+      for (const s of solids) {
+        if (rectHit(ball, s)) {
+          if (ball.vx > 0) { ball.x = s.x - ball.w; ball.vx = -Math.abs(ball.vx) * 0.5; }
+          else if (ball.vx < 0) { ball.x = s.x + s.w; ball.vx = Math.abs(ball.vx) * 0.5; }
+        }
+      }
+      // 縦移動＋床
+      ball.y += ball.vy; ball.onGround = false;
+      for (const s of solids) {
+        if (rectHit(ball, s)) {
+          if (ball.vy > 0) { ball.y = s.y - ball.h; ball.vy = 0; ball.onGround = true; }
+          else if (ball.vy < 0) { ball.y = s.y + s.h; ball.vy = 0; }
+        }
+      }
+      // ころがり摩擦（地面の上）
+      if (ball.onGround) ball.vx *= 0.985;
+      if (Math.abs(ball.vx) < 0.35) ball.vx = 0;
+      ball.rot = (ball.rot || 0) + ball.vx * 0.08;
+      // 場外（画面の左右・レベル外）で消える
+      if (ball.x + ball.w < camX - 120 || ball.y > LEVEL_H + 120) { ball.dead = true; continue; }
+      // まるりんが触れたら蹴る（ゆっくりのボールだけ＝連続で押せる）
+      if (rectHit(p, ball) && Math.abs(ball.vx) < 2.2) {
+        ball.vx = p.face * 8.4; ball.vy = -3.2; ball.onGround = false;
+        sfx.stomp();
+        spawnParticles(ball.x + ball.w/2, ball.y + ball.h, "#ffffff", 5);
+      }
+      // 転がっているボールは当たった敵・樽を倒す（ボウリングのようにまとめて）
+      if (Math.abs(ball.vx) > 2.5) {
+        for (const e of enemies) {
+          if (e.alive && rectHit(ball, e)) {
+            e.alive = false; e.squash = 0.2; score += 200; sfx.stomp();
+            spawnParticles(e.x + e.w/2, e.y, "#c0d0e0", 8);
+            ball.vx *= 0.92;
+          }
+        }
+        for (const bl of barrels) {
+          if (!bl.dead && rectHit(ball, bl)) {
+            bl.dead = true; score += 100; sfx.stomp();
+            spawnParticles(bl.x + bl.w/2, bl.y, "#7a3b1a", 10);
+            ball.vx *= 0.9;
+          }
+        }
+      }
+    }
+    balls = balls.filter(b => !b.dead);
+  }
+
+  // ポルトガル：ポルトワインの樽が前から転がってくる。蹴れない・当たると被弾（ジャンプでよける）。
+  function spawnBarrel() {
+    barrels.push({ x: camX + W + 40, y: GROUND_Y - 34, w: 34, h: 34, vx: -3.0, vy: 0, rot: 0 });
+  }
+  function updateBarrels() {
+    // 出現（ステージ中だけ・ゴール手前では出さない）
+    if (barrelCd < 1e8 && !inBoss) {
+      const p = player;
+      const nearGoal = goal && (p.x + p.w/2 > goal.x - 260);
+      if (p.x > 7 * TILE && !nearGoal) {
+        barrelCd--;
+        if (barrelCd <= 0) { spawnBarrel(); barrelCd = 200 + Math.floor(Math.random() * 160); }
+      }
+    }
+    if (!barrels.length) return;
+    const p = player;
+    for (const bl of barrels) {
+      if (bl.dead) continue;   // ボールですでに壊れた樽はスキップ
+      bl.vy += GRAVITY; if (bl.vy > 16) bl.vy = 16;
+      bl.x += bl.vx; bl.y += bl.vy;
+      for (const s of solids) {
+        if (rectHit(bl, s) && bl.vy > 0 && (bl.y + bl.h) - s.y < 30) { bl.y = s.y - bl.h; bl.vy = 0; }
+      }
+      bl.rot += bl.vx * 0.05;
+      // まるりんとの当たり：上から踏めば壊せる／横からは被弾
+      if (rectHit(p, bl)) {
+        const fromAbove = p.vy > 0 && (p.y + p.h) - bl.y < bl.h * 0.6 + Math.max(0, p.vy);
+        if (fromAbove) {
+          bl.dead = true; sfx.stomp(); score += 100;
+          spawnParticles(bl.x + bl.w/2, bl.y, "#7a3b1a", 12);
+          const timed = jumpKey() || jumpBuffer > 0;
+          p.vy = timed ? -15 : -9; p.bounceLock = 12; jumpBuffer = 0; p.squash = 0.7;
+          p.invuln = Math.max(p.invuln, 8);
+        } else if (p.invuln <= 0) {
+          bl.dead = true; spawnParticles(bl.x + bl.w/2, bl.y, "#7a3b1a", 10); hurtPlayer();
+        }
+      }
+      // タネで壊せる
+      if (!bl.dead) for (const sd of seeds) {
+        if (rectHit({ x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 }, bl)) {
+          bl.dead = true; sd.life = 0; score += 100; sfx.stomp();
+          spawnParticles(bl.x + bl.w/2, bl.y, "#7a3b1a", 10); break;
+        }
+      }
+      if (bl.x + bl.w < camX - 140 || bl.y > LEVEL_H + 120) bl.dead = true;
+    }
+    barrels = barrels.filter(b => !b.dead);
   }
 
   function updateBossOnly() {
@@ -1706,6 +1876,146 @@
     }
   }
 
+  // ---------- PK戦（ポルトガルのボス戦・クリウド） ----------
+  // まるりん vs クリウド。3本ずつ・攻守交互。まるりんが蹴るターンと守るターンを繰り返す。
+  const PKX = {
+    goalL: 250, goalR: 550, goalTop: 150, goalH: 120,
+    spotX: 400, spotY: 392,
+    courseX: [312, 400, 488], courseY: 214,   // 左・真ん中・右のコース着弾点
+    keepY: 250
+  };
+  const PK_TOTAL = 3;   // 3本ずつ
+
+  function setupPK() {
+    inBoss = true;
+    LEVEL_W = W; LEVEL_H = H; camX = 0;
+    solids = []; coins = []; nuts = []; flowers = []; feathers = []; breads = [];
+    enemies = []; questionBlocks = []; seeds = []; goal = null; particles = [];
+    cukes = []; hazards = []; bosses = []; balls = []; barrels = [];
+    elapsed = 0;
+    const bb = BOSS_BGM[stageIndex]; if (bb) { try { bb.currentTime = 0; } catch (e) {} }
+    pk = {
+      kick: 0, my: 0, foe: 0, myRes: [], foeRes: [],
+      sub: "intro", t: 0, cursor: 1, dive: 1, keeperDir: 1, kickerDir: 1,
+      outcome: null,
+      ball: { x: PKX.spotX, y: PKX.spotY, sx: PKX.spotX, sy: PKX.spotY, tx: PKX.spotX, ty: PKX.spotY, fly: false },
+      keeperT: 0, diverT: 0, lrPrev: 0, jumpPrev: true
+    };
+  }
+
+  function pkStartKick() {
+    pk.t = 0; pk.outcome = null; pk.cursor = 1;
+    pk.ball.x = PKX.spotX; pk.ball.y = PKX.spotY; pk.ball.fly = false;
+    pk.keeperT = 0; pk.diverT = 0;
+    pk.sub = (pk.kick % 2 === 0) ? "aim" : "dready";   // 偶数=まるりんが蹴る／奇数=まるりんが守る
+  }
+
+  function pkAfterKick() {
+    pk.t = 0; pk.outcome = null;
+    // 3本ずつ終わって（合計6本）同点でなければ決着。同点ならサドンデス（1本ずつ）
+    if (pk.kick >= PK_TOTAL * 2 && pk.kick % 2 === 0 && pk.my !== pk.foe) {
+      pk.sub = (pk.my > pk.foe) ? "win" : "lose"; pk.t = 0; return;
+    }
+    pkStartKick();
+  }
+
+  function updatePK() {
+    pk.t++;
+    const lr = left() ? -1 : right() ? 1 : 0;
+    const lrEdge = (lr !== 0 && pk.lrPrev === 0) ? lr : 0;
+    pk.lrPrev = lr;
+    const j = jumpKey();
+    const jEdge = j && !pk.jumpPrev;
+    pk.jumpPrev = j;
+    const moveCursor = () => { if (lrEdge) { pk.cursor = Math.max(0, Math.min(2, pk.cursor + lrEdge)); sfx.block(); } };
+
+    switch (pk.sub) {
+      case "intro":
+        if (pk.t > 96) pkStartKick();
+        break;
+
+      // ===== まるりんが蹴る（クリウド＝キーパー）=====
+      case "aim":
+        moveCursor();
+        if (jEdge) {
+          pk.keeperDir = Math.floor(Math.random() * 3);
+          pk.sub = "ashot"; pk.t = 0;
+          pk.ball.fly = true;
+          pk.ball.sx = PKX.spotX; pk.ball.sy = PKX.spotY;
+          pk.ball.tx = PKX.courseX[pk.cursor]; pk.ball.ty = PKX.courseY;
+          sfx.jump();
+        }
+        break;
+      case "ashot": {
+        const dur = 26, k = Math.min(1, pk.t / dur);
+        pk.ball.x = pk.ball.sx + (pk.ball.tx - pk.ball.sx) * k;
+        pk.ball.y = pk.ball.sy + (pk.ball.ty - pk.ball.sy) * k - Math.sin(k * Math.PI) * 44;
+        pk.keeperT = Math.min(1, pk.t / 14);
+        if (pk.t >= dur) {
+          const scored = pk.cursor !== pk.keeperDir;
+          pk.outcome = scored ? "goal" : "save";
+          pk.myRes.push(scored ? "goal" : "miss");
+          if (scored) { pk.my++; sfx.win(); score += 500; spawnParticles(pk.ball.tx, pk.ball.ty, "#ffffff", 16); }
+          else sfx.stomp();
+          pk.sub = "ares"; pk.t = 0;
+        }
+        break;
+      }
+      case "ares":
+        if (pk.t > 54) { pk.kick++; pkAfterKick(); }
+        break;
+
+      // ===== まるりんが守る（クリウド＝キッカー）=====
+      case "dready":
+        moveCursor();
+        if (pk.t > 48) { pk.kickerDir = Math.floor(Math.random() * 3); pk.sub = "dwind"; pk.t = 0; }
+        break;
+      case "dwind":
+        moveCursor();
+        if (pk.t > 26) {
+          pk.dive = pk.cursor;
+          pk.sub = "dshot"; pk.t = 0;
+          pk.ball.fly = true;
+          pk.ball.sx = PKX.spotX; pk.ball.sy = PKX.spotY;
+          pk.ball.tx = PKX.courseX[pk.kickerDir]; pk.ball.ty = PKX.courseY;
+          sfx.jump();
+        }
+        break;
+      case "dshot": {
+        const dur = 24, k = Math.min(1, pk.t / dur);
+        pk.ball.x = pk.ball.sx + (pk.ball.tx - pk.ball.sx) * k;
+        pk.ball.y = pk.ball.sy + (pk.ball.ty - pk.ball.sy) * k - Math.sin(k * Math.PI) * 40;
+        pk.diverT = Math.min(1, pk.t / 12);
+        if (pk.t >= dur) {
+          const saved = pk.dive === pk.kickerDir;
+          pk.outcome = saved ? "save" : "goal";
+          pk.foeRes.push(saved ? "save" : "goal");
+          if (saved) { sfx.win(); score += 500; spawnParticles(pk.ball.tx, pk.ball.ty, "#7fd4ff", 16); }
+          else { pk.foe++; sfx.stomp(); }
+          pk.sub = "dres"; pk.t = 0;
+        }
+        break;
+      }
+      case "dres":
+        if (pk.t > 54) { pk.kick++; pkAfterKick(); }
+        break;
+
+      // ===== 決着 =====
+      case "win":
+        if (pk.t === 2) playVoice("get");
+        if (pk.t > 150) { pk = null; stageCleared(); }
+        break;
+      case "lose":
+        if (pk.t === 2) { playVoice("sad"); stopBGM(); }
+        if (pk.t > 130) {
+          lives--;
+          if (lives > 0) { setupPK(); startBGM(); }
+          else { pk = null; state = "gameover"; }
+        }
+        break;
+    }
+  }
+
   // 次のステージへ（パワーアップ状態は引き継ぐ）
   function advanceStage() {
     const keepPowered = player.powered, keepSeed = player.seed, keepWing = player.wing;
@@ -1728,7 +2038,7 @@
 
   function resetGameAt(startIndex) {
     lives = 3; score = 0; coinsGot = 0;
-    inBoss = false; bosses = []; cukes = [];
+    inBoss = false; bosses = []; cukes = []; pk = null;
     loadStage(startIndex || 0);
     saveProgress(stageIndex);       // 今いるステージを記録
     buildLevel();
@@ -1740,6 +2050,7 @@
 
   // ---------- 描画 ----------
   function draw() {
+    if (state === "boss" && pk) { drawPK(); return; }   // ポルトガル：PK戦は専用画面
     if (inBoss && STAGES[stageIndex].boss === "penguins") {
       // 駅構内（ボス戦）：やわらかい室内色
       const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -1774,6 +2085,14 @@
       g.addColorStop(0, "#f0a94e");
       g.addColorStop(0.5, "#f6cf86");
       g.addColorStop(1, "#fdf0cf");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      drawClouds();
+    } else if (theme === "portugal") {
+      // ポルトガル：さわやかな海辺の青空
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#4aa6e4");
+      g.addColorStop(0.55, "#a6d8f2");
+      g.addColorStop(1, "#eaf6fc");
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
       drawClouds();
     } else if (theme === "hawaii") {
@@ -1837,6 +2156,7 @@
     else if (theme === "narita") drawNaritaDecor();
     else if (theme === "hawaii") drawHawaiiDecor();
     else if (theme === "thailand") drawThaiDecor();
+    else if (theme === "portugal") drawPortugalDecor();
     drawSolids();
     drawCoins();
     drawNuts();
@@ -1847,6 +2167,8 @@
     if (goal) drawGoal(goal);
     drawSeeds();
     drawEnemies();
+    drawBalls();
+    drawBarrels();
     if (bosses.length) drawBosses();
     drawCukes();
     drawHazards();
@@ -2088,6 +2410,18 @@
         if (!isSolidAt(s.x, s.y - TILE)) {
           ctx.fillStyle = "#6faf3f"; ctx.fillRect(s.x, s.y, s.w, 8);      // 草
           ctx.fillStyle = "#82c74f"; ctx.fillRect(s.x, s.y, s.w, 4);
+        }
+      } else if (s.type === "ground" && theme === "portugal") {
+        // ポルトガル：白い石畳＋青いアズレージョのふち
+        ctx.fillStyle = "#e7e2d6"; ctx.fillRect(s.x, s.y, s.w, s.h);
+        ctx.strokeStyle = "rgba(150,140,120,0.45)"; ctx.lineWidth = 1;
+        ctx.strokeRect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);
+        ctx.fillStyle = "#d8d2c2";
+        for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) ctx.fillRect(s.x + 8 + i*18, s.y + 12 + j*14, 9, 6);
+        if (!isSolidAt(s.x, s.y - TILE)) {
+          ctx.fillStyle = "#2f6fb0"; ctx.fillRect(s.x, s.y, s.w, 6);       // 青タイルのふち
+          ctx.fillStyle = "#5b9bd8";
+          for (let bx = s.x + 3; bx < s.x + s.w - 3; bx += 12) ctx.fillRect(bx, s.y + 1, 6, 4);
         }
       } else if (s.type === "ground" && theme === "hawaii") {
         // ハワイ：砂浜／海底の砂
@@ -2504,6 +2838,9 @@
       if (e.kind === "jelly") { drawJelly(e); continue; }
       if (e.kind === "monkey") { drawMonkey(e); continue; }
       if (e.kind === "snake") { drawSnake(e); continue; }
+      if (e.kind === "rooster") { drawRooster(e); continue; }
+      if (e.kind === "sardine") { drawSardine(e); continue; }
+      if (e.kind === "octopus") { drawOctopus(e); continue; }
       ctx.save();
       const cx = e.x + e.w/2, by = e.y + e.h;
       ctx.translate(cx, by);
@@ -2645,6 +2982,448 @@
       if (h.x < camX - 60 || h.x > camX + W + 60) continue;
       drawTigerShot(h.x, h.y, h.kind === "tiger", h.t);
     }
+  }
+
+  // ===== ポルトガル：ボール・樽・敵・風景・PK戦 =====
+  function pentagon(cx, cy, r) {
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a = i * (Math.PI * 2 / 5) - Math.PI / 2;
+      const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath(); ctx.fill();
+  }
+  function heart(cx, cy, s) {
+    ctx.beginPath(); ctx.arc(cx - s * 0.5, cy - s * 0.3, s * 0.55, 0, 7); ctx.arc(cx + s * 0.5, cy - s * 0.3, s * 0.55, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx - s, cy - s * 0.1); ctx.lineTo(cx + s, cy - s * 0.1); ctx.lineTo(cx, cy + s); ctx.closePath(); ctx.fill();
+  }
+
+  // 蹴れるサッカーボール
+  function drawBalls() {
+    for (const ball of balls) {
+      if (ball.x + ball.w < camX - 40 || ball.x > camX + W + 40) continue;
+      const cx = ball.x + ball.w / 2, cy = ball.y + ball.h / 2, r = ball.w / 2;
+      ctx.fillStyle = "rgba(0,0,0,0.15)";
+      ctx.beginPath(); ctx.ellipse(cx, ball.y + ball.h + 2, r * 0.9, 4, 0, 0, 7); ctx.fill();
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(ball.rot || 0);
+      ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill();
+      ctx.strokeStyle = "#c9ccd2"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke();
+      ctx.fillStyle = "#20242c"; pentagon(0, 0, r * 0.42);
+      for (let i = 0; i < 5; i++) {
+        const a = i * (Math.PI * 2 / 5) - Math.PI / 2;
+        ctx.beginPath(); ctx.arc(Math.cos(a) * r * 0.72, Math.sin(a) * r * 0.72, r * 0.15, 0, 7); ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  // 転がってくるポルトワインの樽
+  function drawBarrels() {
+    for (const bl of barrels) {
+      if (bl.x + bl.w < camX - 40 || bl.x > camX + W + 40) continue;
+      const cx = bl.x + bl.w / 2, cy = bl.y + bl.h / 2, R = bl.w / 2;
+      ctx.fillStyle = "rgba(0,0,0,0.15)";
+      ctx.beginPath(); ctx.ellipse(cx, bl.y + bl.h + 2, R * 0.9, 4, 0, 0, 7); ctx.fill();
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(bl.rot || 0);
+      ctx.fillStyle = "#8a4a26"; ctx.beginPath(); ctx.arc(0, 0, R, 0, 7); ctx.fill();
+      ctx.fillStyle = "#9c5a30"; ctx.beginPath(); ctx.arc(0, 0, R * 0.82, 0, 7); ctx.fill();
+      ctx.strokeStyle = "rgba(60,30,15,0.5)"; ctx.lineWidth = 2;
+      for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(i * 5, -R * 0.85); ctx.lineTo(i * 5, R * 0.85); ctx.stroke(); }
+      ctx.strokeStyle = "#c9b48a"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0, 0, R * 0.9, 0, 7); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, R * 0.45, 0, 7); ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  // バルセロスのオンドリ
+  function drawRooster(e) {
+    const cx = e.x + e.w / 2, by = e.y + e.h, dir = e.vx > 0 ? 1 : -1;
+    ctx.save(); ctx.translate(cx, by);
+    if (!e.alive) { ctx.scale(1.1, 0.25); ctx.globalAlpha = 0.7; }
+    ctx.scale(dir, 1);
+    if (e.alive) { ctx.fillStyle = "rgba(0,0,0,0.15)"; ctx.beginPath(); ctx.ellipse(0, -1, 12, 3, 0, 0, 7); ctx.fill(); }
+    // 足
+    ctx.strokeStyle = "#e0a83a"; ctx.lineWidth = 2.5; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-4, -5); ctx.lineTo(-4, -1); ctx.moveTo(4, -5); ctx.lineTo(4, -1); ctx.stroke();
+    // カラフルなしっぽ
+    const tail = [["#d63b3b", -0.5], ["#e8a23a", -0.9], ["#3a9b57", -1.3], ["#3a72c4", -1.7]];
+    for (const [col, ang] of tail) { ctx.save(); ctx.translate(-8, -16); ctx.rotate(ang); ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(-8, 0, 9, 3.2, 0, 0, 7); ctx.fill(); ctx.restore(); }
+    // 体（黒）
+    ctx.fillStyle = "#26262c"; ctx.beginPath(); ctx.ellipse(0, -13, 11, 12, 0, 0, 7); ctx.fill();
+    // 胸のハート（バルセロス風）
+    ctx.fillStyle = "#e14b6a"; heart(3, -12, 3);
+    // 頭
+    ctx.fillStyle = "#26262c"; ctx.beginPath(); ctx.arc(7, -22, 6, 0, 7); ctx.fill();
+    // とさか（赤）
+    ctx.fillStyle = "#e23b3b";
+    ctx.beginPath(); ctx.arc(5, -29, 2.4, 0, 7); ctx.arc(8, -30, 2.6, 0, 7); ctx.arc(11, -29, 2.2, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(7, -16, 2, 3, 0, 0, 7); ctx.fill();   // 肉垂れ
+    // くちばし
+    ctx.fillStyle = "#f2b21e"; ctx.beginPath(); ctx.moveTo(12, -23); ctx.lineTo(17, -22); ctx.lineTo(12, -20); ctx.closePath(); ctx.fill();
+    if (e.alive) { ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(8, -23, 2, 0, 7); ctx.fill(); ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(9, -23, 1, 0, 7); ctx.fill(); }
+    ctx.restore();
+  }
+
+  // イワシくん（焼きイワシ）
+  function drawSardine(e) {
+    const cx = e.x + e.w / 2, cy = e.y + e.h / 2, dir = e.vx > 0 ? 1 : -1;
+    ctx.save(); ctx.translate(cx, cy);
+    if (!e.alive) { ctx.scale(1.1, 0.3); ctx.globalAlpha = 0.7; }
+    ctx.scale(dir, 1);
+    const wig = Math.sin(e.t * 0.4) * 3;
+    ctx.fillStyle = "#7b8794"; ctx.beginPath(); ctx.moveTo(-13, 0); ctx.lineTo(-20, -6 + wig); ctx.lineTo(-20, 6 + wig); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#aeb8c2"; ctx.beginPath(); ctx.ellipse(0, 0, 15, 8, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#c9d1d9"; ctx.beginPath(); ctx.ellipse(0, 1, 13, 5.5, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#8a95a1"; ctx.beginPath(); ctx.moveTo(-4, -6); ctx.lineTo(2, -11); ctx.lineTo(5, -6); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "rgba(90,70,50,0.5)"; ctx.lineWidth = 1.5;
+    for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(i * 5, -4); ctx.lineTo(i * 5 - 2, 4); ctx.stroke(); }
+    if (e.alive) { ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(9, -1, 2.4, 0, 7); ctx.fill(); ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(9.6, -1, 1.2, 0, 7); ctx.fill(); }
+    ctx.restore();
+  }
+
+  // タコにいさん
+  function drawOctopus(e) {
+    const cx = e.x + e.w / 2, by = e.y + e.h;
+    ctx.save(); ctx.translate(cx, by);
+    if (!e.alive) { ctx.scale(1.1, 0.3); ctx.globalAlpha = 0.7; }
+    ctx.fillStyle = "#c0553e";
+    for (let i = -3; i <= 3; i++) {
+      const bx = i * 5, sway = Math.sin(e.t * 0.2 + i) * 3;
+      ctx.beginPath(); ctx.moveTo(bx - 3, -9); ctx.quadraticCurveTo(bx + sway, -3, bx + sway, 0); ctx.quadraticCurveTo(bx + sway + 2, -3, bx + 3, -9); ctx.fill();
+    }
+    ctx.fillStyle = "#d76a50"; ctx.beginPath(); ctx.ellipse(0, -20, 15, 16, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#e08268"; ctx.beginPath(); ctx.ellipse(-4, -24, 7, 7, 0, 0, 7); ctx.fill();
+    if (e.alive) {
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(-5, -22, 4, 0, 7); ctx.arc(6, -22, 4, 0, 7); ctx.fill();
+      ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(-4, -22, 2, 0, 7); ctx.arc(7, -22, 2, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = "rgba(200,60,60,0.35)"; ctx.beginPath(); ctx.arc(-9, -16, 2.5, 0, 7); ctx.arc(10, -16, 2.5, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+
+  // リスボンの港町の風景（世界座標・スクロール）
+  function drawPortugalDecor() {
+    // 遠くのスタジアム
+    for (let x = 60; x < LEVEL_W; x += 880) {
+      if (x + 320 < camX - 40 || x > camX + W + 40) continue;
+      ctx.fillStyle = "#cfd8df";
+      ctx.beginPath(); ctx.moveTo(x, GROUND_Y - 72); ctx.lineTo(x + 70, GROUND_Y - 122); ctx.lineTo(x + 250, GROUND_Y - 122); ctx.lineTo(x + 320, GROUND_Y - 72); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#e6ebef"; ctx.fillRect(x + 70, GROUND_Y - 120, 180, 10);
+      ctx.fillStyle = "#bcc6cd"; ctx.fillRect(x, GROUND_Y - 72, 320, 14);
+    }
+    // 川/海の帯（画面に追従）
+    ctx.fillStyle = "#4f9ccb"; ctx.fillRect(camX, GROUND_Y - 60, W, 10);
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    for (let i = 0; i < 12; i++) ctx.fillRect(camX + (i * 70 + (elapsed % 70)), GROUND_Y - 57, 22, 2);
+    // 街並み（オレンジ屋根＋アズレージョの壁）
+    for (let i = 0; i * 150 < LEVEL_W; i++) {
+      const x = i * 150, bw = 92;
+      if (x + bw < camX - 40 || x > camX + W + 40) continue;
+      const h = 96 + ((i * 37) % 40), top = GROUND_Y - h;
+      ctx.fillStyle = (i % 2 === 0) ? "#eef1ee" : "#cfe0ef";
+      ctx.fillRect(x, top, bw, h);
+      if (i % 2 !== 0) {
+        ctx.fillStyle = "rgba(47,111,176,0.45)";
+        for (let wy = top + 10; wy < GROUND_Y - 10; wy += 16) for (let wx = x + 10; wx < x + bw - 8; wx += 16) { ctx.beginPath(); ctx.arc(wx, wy, 3, 0, 7); ctx.fill(); }
+      }
+      ctx.fillStyle = "#d9793e";
+      ctx.beginPath(); ctx.moveTo(x - 6, top); ctx.lineTo(x + bw / 2, top - 22); ctx.lineTo(x + bw + 6, top); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#c96a34"; ctx.fillRect(x - 6, top - 2, bw + 12, 4);
+      ctx.fillStyle = "rgba(120,150,180,0.5)";
+      for (let wy = top + 16; wy < GROUND_Y - 22; wy += 30) for (let wx = x + 16; wx < x + bw - 18; wx += 30) ctx.fillRect(wx, wy, 16, 20);
+    }
+    // 黄色いトラム（路面電車）
+    for (let x = 320; x < LEVEL_W; x += 720) {
+      if (x + 90 < camX - 40 || x > camX + W + 40) continue;
+      drawTram(x, GROUND_Y - 46);
+    }
+  }
+  function drawTram(x, y) {
+    ctx.save(); ctx.translate(x, y);
+    ctx.fillStyle = "#f2c500"; roundRectPath(0, 0, 84, 40, 6); ctx.fill();
+    ctx.fillStyle = "#e0b400"; ctx.fillRect(0, 30, 84, 10);
+    ctx.fillStyle = "#bfe3f5"; for (let i = 0; i < 3; i++) ctx.fillRect(8 + i * 26, 8, 20, 16);
+    ctx.fillStyle = "#c99a00"; ctx.fillRect(6, -4, 72, 5);
+    ctx.fillStyle = "#333"; ctx.beginPath(); ctx.arc(20, 42, 6, 0, 7); ctx.arc(64, 42, 6, 0, 7); ctx.fill();
+    ctx.fillStyle = "#c0392b"; ctx.fillRect(34, 2, 18, 9);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("28", 43, 7);
+    ctx.restore();
+  }
+
+  // ===== PK戦の描画 =====
+  function drawPK() {
+    drawPKArena();
+    const attack = pk.kick % 2 === 0;
+    drawPKCourse(attack);
+    if (attack) { drawClovisKeeper(); drawMaruKicker(); drawPKBall(); }
+    else { drawMaruKeeper(); drawClovisKicker(); drawPKBall(); }
+    for (const pt of particles) { ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, pt.life / 28)); ctx.fillStyle = pt.color; ctx.fillRect(pt.x - 2, pt.y - 2, 4, 4); ctx.restore(); }
+    drawPKHud(attack);
+    if (pk.sub === "win" || pk.sub === "lose") drawPKResult();
+    else if (pk.sub === "intro") drawPKIntro();
+  }
+
+  function drawPKArena() {
+    ctx.fillStyle = "#5bb0e6"; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#c9d3dc"; ctx.fillRect(0, 110, W, 90);
+    ctx.fillStyle = "#9aa7b3"; for (let y = 118; y < 196; y += 16) ctx.fillRect(0, y, W, 5);
+    ctx.fillStyle = "#7c8894";
+    for (let x = 20; x < W; x += 26) { const yy = 122 + ((x * 7) % 3) * 8; ctx.beginPath(); ctx.arc(x, yy, 3, 0, 7); ctx.fill(); }
+    // ポルトガル国旗
+    ctx.fillStyle = "#0a6b3b"; ctx.fillRect(352, 84, 26, 18); ctx.fillStyle = "#d21e2b"; ctx.fillRect(378, 84, 52, 18);
+    ctx.fillStyle = "#f5d20c"; ctx.beginPath(); ctx.arc(378, 93, 6, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#555"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(352, 84); ctx.lineTo(352, 118); ctx.stroke();
+    // 芝生
+    ctx.fillStyle = "#4c9e3c"; ctx.fillRect(0, 200, W, H - 200);
+    ctx.fillStyle = "#57ab45"; for (let i = 0; i < 5; i++) ctx.fillRect(0, 220 + i * 40, W, 18);
+    // ゴール
+    ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 6; ctx.strokeRect(PKX.goalL, PKX.goalTop, PKX.goalR - PKX.goalL, PKX.goalH);
+    ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = 1;
+    for (let x = PKX.goalL + 16; x < PKX.goalR; x += 16) { ctx.beginPath(); ctx.moveTo(x, PKX.goalTop); ctx.lineTo(x, PKX.goalTop + PKX.goalH); ctx.stroke(); }
+    for (let y = PKX.goalTop + 16; y < PKX.goalTop + PKX.goalH; y += 16) { ctx.beginPath(); ctx.moveTo(PKX.goalL, y); ctx.lineTo(PKX.goalR, y); ctx.stroke(); }
+    // ペナルティボックス
+    ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(150, H); ctx.lineTo(150, 300); ctx.lineTo(650, 300); ctx.lineTo(650, H); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(400, 300, 60, 22, 0, 0.12 * Math.PI, 0.88 * Math.PI); ctx.stroke();
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(PKX.spotX, PKX.spotY, 4, 0, 7); ctx.fill();
+  }
+
+  function drawPKCourse(attack) {
+    const selecting = pk.sub === "aim" || pk.sub === "dready" || pk.sub === "dwind";
+    if (!selecting) return;
+    const zoneW = (PKX.goalR - PKX.goalL) / 3;
+    for (let i = 0; i < 3; i++) {
+      const zx = PKX.goalL + i * zoneW;
+      ctx.fillStyle = (i === pk.cursor) ? "rgba(255,211,77,0.4)" : "rgba(255,211,77,0.1)";
+      ctx.fillRect(zx, PKX.goalTop, zoneW, PKX.goalH);
+      if (i === pk.cursor) { ctx.strokeStyle = "#ffd34d"; ctx.lineWidth = 4; ctx.strokeRect(zx, PKX.goalTop, zoneW, PKX.goalH); }
+    }
+    ctx.fillStyle = "#fff2b0"; ctx.font = "bold 14px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(attack ? "ねらうコース" : "とぶ方向", PKX.spotX, PKX.goalTop - 14);
+  }
+
+  function drawPKBall() {
+    const b = pk.ball;
+    const bx = b.fly ? b.x : PKX.spotX, by = b.fly ? b.y : PKX.spotY;
+    ctx.save(); ctx.translate(bx, by);
+    ctx.fillStyle = "rgba(0,0,0,0.15)"; ctx.beginPath(); ctx.ellipse(0, 11, 10, 3, 0, 0, 7); ctx.fill();
+    ctx.rotate(b.fly ? pk.t * 0.3 : 0);
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, 0, 10, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#c9ccd2"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(0, 0, 10, 0, 7); ctx.stroke();
+    ctx.fillStyle = "#20242c"; pentagon(0, 0, 4.2);
+    ctx.restore();
+  }
+
+  function drawClovisKeeper() {
+    let dx = 0, lean = 0, arms = 0.15;
+    if (pk.sub === "ashot" || pk.sub === "ares") {
+      const dir = pk.keeperDir - 1;
+      dx = dir * 92 * pk.keeperT; lean = dir * 0.5 * pk.keeperT; arms = 1;
+    }
+    pkDrawClovis(PKX.spotX + dx, 262, { lean, armsUp: arms });
+  }
+  function drawClovisKicker() {
+    let lean = 0, kickLeg = 0, runup = 0;
+    if (pk.sub === "dready") runup = pk.t;
+    if (pk.sub === "dwind") lean = (pk.kickerDir - 1) * 0.22;
+    if (pk.sub === "dshot" || pk.sub === "dres") { kickLeg = 1; lean = (pk.kickerDir - 1) * 0.12; }
+    pkDrawClovis(PKX.spotX - 30, 404, { lean, kickLeg, runup });
+  }
+  function drawMaruKicker() {
+    const kick = pk.sub === "ashot" && pk.t < 10;
+    pkDrawMaru(PKX.spotX + 42, 404, { kick });
+  }
+  function drawMaruKeeper() {
+    let dx = 0, lean = 0, dive = false;
+    if (pk.sub === "dshot" || pk.sub === "dres") {
+      const dir = pk.dive - 1;
+      dx = dir * 96 * pk.diverT; lean = dir * 0.5 * pk.diverT; dive = pk.diverT > 0.2;
+    } else {
+      dx = (pk.cursor - 1) * 34;
+    }
+    pkDrawMaru(PKX.spotX + dx, 268, { arms: true, dive, lean });
+  }
+
+  // クリウド（ロナウド系ストライカー・オリジナル寄せ）
+  function pkDrawClovis(cx, footY, o) {
+    o = o || {};
+    ctx.save(); ctx.translate(cx, footY);
+    if (o.lean) ctx.rotate(o.lean);
+    ctx.fillStyle = "rgba(0,0,0,0.18)"; ctx.beginPath(); ctx.ellipse(0, 2, 22, 5, 0, 0, 7); ctx.fill();
+    const legSwing = o.runup ? Math.sin(o.runup * 0.4) * 8 : 0;
+    // 脚（肌）
+    ctx.strokeStyle = "#dca87e"; ctx.lineWidth = 8; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-6, -40); ctx.lineTo(-8 + legSwing, -6); ctx.stroke();
+    if (o.kickLeg) { ctx.beginPath(); ctx.moveTo(6, -40); ctx.lineTo(26, -30); ctx.stroke(); }
+    else { ctx.beginPath(); ctx.moveTo(6, -40); ctx.lineTo(8 - legSwing, -6); ctx.stroke(); }
+    // 緑のソックス
+    ctx.strokeStyle = "#1f7a44"; ctx.lineWidth = 8;
+    ctx.beginPath(); ctx.moveTo(-8 + legSwing, -11); ctx.lineTo(-8 + legSwing, -4); ctx.stroke();
+    if (o.kickLeg) { ctx.beginPath(); ctx.moveTo(23, -31); ctx.lineTo(27, -30); ctx.stroke(); }
+    else { ctx.beginPath(); ctx.moveTo(8 - legSwing, -11); ctx.lineTo(8 - legSwing, -4); ctx.stroke(); }
+    // シューズ（黒）
+    ctx.fillStyle = "#1a1a1a";
+    ctx.beginPath(); ctx.ellipse(-8 + legSwing, -2, 6, 3, 0, 0, 7); ctx.fill();
+    if (o.kickLeg) { ctx.beginPath(); ctx.ellipse(29, -29, 6, 3, 0, 0, 7); ctx.fill(); }
+    else { ctx.beginPath(); ctx.ellipse(8 - legSwing, -2, 6, 3, 0, 0, 7); ctx.fill(); }
+    // 緑の短パン
+    ctx.fillStyle = "#1f7a44"; roundRectPath(-12, -58, 24, 22, 4); ctx.fill();
+    ctx.fillStyle = "#186235"; ctx.fillRect(-12, -44, 24, 3);
+    // 赤いユニフォーム（胴）
+    ctx.fillStyle = "#d8232a"; roundRectPath(-14, -92, 28, 38, 6); ctx.fill();
+    ctx.fillStyle = "#c01d24"; ctx.fillRect(-14, -60, 28, 4);
+    // 緑のV襟
+    ctx.strokeStyle = "#0a6b3b"; ctx.lineWidth = 3; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-7, -91); ctx.lineTo(0, -84); ctx.lineTo(7, -91); ctx.stroke();
+    // 左胸プーマ（白）＋右胸クレスト（金）
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.ellipse(-8, -84, 2.4, 1.4, -0.3, 0, 7); ctx.fill();
+    ctx.fillStyle = "#f5d20c"; ctx.beginPath(); ctx.arc(8, -84, 2.2, 0, 7); ctx.fill();
+    // 背番号7
+    ctx.fillStyle = "#fff"; ctx.font = "bold 15px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("7", 0, -72);
+    // 腕（赤い長袖＋肌の手）
+    ctx.lineCap = "round";
+    if (o.armsUp) {
+      const a = o.armsUp;
+      ctx.strokeStyle = "#d8232a"; ctx.lineWidth = 7;
+      ctx.beginPath(); ctx.moveTo(-12, -86); ctx.lineTo(-14 - 14 * a, -94 - 10 * a); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(12, -86); ctx.lineTo(14 + 14 * a, -94 - 10 * a); ctx.stroke();
+      ctx.fillStyle = "#dca87e"; ctx.beginPath(); ctx.arc(-14 - 14 * a, -94 - 10 * a, 4, 0, 7); ctx.arc(14 + 14 * a, -94 - 10 * a, 4, 0, 7); ctx.fill();
+    } else {
+      ctx.strokeStyle = "#d8232a"; ctx.lineWidth = 7;
+      ctx.beginPath(); ctx.moveTo(-12, -86); ctx.lineTo(-19, -64); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(12, -86); ctx.lineTo(19, -64); ctx.stroke();
+      ctx.fillStyle = "#dca87e"; ctx.beginPath(); ctx.arc(-19, -63, 3.6, 0, 7); ctx.arc(19, -63, 3.6, 0, 7); ctx.fill();
+    }
+    // キャプテンマーク（左腕・青）
+    ctx.strokeStyle = "#2b4aa0"; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(-13, -82); ctx.lineTo(-14, -77); ctx.stroke();
+    // 頭（肌）
+    ctx.fillStyle = "#e3b487"; ctx.beginPath(); ctx.arc(0, -104, 10, 0, 7); ctx.fill();
+    // 髪（短髪：トップは短めのスパイク、サイドは刈り上げ、生え際は高め）
+    ctx.fillStyle = "#2a2018";
+    ctx.beginPath();
+    ctx.moveTo(-9.5, -109);
+    ctx.quadraticCurveTo(-10.5, -113.5, -6, -114);
+    ctx.quadraticCurveTo(0, -115.5, 6, -114);
+    ctx.quadraticCurveTo(10.5, -113.5, 9.5, -109);
+    ctx.quadraticCurveTo(5, -110.5, 2.4, -109.6);       // 生え際（少しM字）
+    ctx.quadraticCurveTo(0, -108.8, -2.4, -109.6);
+    ctx.quadraticCurveTo(-5, -110.5, -9.5, -109);
+    ctx.closePath(); ctx.fill();
+    // トップの小さなスパイク（短め）
+    for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(i*5 - 2, -113.5); ctx.lineTo(i*5 + 0.5, -117); ctx.lineTo(i*5 + 2, -113.5); ctx.closePath(); ctx.fill(); }
+    // サイドの刈り上げ（薄く短く）
+    ctx.fillStyle = "#3a2c20";
+    ctx.fillRect(-10, -110, 1.6, 5); ctx.fillRect(8.4, -110, 1.6, 5);
+    // 眉＋目
+    ctx.strokeStyle = "#241c14"; ctx.lineWidth = 1.4; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-6.3, -107); ctx.lineTo(-1.8, -106.6); ctx.moveTo(1.8, -106.6); ctx.lineTo(6.3, -107); ctx.stroke();
+    ctx.fillStyle = "#20303a"; ctx.beginPath(); ctx.arc(-3.6, -104.5, 1.5, 0, 7); ctx.arc(3.6, -104.5, 1.5, 0, 7); ctx.fill();
+    // 大きな笑顔（白い歯）
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.ellipse(0, -99.5, 4.2, 2.4, 0, 0, Math.PI); ctx.fill();
+    ctx.strokeStyle = "#a85a3a"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, -100, 4.4, 0.15, Math.PI - 0.15); ctx.stroke();
+    ctx.restore();
+  }
+
+  // PK戦のまるりん（簡易・キック／セーブ姿勢）
+  function pkDrawMaru(cx, footY, o) {
+    o = o || {};
+    ctx.save(); ctx.translate(cx, footY);
+    if (o.lean) ctx.rotate(o.lean);
+    ctx.fillStyle = "rgba(0,0,0,0.18)"; ctx.beginPath(); ctx.ellipse(0, 2, 16, 4, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#f6e2c0";
+    if (o.kick) { ctx.beginPath(); ctx.ellipse(14, -6, 6, 4, 0, 0, 7); ctx.fill(); ctx.beginPath(); ctx.ellipse(-6, -2, 6, 4, 0, 0, 7); ctx.fill(); }
+    else if (o.dive) { ctx.beginPath(); ctx.ellipse(-14, -4, 6, 4, 0, 0, 7); ctx.fill(); ctx.beginPath(); ctx.ellipse(14, -4, 6, 4, 0, 0, 7); ctx.fill(); }
+    else { ctx.beginPath(); ctx.ellipse(-6, -2, 6, 4, 0, 0, 7); ctx.fill(); ctx.beginPath(); ctx.ellipse(6, -2, 6, 4, 0, 0, 7); ctx.fill(); }
+    ctx.fillStyle = "#b8bcc4"; ctx.beginPath(); ctx.ellipse(0, -20, 17, 19, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#efe1c6"; ctx.beginPath(); ctx.ellipse(-9, -36, 5, 6, -0.3, 0, 7); ctx.fill(); ctx.beginPath(); ctx.ellipse(9, -36, 5, 6, 0.3, 0, 7); ctx.fill();
+    ctx.fillStyle = "#fbf3e2"; ctx.beginPath(); ctx.ellipse(2, -16, 13, 15, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#4fb4ea"; ctx.beginPath(); ctx.arc(-3, -24, 4, 0, 7); ctx.arc(7, -24, 3.6, 0, 7); ctx.fill();
+    ctx.fillStyle = "#15151a"; ctx.beginPath(); ctx.arc(-3, -24, 3, 0, 7); ctx.arc(7, -24, 2.6, 0, 7); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(-2, -25, 1.1, 0, 7); ctx.arc(8, -25, 1, 0, 7); ctx.fill();
+    ctx.fillStyle = "#161619"; ctx.beginPath(); ctx.ellipse(3, -18, 3.4, 2.8, 0, 0, 7); ctx.fill();
+    // 口（ハムスターのにっこり）
+    ctx.strokeStyle = "#3a3128"; ctx.lineWidth = 1.4; ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(3, -15); ctx.quadraticCurveTo(0, -11.5, -3, -13.5);
+    ctx.moveTo(3, -15); ctx.quadraticCurveTo(6, -11.5, 9, -13.5);
+    ctx.stroke();
+    // 腕（守り時：短くあげた手）
+    if (o.arms) {
+      ctx.strokeStyle = "#f6e2c0"; ctx.lineWidth = 5; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(-12, -24); ctx.lineTo(-17, -31); ctx.moveTo(12, -24); ctx.lineTo(17, -31); ctx.stroke();
+      ctx.fillStyle = "#f6e2c0"; ctx.beginPath(); ctx.arc(-17, -31, 3, 0, 7); ctx.arc(17, -31, 3, 0, 7); ctx.fill();
+      ctx.fillStyle = "#f0bd98"; ctx.beginPath(); ctx.arc(-17, -30, 1.3, 0, 7); ctx.arc(17, -30, 1.3, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function pkScoreDot(x, y, res) {
+    if (res === "goal") { ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x, y, 8, 0, 7); ctx.fill(); ctx.strokeStyle = "#222"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, 8, 0, 7); ctx.stroke(); ctx.fillStyle = "#20242c"; ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill(); }
+    else if (res === "miss") { ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x - 5, y - 5); ctx.lineTo(x + 5, y + 5); ctx.moveTo(x + 5, y - 5); ctx.lineTo(x - 5, y + 5); ctx.stroke(); }
+    else { ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(x, y, 8, 0, 7); ctx.stroke(); }
+  }
+
+  function drawPKHud(attack) {
+    // スコアボード
+    ctx.fillStyle = "rgba(0,0,0,0.4)"; roundRectPath(14, 12, 240, 64, 10); ctx.fill();
+    ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.font = "bold 15px 'Segoe UI',sans-serif";
+    ctx.fillStyle = "#fff"; ctx.fillText("まるりん", 26, 30);
+    ctx.fillStyle = "#ffd34d"; ctx.fillText("クリウド", 26, 58);
+    for (let i = 0; i < 3; i++) {
+      pkScoreDot(150 + i * 28, 30, pk.myRes[i]);
+      pkScoreDot(150 + i * 28, 58, pk.foeRes[i] === "goal" ? "goal" : (pk.foeRes[i] === "save" ? "miss" : undefined));
+    }
+    // ターン表示
+    ctx.fillStyle = attack ? "#2f7d32" : "#c0392b"; roundRectPath(W - 250, 12, 236, 30, 8); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.font = "bold 15px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const num = Math.min(3, Math.floor(pk.kick / 2) + 1);
+    ctx.fillText((attack ? "こうげき" : "ぼうぎょ") + "　" + num + " / 3本目", W - 132, 27);
+    // メッセージ
+    let msg = "", big = false, good = false;
+    if (pk.sub === "aim") msg = "← →  コースをえらぶ　　ジャンプ  シュート！";
+    else if (pk.sub === "dready" || pk.sub === "dwind") msg = "← →  とぶ方向をえらんで、とめろ！";
+    else if (pk.sub === "ares" || pk.sub === "dres") {
+      big = true;
+      if (pk.outcome === "goal" && attack) { msg = "ゴール！！"; good = true; }
+      else if (pk.outcome === "save" && attack) msg = "とめられた…";
+      else if (pk.outcome === "save" && !attack) { msg = "スーパーセーブ！！"; good = true; }
+      else if (pk.outcome === "goal" && !attack) msg = "きめられた…";
+    }
+    if (msg) {
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = big ? "bold 30px 'Segoe UI',sans-serif" : "16px 'Segoe UI',sans-serif";
+      const w = ctx.measureText(msg).width + 40;
+      ctx.fillStyle = "rgba(0,0,0,0.45)"; ctx.fillRect(W / 2 - w / 2, big ? 96 : H - 42, w, big ? 46 : 28);
+      ctx.fillStyle = big ? (good ? "#ffe14d" : "#ff9a9a") : "#fff";
+      ctx.fillText(msg, W / 2, big ? 119 : H - 28);
+    }
+  }
+
+  function drawPKIntro() {
+    const a = pk.t < 70 ? 1 : Math.max(0, (96 - pk.t) / 26);
+    ctx.save(); ctx.globalAlpha = a; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(120,0,0,0.42)"; ctx.fillRect(W / 2 - 220, H / 2 - 46, 440, 64);
+    ctx.fillStyle = "#ffdd55"; ctx.font = "bold 34px 'Segoe UI',sans-serif"; ctx.fillText("PKせん！", W / 2, H / 2 - 14);
+    ctx.fillStyle = "#fff"; ctx.font = "16px 'Segoe UI',sans-serif"; ctx.fillText("クリウド と 3本しょうぶ！", W / 2, H / 2 + 16);
+    ctx.restore();
+  }
+
+  function drawPKResult() {
+    ctx.save();
+    ctx.fillStyle = pk.sub === "win" ? "rgba(0,40,10,0.55)" : "rgba(30,0,0,0.6)"; ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    if (pk.sub === "win") {
+      for (let i = 0; i < 40; i++) { const t = pk.t * 2 + i * 37; const x = (i * 61 + t * 0.6) % W; const y = (t * 1.2 + i * 40) % H; ctx.fillStyle = ["#e94560", "#ffd34d", "#66cc44", "#3aa8e0", "#fff"][i % 5]; ctx.fillRect(x, y, 6, 6); }
+      ctx.fillStyle = "#ffd34d"; ctx.font = "bold 46px 'Segoe UI',sans-serif"; ctx.fillText("かった！ 🎉", W / 2, H / 2 - 30);
+      ctx.fillStyle = "#fff"; ctx.font = "22px 'Segoe UI',sans-serif"; ctx.fillText("PK  " + pk.my + " - " + pk.foe + "  クリウド", W / 2, H / 2 + 14);
+    } else {
+      ctx.fillStyle = "#ff8a8a"; ctx.font = "bold 42px 'Segoe UI',sans-serif"; ctx.fillText("まけ…", W / 2, H / 2 - 24);
+      ctx.fillStyle = "#fff"; ctx.font = "18px 'Segoe UI',sans-serif";
+      ctx.fillText((lives - 1 > 0) ? "もういちど ちょうせん！" : "ゲームオーバー…", W / 2, H / 2 + 20);
+    }
+    ctx.restore();
   }
 
   // ===== タイランドの風景（寺院・ヤシ・ゾウ）=====
