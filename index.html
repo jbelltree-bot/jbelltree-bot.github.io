@@ -267,7 +267,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 6.2 (2026-07-07)";
+  const GAME_VERSION = "ver 6.3 (2026-07-07)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -1805,7 +1805,7 @@
           b.chargeT = b.cross ? 200 : 60;
         }
       } else {
-        b.vx = b.chargeDir * (b.cross ? 6.2 : 6.6); b.x += b.vx; b.chargeT--;
+        b.vx = b.chargeDir * (b.cross ? 8.6 : 7.4); b.x += b.vx; b.chargeT--;
         const nx = b.x + b.w/2;
         if (b.cross) {
           // 割れ目を無視してまっすぐ。突っ切った反対側の外の海まで来たら飛び込む
@@ -1903,7 +1903,7 @@
       g.dropCd--;
       if (g.dropCd <= 0) {
         cukes.push({ x: g.x, y: g.y + 14, vx: g.vx * 0.4, vy: 1.2, t: 0, kind: "egg" });
-        g.dropCd = 88 + Math.floor(Math.random() * 60);   // 卵を落とす間隔（前の約2倍＝頻度は半分）
+        g.dropCd = 59 + Math.floor(Math.random() * 40);   // 卵を落とす間隔（2026-07-07に頻度1.5倍へ）
       }
     }
   }
