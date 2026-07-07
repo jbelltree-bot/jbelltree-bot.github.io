@@ -267,7 +267,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 6.3 (2026-07-07)";
+  const GAME_VERSION = "ver 6.4 (2026-07-07)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -316,7 +316,7 @@
         "------------------N---------------------------------------------------------------------o-o---------N-----------------------o-o-o----------#####------",
         "----P-----------------------?----------------b------F-------####--?-------------U-----------------------------?----b-------------------F--------------",
         "-------------------------------------------------------------------------------------b--####----------------------------------------------------------",
-        "------------------------c-----------------------#####-------c-----------------------------------c-------------------####c-------------------c---------",
+        "------------------------c-----------------------#####-------c-----------------------------------c-----------------------c-------------------c---------",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXX",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXX",
       ]
@@ -1805,7 +1805,7 @@
           b.chargeT = b.cross ? 200 : 60;
         }
       } else {
-        b.vx = b.chargeDir * (b.cross ? 8.6 : 7.4); b.x += b.vx; b.chargeT--;
+        b.vx = b.chargeDir * (b.cross ? 10 : 7.4); b.x += b.vx; b.chargeT--;
         const nx = b.x + b.w/2;
         if (b.cross) {
           // 割れ目を無視してまっすぐ。突っ切った反対側の外の海まで来たら飛び込む
@@ -2004,7 +2004,7 @@
         break;
       case "dwind":
         moveCursor();
-        if (pk.t > 26) {
+        if (pk.t > 20) {   // 予備動作を短く＝読む時間が少なく難しく
           pk.dive = pk.cursor;
           pk.sub = "dshot"; pk.t = 0;
           pk.ball.fly = true;
@@ -2560,6 +2560,7 @@
     if (theme === "town") { drawGate(gl); return; }
     if (theme === "narita") { drawAirport(gl); return; }
     if (theme === "hawaii") { drawHawaiiGoal(gl); return; }
+    if (theme === "portugal") { drawStadiumGoal(gl); return; }
     const x = gl.x;
     // ポール
     ctx.fillStyle = "#cfcfcf"; ctx.fillRect(x-3, gl.top, 6, TILE*6);
@@ -2578,6 +2579,50 @@
     // 台座
     ctx.fillStyle="#5a8f3a";
     ctx.fillRect(x-TILE, gl.top+TILE*6, TILE*2, TILE);
+  }
+
+  // ゴール：サッカースタジアム（ポルトガル）
+  function drawStadiumGoal(gl) {
+    const x = gl.x, gy = GROUND_Y;
+    // 照明塔（左右）
+    for (const sx of [x - 60, x + 150]) {
+      ctx.fillStyle = "#8a9099"; ctx.fillRect(sx, gy - 210, 6, 210);
+      ctx.fillStyle = "#cfd6dc"; ctx.fillRect(sx - 20, gy - 226, 46, 20);
+      ctx.fillStyle = "#fff7cc";
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) ctx.fillRect(sx - 16 + i*14, gy - 223 + j*9, 10, 6);
+    }
+    // スタンド本体（すり鉢状）
+    ctx.fillStyle = "#d7dde2";
+    ctx.beginPath();
+    ctx.moveTo(x - 70, gy); ctx.lineTo(x - 48, gy - 150); ctx.lineTo(x + 138, gy - 150); ctx.lineTo(x + 160, gy);
+    ctx.closePath(); ctx.fill();
+    // 観客席の段＋観客
+    ctx.fillStyle = "#c2cad0";
+    for (let i = 0; i < 4; i++) ctx.fillRect(x - 46 + i*3, gy - 140 + i*30, 182 - i*6, 12);
+    ctx.fillStyle = "#8a97a2";
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 22; c++) { ctx.beginPath(); ctx.arc(x - 38 + c*8, gy - 132 + r*30, 2, 0, 7); ctx.fill(); }
+    // 屋根の帯（青）
+    ctx.fillStyle = "#2f6fb0"; ctx.fillRect(x - 50, gy - 152, 190, 8);
+    // 入口アーチ（暗い開口）＝まるりんが入る所
+    ctx.fillStyle = "#20303a"; roundRectPath(x - 18, gy - 86, 76, 86, 10); ctx.fill();
+    ctx.fillStyle = "#2b4150"; roundRectPath(x - 10, gy - 78, 60, 78, 8); ctx.fill();
+    // 入口の看板
+    ctx.fillStyle = "#0a6b3b"; roundRectPath(x - 28, gy - 118, 96, 26, 6); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.font = "bold 15px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("STADIUM", x + 20, gy - 105);
+    // サッカーボールのエンブレム
+    const bx = x + 20, by = gy - 140;
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(bx, by, 11, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#c9ccd2"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(bx, by, 11, 0, 7); ctx.stroke();
+    ctx.fillStyle = "#20242c"; pentagon(bx, by, 4.6);
+    // ポルトガル国旗（屋根に）
+    ctx.fillStyle = "#0a6b3b"; ctx.fillRect(x + 116, gy - 180, 15, 11);
+    ctx.fillStyle = "#d21e2b"; ctx.fillRect(x + 131, gy - 180, 17, 11);
+    ctx.fillStyle = "#f5d20c"; ctx.beginPath(); ctx.arc(x + 131, gy - 174.5, 3, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#8a9099"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 116, gy - 180); ctx.lineTo(x + 116, gy - 152); ctx.stroke();
+    // ゴール案内の矢印
+    ctx.fillStyle = "#ffd34d"; ctx.font = "bold 13px 'Segoe UI',sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("GOAL", x + 20, gy - 20);
   }
 
   // ゴール：南流山駅の改札
@@ -3259,7 +3304,8 @@
   function drawClovisKicker() {
     let lean = 0, kickLeg = 0, runup = 0;
     if (pk.sub === "dready") runup = pk.t;
-    if (pk.sub === "dwind") lean = (pk.kickerDir - 1) * 0.22;
+    // ヒントは「けり出す直前」に「ほんの少しだけ」出す（早くから方向が丸わかりにならない＝難しく）
+    if (pk.sub === "dwind" && pk.t > 13) lean = (pk.kickerDir - 1) * 0.12;
     if (pk.sub === "dshot" || pk.sub === "dres") { kickLeg = 1; lean = (pk.kickerDir - 1) * 0.12; }
     pkDrawClovis(PKX.spotX - 30, 404, { lean, kickLeg, runup });
   }
