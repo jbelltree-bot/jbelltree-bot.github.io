@@ -267,7 +267,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 6.5 (2026-07-07)";
+  const GAME_VERSION = "ver 6.6 (2026-07-08)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -424,6 +424,7 @@
   let barrels = [];     // ポルトガル：転がってくるポルトワインの樽（障害物）
   let barrelCd = 0;     // 次の樽までのカウント
   let pk = null;        // PK戦（ポルトガルのボス戦）の状態。非nullのときPK戦
+  let screenShake = 0;  // 画面（地面）を揺らすフレーム数（こうようの四股の着地など）
   let inBoss = false;   // ボス戦中かどうか（ミス時のやり直し判定用）
   let bossNutSpawned = false;   // ボス戦の開始10秒でナッツを出したか（各ボス戦で1回）
 
@@ -900,6 +901,7 @@
       if (stageClearT > 150) advanceStage();   // 約2.5秒で自動的に次のステージへ
     }
     updateParticles();
+    if (screenShake > 0) screenShake--;
   }
 
   function updatePlay() {
@@ -1365,7 +1367,7 @@
         invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
         jumpCd: 1e9, throwCd: 90 + Math.floor(Math.random()*40), throwBase: 110,
         charges: true, chargeCd: 150 + Math.floor(Math.random()*60), charging: false, chargeT: 0, windup: 0,
-        shikoT: 0, shikoCd: 180 + Math.floor(Math.random()*120), didDouble: false, raging: false,
+        shiko: false, shikoWind: 0, shikoCd: 180 + Math.floor(Math.random()*120), didDouble: false, raging: false,
         speedBase: 1.5, throws: true, alive: true, dyingT: 0 };
     }
     // クリだいおう（ステージ1）
@@ -1403,28 +1405,32 @@
     sfx.seed();
   }
 
-  // こうようの四股：地響きの衝撃波を左右へ。地上のまるりんに当たると少しの間スタン（ダメージなし・ジャンプでよけられる）
-  function spawnShock(b) {
-    const cx = b.x + b.w/2, y = BOSS_GROUND - 6;
-    cukes.push({ kind: "shock", x: cx - b.w/2, y, vx: -5.2, t: 0 });
-    cukes.push({ kind: "shock", x: cx + b.w/2, y, vx: 5.2, t: 0 });
-    sfx.stomp();
-    spawnParticles(cx, BOSS_GROUND, "#d8c9a0", 16);
-    b.squash = 0.55;
+  // こうようの四股：真上ジャンプ→着地の地響き。地上のまるりんは距離に関係なくスタン（ジャンプ中なら無事）
+  function shikoImpact(b) {
+    const p = player;
+    const cx = b.x + b.w/2;
+    b.squash = 0.45;
+    screenShake = 26;                                   // 画面（地面）を揺らす
+    sfx.stomp(); beep(90, 0.24, "sawtooth", 0.12);      // 重い地響き
+    // 地上のまるりんをスタン（遠くてもスタン。空中＝ジャンプ中なら当たらない）
+    if (p.onGround && p.stun <= 0) {
+      p.stun = 45;
+      spawnParticles(p.x + p.w/2, p.y + p.h, "#ffe38a", 12);
+    }
+    // 着地の土ぼこり＋左右に広がる地響きの波（見た目だけ）
+    spawnParticles(cx, BOSS_GROUND, "#d8c9a0", 24);
+    for (let i = 0; i < 6; i++) spawnParticles(cx + (Math.random()-0.5)*W*0.7, BOSS_GROUND, "#cabf9e", 2);
+    cukes.push({ kind: "shock", x: cx - 18, y: BOSS_GROUND - 6, vx: -6, t: 0 });
+    cukes.push({ kind: "shock", x: cx + 18, y: BOSS_GROUND - 6, vx: 6, t: 0 });
   }
 
   function updateCukes() {
     const p = player;
     for (const cu of cukes) {
       cu.t++;
-      if (cu.kind === "shock") {   // 四股の衝撃波：地面を這う。地上のまるりんをスタン
-        cu.x += cu.vx;
-        const box = { x: cu.x - 16, y: cu.y - 6, w: 32, h: 20 };
-        if (p.onGround && p.stun <= 0 && rectHit(p, box)) {
-          p.stun = 45; cu.dead = true; sfx.hurt();
-          spawnParticles(p.x + p.w/2, p.y + p.h, "#ffe38a", 12);
-        }
-        if (cu.x < camX - 60 || cu.x > camX + W + 60) cu.dead = true;
+      if (cu.kind === "shock") {   // 四股の地響きの波（見た目だけ・スタンは着地時に別途）
+        cu.x += cu.vx; cu.vx *= 0.95;
+        if (cu.t > 34 || cu.x < camX - 60 || cu.x > camX + W + 60) cu.dead = true;
         continue;
       }
       if (cu.kind === "tiger" || cu.kind === "gtiger") { stepTigerShot(cu, p); continue; }  // まっすぐ飛ぶ弾
@@ -1600,14 +1606,15 @@
       if (b.kind === "zagat") { updateZagat(b); continue; }
       const phase = b.kind === "kuri" ? (b.hp <= 5 ? 2 : (b.hp <= 10 ? 1 : 0)) : 0;
       let speed = b.speedBase + phase * 0.7;
-      // こうよう：構え（windup）→ 突進（charging）＋ 四股（shikoT）＋ 怒りモード
+      // こうよう：構え（windup）→ 突進（charging）＋ 四股（真上ジャンプ→着地でスタン）＋ 怒りモード
       if (b.charges) {
         const raging = b.hp <= 2;   // HP半分以下（5の半分）で怒りモード
         b.raging = raging;
-        if (b.shikoT > 0) {
-          // 四股の踏みおろし。0になった瞬間に地響きの衝撃波を出す
-          b.shikoT--; speed = 0;
-          if (b.shikoT === 0) spawnShock(b);
+        if (b.shiko) {
+          speed = 0;   // 四股でジャンプ中：横移動なし（着地は共通の重力処理→着地でスタン）
+        } else if (b.shikoWind > 0) {
+          b.shikoWind--; speed = 0;                     // ジャンプ前のしゃがみ（ため）
+          if (b.shikoWind === 0) { b.vy = -14; b.shiko = true; b.onGround = false; sfx.jump(); }   // 真上にジャンプ
         } else if (b.windup > 0) {
           b.windup--; speed = 0;                       // しこの構え中は止まる
         } else if (b.charging) {
@@ -1628,8 +1635,8 @@
           if (b.chargeCd <= 0 && b.onGround) {          // まるりんの方を向いて構える → 突進
             b.vx = (p.x + p.w/2 < b.x + b.w/2) ? -1 : 1;
             b.windup = 18; b.charging = true; b.chargeT = 46;
-          } else if (b.shikoCd <= 0 && b.onGround) {    // 四股（地響き・スタン）
-            b.shikoT = 26; b.shikoCd = (raging ? 150 : 240) + Math.floor(Math.random()*120);
+          } else if (b.shikoCd <= 0 && b.onGround) {    // 四股：ためて真上にジャンプ→着地で地響き
+            b.shikoWind = 16; b.shikoCd = (raging ? 160 : 260) + Math.floor(Math.random()*120);
           }
         }
       }
@@ -1639,7 +1646,7 @@
       if (b.x + b.w > W - 16) { b.x = W - 16 - b.w; b.vx = -Math.abs(b.vx); }
       b.face = b.vx > 0 ? 1 : -1;
       // ジャンプ（にせぺぎはしない）
-      const busy = b.charges && (b.charging || b.windup > 0 || b.shikoT > 0);
+      const busy = b.charges && (b.charging || b.windup > 0 || b.shiko || b.shikoWind > 0);
       if (b.jumpCd < 1e8) {
         b.jumpCd--;
         if (b.onGround && b.jumpCd <= 0 && !busy) {
@@ -1658,6 +1665,8 @@
       for (const s of solids) {
         if (rectHit(b, s) && b.vy > 0 && (b.y + b.h) - s.y < 42) { b.y = s.y - b.h; b.vy = 0; b.onGround = true; }
       }
+      // 四股の着地：ドスンと地響き → 地上のまるりんをスタン（遠くてもスタン。ジャンプ中は無事）
+      if (b.kind === "sumo" && b.shiko && b.onGround) { b.shiko = false; shikoImpact(b); }
       // プレイヤーとの当たり（足がボスの上のほうにあれば踏みつけ。速い・小さいボスでも踏めるように寛容に）
       if (rectHit(p, b)) {
         const fromAbove = p.vy > 0 && (p.y + p.h) - b.y < b.h * 0.7 + Math.max(0, p.vy);
@@ -2232,7 +2241,9 @@
     }
 
     ctx.save();
-    ctx.translate(-Math.round(camX), 0);
+    let shkx = 0, shky = 0;
+    if (screenShake > 0) { const m = Math.min(screenShake, 12) * 0.7; shkx = (Math.random()-0.5) * m * 2; shky = (Math.random()-0.5) * m * 2; }
+    ctx.translate(-Math.round(camX) + shkx, shky);
 
     if (inBoss) drawBossBackdrop();
     else if (theme === "town") drawTownDecor();
@@ -4089,6 +4100,13 @@
   // ===== ボス：こうよう（子供力士）=====
   function drawSumoBoss(b) {
     const cx = b.x + b.w/2, by = b.y + b.h, W2 = b.w, H2 = b.h;
+    // 四股のジャンプ中：着地地点の影（近づくほど濃く・大きく）＝どこに落ちるか分かる
+    if (b.shiko) {
+      const above = Math.max(0, BOSS_GROUND - by);
+      const prog = 1 - Math.min(1, above / 130);
+      ctx.fillStyle = "rgba(0,0,0," + (0.1 + prog * 0.24).toFixed(2) + ")";
+      ctx.beginPath(); ctx.ellipse(cx, BOSS_GROUND + 2, W2 * (0.3 + prog * 0.3), 5 + prog * 3, 0, 0, 7); ctx.fill();
+    }
     ctx.save();
     ctx.translate(cx, by);
     const sq = b.squash;
@@ -4100,8 +4118,8 @@
     const skin = flash ? "#ffdccb" : (raging ? "#f4b892" : "#f6cfa4");
     const skinD = flash ? "#f6c4b0" : (raging ? "#dc9a70" : "#e6b184");
     const lean = b.charging ? dir * 6 : 0;                 // 突進中は前のめり
-    const shiko = b.shikoT > 0;
-    const stance = (b.windup > 0 || shiko) ? (shiko ? 9 : 6) : 0;   // しこ／四股は腰を落とす
+    const crouch = b.shikoWind > 0;                        // 四股の前のしゃがみ（ため）
+    const stance = (b.windup > 0 || crouch) ? (crouch ? 13 : 6) : 0;   // しゃがみは深く腰を落とす
     // 怒りモードの赤いオーラ（メラメラ）
     if (raging && b.alive) {
       ctx.save();
@@ -4116,15 +4134,15 @@
     // 影
     ctx.fillStyle = "rgba(0,0,0,0.15)";
     ctx.beginPath(); ctx.ellipse(0, 2, W2*0.6, 8, 0, 0, 7); ctx.fill();
-    // 足（しこ／四股中は大きく開く。四股の上げphaseでは右足を高く上げる）
-    const legSpread = (b.windup > 0 || shiko) ? W2*0.46 : W2*0.28;
-    const legLift = (shiko && b.shikoT > 8) ? 24 : 0;      // 右足を上げる → 踏みおろし
+    // 足（構え／しゃがみ／ジャンプ中は大きく開く）
+    const legSpread = (b.windup > 0 || crouch || b.shiko) ? W2*0.46 : W2*0.28;
+    const footY = b.shiko ? -10 : -5;                      // ジャンプ中は足を少し引き上げる
     ctx.fillStyle = skin;
-    ctx.beginPath(); ctx.ellipse(-legSpread, -5, 12, 8, 0, 0, 7); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(legSpread, -5 - legLift, 12, 8, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-legSpread, footY, 12, 8, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(legSpread, footY, 12, 8, 0, 0, 7); ctx.fill();
     ctx.fillStyle = skinD;
     ctx.beginPath(); ctx.ellipse(-legSpread, -18 + stance, 15, 16, 0, 0, 7); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(legSpread, -18 + stance - legLift*0.6, 15, 16, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(legSpread, -18 + stance, 15, 16, 0, 0, 7); ctx.fill();
     // まわし（白いふんどし）
     ctx.fillStyle = flash ? "#ffffff" : "#f7f4ea";
     roundRectPath(-W2*0.42, -H2*0.52, W2*0.84, H2*0.30, 6); ctx.fill();
