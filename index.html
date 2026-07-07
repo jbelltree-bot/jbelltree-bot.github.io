@@ -267,7 +267,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 6.7 (2026-07-08)";
+  const GAME_VERSION = "ver 6.9 (2026-07-08)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -1816,16 +1816,22 @@
         const sharkSide = startCx < GAP_CX - 30 ? -1 : (startCx > GAP_CX + 30 ? 1 : 0);
         const playerSide = pcx < GAP_CX ? -1 : 1;
         const opposite = (sharkSide === -1 && playerSide === 1) || (sharkSide === 1 && playerSide === -1);
+        // ハイジャンプするか？（反対側の海=50%でまるりん側へ／中央の海=50%で左右どちらかへ／それ以外は陸に上がる）
+        let highJump = false, targetX = 0;
         if (opposite) {
-          // まるりんと反対側の海にいる → 反対の陸には上がらず、まるりん側の海へハイジャンプで飛び込む
-          const targetX = playerSide < 0 ? 50 : 750;   // まるりん側の外の海（左50/右750）
+          if (Math.random() < 0.5) { highJump = true; targetX = playerSide < 0 ? 50 : 750; }
+        } else if (sharkSide === 0) {
+          if (Math.random() < 0.5) { highJump = true; targetX = Math.random() < 0.5 ? 50 : 750; }
+        }
+        if (highJump) {
+          // まるりん側／左右の海へハイジャンプで飛び込む（陸に上がらない）
           b.mode = "plunge"; b.vulnerable = true; b.onGround = false;
-          b.vy = -15;                                   // 高く跳ぶ（ハイジャンプ）
+          b.vy = -15;                                   // 高く跳ぶ
           b.vx = Math.max(-16, Math.min(16, (targetX - startCx) / 50));
           b.face = b.vx >= 0 ? 1 : -1;
           spawnParticles(startCx, SEA_Y, "#bfe1f0", 14);
         } else {
-          // まるりんと同じ側／中央 → 近いデッキに上がって突進（従来）
+          // 近いデッキに上がって突進（従来）
           let toLeft;
           if (startCx < GAP_L) toLeft = true;
           else if (startCx > GAP_R) toLeft = false;
@@ -1873,7 +1879,7 @@
           const bossLeft = bcx < GAP_CX;
           const playerLeft = pcx < GAP_L, playerRight = pcx > GAP_R;
           const opposite = (bossLeft && playerRight) || (!bossLeft && playerLeft);
-          b.cross = opposite && (Math.random() < 0.5);
+          b.cross = opposite && (Math.random() < 0.8);   // 反対デッキのときは80%でクロスチャージ
           b.chargeDir = b.cross ? (pcx < bcx ? -1 : 1) : -b.side;
           b.face = b.chargeDir;
           b.chargeT = b.cross ? 200 : 60;
