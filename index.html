@@ -267,7 +267,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 6.1 (2026-07-07)";
+  const GAME_VERSION = "ver 6.2 (2026-07-07)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -1326,10 +1326,11 @@
     if (kind === "mega") {
       // メガロドン（巨大ザメ）：船のデッキの両脇の海にもぐり、水中から飛び出してデッキに乗り上げて攻撃。
       // もぐっている間は小魚を呼ぶ。飛び出して乗り上げた頭を踏む／種で当てる。
-      // 踏み5回（8ダメージ×5=40）またはたね8発（5ダメージ×8=40）で撃破。ハート5個表示。
+      // 踏み5回（8ダメージ×5=40）またはたね10発（4ダメージ×10=40）で撃破。ハート5個表示。
+      // 反対デッキにまるりんがいると、割れ目を無視してまっすぐ突進してくる（cross）。
       return { kind, name: "メガロドン", x: GAP_CX - 59, y: SEA_Y - 40, w: 118, h: 72,
         vx: 0, vy: 0, onGround: false, face: 1,
-        hp: 40, maxHp: 40, stompDmg: 8, seedDmg: 5, hpPerHeart: 8,
+        hp: 40, maxHp: 40, stompDmg: 8, seedDmg: 4, hpPerHeart: 8,
         invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
         throws: false, alive: true, dyingT: 0,
         mode: "dive", side: -1, diveT: 60, windup: 0, chargeT: 0, chargeDir: 1, vulnerable: false, diveCx: GAP_CX,
@@ -1789,17 +1790,32 @@
     }
 
     if (b.mode === "charge") {
-      // 構え → 割れ目に向かって突進 → 割れ目に達したらダイブ
+      // 構え → 突進。まるりんが反対デッキにいるときは割れ目を無視して同じ高さでまっすぐ突っ込む（cross）
       b.vulnerable = true;
       if (b.windup > 0) {
         b.windup--; b.vx = 0;
-        if (b.windup === 0) b.chargeT = 60;
+        if (b.windup === 0) {
+          // 突進の種類を決める：まるりんが反対デッキ → クロスチャージ
+          const pcx = player.x + player.w/2, bcx = b.x + b.w/2;
+          const bossLeft = bcx < GAP_CX;
+          const playerLeft = pcx < GAP_L, playerRight = pcx > GAP_R;
+          b.cross = (bossLeft && playerRight) || (!bossLeft && playerLeft);
+          b.chargeDir = b.cross ? (pcx < bcx ? -1 : 1) : -b.side;
+          b.face = b.chargeDir;
+          b.chargeT = b.cross ? 200 : 60;
+        }
       } else {
-        b.vx = b.chargeDir * 6.6; b.x += b.vx; b.chargeT--;
+        b.vx = b.chargeDir * (b.cross ? 6.2 : 6.6); b.x += b.vx; b.chargeT--;
         const nx = b.x + b.w/2;
-        // 割れ目に到達 or 足元の床が切れた → 海へダイブしてもぐる
-        if ((nx > GAP_L && nx < GAP_R) || !isSolidAt(nx, BOSS_GROUND + 4) || b.chargeT <= 0) {
-          startPlunge(b);   // 突進のあと、ランダムな海（左・中央・右）へ飛び込む
+        if (b.cross) {
+          // 割れ目を無視してまっすぐ。突っ切った反対側の外の海まで来たら飛び込む
+          const reachedFar = (b.chargeDir < 0 && nx < LDECK_L + 6) || (b.chargeDir > 0 && nx > RDECK_R - 6);
+          if (reachedFar || b.chargeT <= 0 || nx < 24 || nx > W - 24) { crossPlunge(b); }
+        } else {
+          // 通常：割れ目に達したら or 足元の床が切れたら or 時間切れ → ランダムな海へ
+          if ((nx > GAP_L && nx < GAP_R) || !isSolidAt(nx, BOSS_GROUND + 4) || b.chargeT <= 0) {
+            startPlunge(b);
+          }
         }
       }
       megaHitChecks(b);
@@ -1837,6 +1853,15 @@
     b.vy = -12; b.vx = Math.max(-13, Math.min(13, (targetCx - startCx) / 42));
     b.face = b.vx >= 0 ? 1 : -1;
     spawnParticles(startCx, BOSS_GROUND, "#bfe1f0", 8);
+  }
+  // クロスチャージ後：突っ切った先の外側の海へ落ちてもぐる
+  function crossPlunge(b) {
+    const cx = b.x + b.w/2;
+    b.diveCx = cx < GAP_CX ? 60 : 740;   // 左の海 or 右の海
+    b.mode = "plunge"; b.cross = false; b.vulnerable = true; b.onGround = false;
+    b.vy = 1; b.vx = Math.max(-13, Math.min(13, (b.diveCx - cx) / 24));
+    b.face = b.vx >= 0 ? 1 : -1;
+    spawnParticles(cx, BOSS_GROUND, "#bfe1f0", 8);
   }
   // 保険：すぐランダムな海へもぐる
   function forceDiveRandom(b) {
