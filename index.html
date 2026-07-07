@@ -175,6 +175,8 @@
   #overlay .logo .word span:nth-child(even) { transform: rotate(3deg); }
   #overlay .menu { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 6px; }
   #overlay #contNote { font-size: 13px; opacity: .85; }
+  #overlay #version { margin-top: 6px; font-size: 15px; font-weight: bold; color: #ffe38a;
+    letter-spacing: 1px; background: rgba(0,0,0,.32); padding: 4px 14px; border-radius: 14px; }
   #overlay button {
     font-size: 18px; padding: 12px 30px; border: none; border-radius: 30px;
     background: #e94560; color: #fff; cursor: pointer; font-weight: bold;
@@ -221,6 +223,7 @@
         <button id="contBtn">つづきから</button>
       </div>
       <div id="contNote"></div>
+      <div id="version">ver</div>
      </div>
     </div>
   </div>
@@ -262,6 +265,10 @@
   const newBtn = document.getElementById("newBtn");
   const contBtn = document.getElementById("contBtn");
   const contNote = document.getElementById("contNote");
+
+  // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
+  const GAME_VERSION = "ver 6.1 (2026-07-07)";
+  { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
   const TILE = 40;             // タイルサイズ
