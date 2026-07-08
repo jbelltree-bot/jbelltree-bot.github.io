@@ -267,7 +267,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 6.13 (2026-07-08)";
+  const GAME_VERSION = "ver 6.14 (2026-07-08)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -1379,7 +1379,7 @@
       // 頭を踏む3回で撃破（たねでも削れる）。HP1で怒りモード（速い＋2連続）。
       return { kind, name: "クリウド", x, y: BOSS_GROUND - 114, w: 52, h: 114,
         vx: -1, vy: 0, onGround: false, face: -1,
-        hp: 3, maxHp: 3, stompDmg: 1, seedDmg: 1, hpPerHeart: 1,
+        hp: 9, maxHp: 9, stompDmg: 3, seedDmg: 1, hpPerHeart: 3,   // 踏み3回／たね9発で撃破・ハート3個
         invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
         throws: false, alive: true, dyingT: 0, raging: false,
         mode: "idle", actCd: 60, windup: 0, chargeT: 0, chargeDir: -1, shotDir: -1, didDouble: false, runup: 0, kickLeg: 0 };
@@ -1732,7 +1732,7 @@
   // グラウンダーシュート（地を這うボール）／ドリブル突進／オーバーヘッド・ロブ。頭を3回踏むと撃破。
   function updateClovis(b) {
     const p = player;
-    const raging = b.hp <= 1;   // HP1で怒りモード（速い＋2連続）
+    const raging = b.hp <= 3;   // 残りハート1つ（HP3以下）で怒りモード（速い＋2連続）
     b.raging = raging;
     const pcx = p.x + p.w/2, bcx = b.x + b.w/2;
     b.runup = (b.mode === "dribble" || b.mode === "dribwind") ? b.runup + 1 : 0;
@@ -2216,7 +2216,7 @@
         break;
       case "dwind":
         moveCursor();
-        if (pk.t > 25) {   // 予備動作の長さ＝反応できる時間（ver6.13で20→25に少しゆるめた）
+        if (pk.t > 21) {   // 予備動作の長さ＝反応できる時間（合図pk.t>11〜ここ＝約10フレーム。ver6.14で25→21）
           pk.dive = pk.cursor;
           pk.sub = "dshot"; pk.t = 0;
           pk.ball.fly = true;
