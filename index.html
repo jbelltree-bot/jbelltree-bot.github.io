@@ -267,7 +267,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 6.9 (2026-07-08)";
+  const GAME_VERSION = "ver 6.12 (2026-07-08)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -424,6 +424,7 @@
   let barrels = [];     // ポルトガル：転がってくるポルトワインの樽（障害物）
   let barrelCd = 0;     // 次の樽までのカウント
   let pk = null;        // PK戦（ポルトガルのボス戦）の状態。非nullのときPK戦
+  let clovisPhase2 = false;   // ポルトガル：PKに勝って第2ラウンド（直接対決）に入っているか
   let screenShake = 0;  // 画面（地面）を揺らすフレーム数（こうようの四股の着地など）
   let inBoss = false;   // ボス戦中かどうか（ミス時のやり直し判定用）
   let bossNutSpawned = false;   // ボス戦の開始10秒でナッツを出したか（各ボス戦で1回）
@@ -1204,7 +1205,7 @@
     seeds = [];
     if (inBoss) {
       // ボス戦をやり直し（ボスも体力満タンで復活）
-      if (STAGES[stageIndex].boss === "clovis") setupPK();
+      if (STAGES[stageIndex].boss === "clovis") { if (clovisPhase2) setupBossArena(); else setupPK(); }
       else setupBossArena();
       startBGM();
       state = "boss";
@@ -1296,6 +1297,8 @@
       bosses = [ makeBoss("mega", 80) ];
     } else if (type === "zagat") {
       bosses = [ makeBoss("zagat", W - 150) ];
+    } else if (type === "clovis") {
+      bosses = [ makeBoss("clovis", W - 190) ];
     } else {
       bosses = [ makeBoss("kuri", W - 170) ];
     }
@@ -1370,6 +1373,17 @@
         shiko: false, shikoWind: 0, shikoCd: 180 + Math.floor(Math.random()*120), didDouble: false, raging: false,
         speedBase: 1.5, throws: true, alive: true, dyingT: 0 };
     }
+    if (kind === "clovis") {
+      // クリウド第2ラウンド（PKに勝つと発生）：サッカーのストライカー。
+      // グラウンダーシュート（地を這うボール）／ドリブル突進／オーバーヘッド・ロブの3種で攻める。
+      // 頭を踏む3回で撃破（たねでも削れる）。HP1で怒りモード（速い＋2連続）。
+      return { kind, name: "クリウド", x, y: BOSS_GROUND - 114, w: 52, h: 114,
+        vx: -1, vy: 0, onGround: false, face: -1,
+        hp: 3, maxHp: 3, stompDmg: 1, seedDmg: 1, hpPerHeart: 1,
+        invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
+        throws: false, alive: true, dyingT: 0, raging: false,
+        mode: "idle", actCd: 60, windup: 0, chargeT: 0, chargeDir: -1, shotDir: -1, didDouble: false, runup: 0, kickLeg: 0 };
+    }
     // クリだいおう（ステージ1）
     return { kind, name: "クリだいおう", x, y: BOSS_GROUND - 90, w: 96, h: 90,
       vx: -1.4, vy: 0, onGround: false, face: -1,
@@ -1434,10 +1448,20 @@
         continue;
       }
       if (cu.kind === "tiger" || cu.kind === "gtiger") { stepTigerShot(cu, p); continue; }  // まっすぐ飛ぶ弾
+      if (cu.kind === "sball") {   // クリウドのグラウンダーシュート（地を這うボール・ジャンプでよける）
+        cu.x += cu.vx; cu.rot = (cu.rot || 0) + cu.vx * 0.06;
+        const box = { x: cu.x - 13, y: cu.y - 13, w: 26, h: 26 };
+        if (rectHit(p, box) && p.invuln <= 0) { cu.dead = true; hurtPlayer(); }
+        else for (const sd of seeds) {
+          if (rectHit({ x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 }, box)) { cu.dead = true; sd.life = 0; score += 50; sfx.stomp(); spawnParticles(cu.x, cu.y, "#ffffff", 8); break; }
+        }
+        if (cu.x < camX - 80 || cu.x > camX + W + 80) cu.dead = true;
+        continue;
+      }
       cu.vy += 0.42;                    // 山なりに落ちる
       cu.x += cu.vx; cu.y += cu.vy;
       const box = { x: cu.x - 10, y: cu.y - 6, w: 20, h: 12 };
-      const puff = cu.kind === "salt" ? "#ffffff" : (cu.kind === "water" ? "#8fd0ee" : (cu.kind === "egg" ? "#f3e6c8" : "#6cae3e"));
+      const puff = cu.kind === "salt" ? "#ffffff" : (cu.kind === "water" ? "#8fd0ee" : (cu.kind === "egg" ? "#f3e6c8" : (cu.kind === "lob" ? "#ffffff" : "#6cae3e")));
       // 地面に落ちたら割れる
       for (const s of solids) { if (rectHit(box, s)) { cu.dead = true; spawnParticles(cu.x, cu.y, puff, 6); break; } }
       // たねで撃ち落とせる
@@ -1604,6 +1628,7 @@
       b.squash += (1 - b.squash) * 0.2;
       if (b.kind === "mega") { updateMega(b); continue; }
       if (b.kind === "zagat") { updateZagat(b); continue; }
+      if (b.kind === "clovis") { updateClovis(b); continue; }
       const phase = b.kind === "kuri" ? (b.hp <= 5 ? 2 : (b.hp <= 10 ? 1 : 0)) : 0;
       let speed = b.speedBase + phase * 0.7;
       // こうよう：構え（windup）→ 突進（charging）＋ 四股（真上ジャンプ→着地でスタン）＋ 怒りモード
@@ -1701,6 +1726,102 @@
 
     // 全ボス撃破＆演出終了 → クリア
     if (bosses.every(b => !b.alive && b.dyingT > 90)) stageCleared();
+  }
+
+  // クリウド第2ラウンド（PK勝利後の直接対決）：3種のサッカー攻撃で攻める。
+  // グラウンダーシュート（地を這うボール）／ドリブル突進／オーバーヘッド・ロブ。頭を3回踏むと撃破。
+  function updateClovis(b) {
+    const p = player;
+    const raging = b.hp <= 1;   // HP1で怒りモード（速い＋2連続）
+    b.raging = raging;
+    const pcx = p.x + p.w/2, bcx = b.x + b.w/2;
+    b.runup = (b.mode === "dribble" || b.mode === "dribwind") ? b.runup + 1 : 0;
+
+    if (b.mode === "idle") {
+      b.face = pcx < bcx ? -1 : 1;
+      // 適度な間合いを保ちながら左右に動く
+      const target = pcx < bcx ? pcx + 210 : pcx - 210;
+      if (Math.abs(bcx - target) > 10) b.x += Math.sign(target - bcx) * (raging ? 2.5 : 1.8);
+      b.actCd--;
+      if (b.actCd <= 0 && b.onGround) chooseClovisAttack(b);
+    } else if (b.mode === "grounder") {
+      b.face = b.shotDir;
+      b.kickLeg = Math.max(0, b.kickLeg - 0.1);
+      b.windup--;
+      if (b.windup === 0) { spawnGrounder(b); b.kickLeg = 1; }
+      if (b.windup <= -16) endClovisAttack(b);
+    } else if (b.mode === "lobwind") {
+      b.windup--;
+      if (b.windup <= 0) { spawnLob(b); b.mode = "lobrec"; b.windup = 26; b.kickLeg = 1; }
+    } else if (b.mode === "lobrec") {
+      b.kickLeg = Math.max(0, b.kickLeg - 0.08);
+      b.windup--; if (b.windup <= 0) endClovisAttack(b);
+    } else if (b.mode === "dribwind") {
+      b.face = b.chargeDir;
+      b.windup--; if (b.windup <= 0) { b.mode = "dribble"; b.chargeT = raging ? 78 : 62; }
+    } else if (b.mode === "dribble") {
+      b.face = b.chargeDir;
+      b.x += b.chargeDir * (raging ? 8.4 : 6.6);
+      b.chargeT--;
+      if (b.chargeT <= 0) { b.mode = "dribrec"; b.windup = 22; }
+    } else if (b.mode === "dribrec") {   // 突進の終わり＝スキ（ここを踏む）
+      b.windup--;
+      if (b.windup <= 0) {
+        if (raging && !b.didDouble && Math.random() < 0.5) {
+          b.didDouble = true; b.chargeDir = pcx < bcx ? -1 : 1; b.mode = "dribwind"; b.windup = 10;
+        } else { b.didDouble = false; endClovisAttack(b); }
+      }
+    }
+
+    // 壁で位置制限（突進中は跳ね返る）
+    if (b.x < 16) { b.x = 16; if (b.mode === "dribble") b.chargeDir = 1; }
+    if (b.x + b.w > W - 16) { b.x = W - 16 - b.w; if (b.mode === "dribble") b.chargeDir = -1; }
+
+    // 重力＋床
+    b.vy += GRAVITY; if (b.vy > 18) b.vy = 18;
+    b.y += b.vy; b.onGround = false;
+    for (const s of solids) {
+      if (rectHit(b, s) && b.vy > 0 && (b.y + b.h) - s.y < 42) { b.y = s.y - b.h; b.vy = 0; b.onGround = true; }
+    }
+
+    // 踏みつけ／体当たり
+    if (rectHit(p, b)) {
+      const fromAbove = p.vy > 0 && (p.y + p.h) - b.y < b.h * 0.55 + Math.max(0, p.vy);
+      if (fromAbove) {
+        if (b.invuln <= 0) damageBoss(b, false);
+        const timed = jumpKey() || jumpBuffer > 0;
+        p.vy = timed ? -15 : -10; p.bounceLock = 12; jumpBuffer = 0; p.squash = 0.7;
+        p.invuln = Math.max(p.invuln, 8);
+      } else if (p.invuln <= 0) hurtPlayer();
+    }
+    // たね
+    if (b.invuln <= 0) for (const sd of seeds) {
+      if (rectHit({ x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 }, b)) { damageBoss(b, true); sd.life = 0; break; }
+    }
+  }
+  function chooseClovisAttack(b) {
+    const p = player;
+    b.face = (p.x + p.w/2 < b.x + b.w/2) ? -1 : 1;
+    const r = Math.random();
+    if (r < 0.4)      { b.mode = "grounder"; b.windup = 16; b.shotDir = b.face; }
+    else if (r < 0.72){ b.mode = "lobwind";  b.windup = 22; }
+    else              { b.mode = "dribwind"; b.windup = 16; b.chargeDir = b.face; }
+  }
+  function endClovisAttack(b) { b.mode = "idle"; b.windup = 0; b.actCd = (b.raging ? 34 : 66) + Math.floor(Math.random()*46); }
+  function spawnGrounder(b) {
+    const dir = b.shotDir || b.face;
+    cukes.push({ kind: "sball", x: b.x + b.w/2 + dir*26, y: BOSS_GROUND - 13, vx: dir * (b.raging ? 7.6 : 6.1), t: 0, rot: 0 });
+    sfx.stomp();
+    spawnParticles(b.x + b.w/2 + dir*26, BOSS_GROUND - 6, "#ffffff", 5);
+  }
+  function spawnLob(b) {
+    const p = player;
+    const sx = b.x + b.w/2, sy = b.y + 12;
+    const tx = Math.max(44, Math.min(W - 44, p.x + p.w/2));
+    const T = 46, g = 0.42;
+    const vy0 = (BOSS_GROUND - sy - 0.5*g*T*T) / T;   // T フレームで地面に落ちる山なり
+    cukes.push({ kind: "lob", x: sx, y: sy, vx: (tx - sx)/T, vy: vy0, t: 0, markX: tx });
+    sfx.seed();
   }
 
   // ザガット（ステージ5ボス）：立ち位置は右。タイガーショット（上段）／グランドタイガーショット（下段）を
@@ -2000,6 +2121,7 @@
 
   function setupPK() {
     inBoss = true;
+    clovisPhase2 = false;   // PKからやり直すときは第2ラウンドフラグを解除
     LEVEL_W = W; LEVEL_H = H; camX = 0;
     solids = []; coins = []; nuts = []; flowers = []; feathers = []; breads = [];
     enemies = []; questionBlocks = []; seeds = []; goal = null; particles = [];
@@ -2013,6 +2135,16 @@
       ball: { x: PKX.spotX, y: PKX.spotY, sx: PKX.spotX, sy: PKX.spotY, tx: PKX.spotX, ty: PKX.spotY, fly: false },
       keeperT: 0, diverT: 0, lrPrev: 0, jumpPrev: true
     };
+  }
+
+  // PK勝利 → クリウドとの直接対決（第2ラウンド／通常のボスバトル）へ
+  function startClovisBrawl() {
+    pk = null;
+    clovisPhase2 = true;
+    setupBossArena();     // 平らなピッチ＋クリウド（サッカーのストライカー）を配置
+    player.invuln = 70;
+    state = "boss";
+    startBGM();
   }
 
   function pkStartKick() {
@@ -2114,8 +2246,9 @@
 
       // ===== 決着 =====
       case "win":
-        if (pk.t === 2) playVoice("get");
-        if (pk.t > 150) { pk = null; stageCleared(); }
+        if (pk.t === 2) sfx.win();
+        // PK勝利 → 「ケンカで決着付けようや」の吹き出しのあと、第2ラウンド（直接対決）へ
+        if (pk.t > 170) { startClovisBrawl(); }
         break;
       case "lose":
         if (pk.t === 2) { playVoice("sad"); stopBGM(); }
@@ -3046,6 +3179,7 @@
     if (STAGES[stageIndex].boss === "sumo") { drawSumoBackdrop(); return; }
     if (STAGES[stageIndex].boss === "mega") { drawDeepSeaBackdrop(); return; }
     if (STAGES[stageIndex].boss === "zagat") { drawZagatBackdrop(); return; }
+    if (STAGES[stageIndex].boss === "clovis") { drawPitchBackdrop(); return; }
     if (STAGES[stageIndex].boss !== "penguins") return;
     // 奥の壁と柱
     ctx.fillStyle = "#cdd9e4"; ctx.fillRect(0, 150, W, 130);
@@ -3063,6 +3197,33 @@
     ctx.fillText("Minami-nagareyama", W/2, 126);
   }
 
+  // クリウド第2ラウンドの背景：スタジアムのピッチ（観客席＋ゴールネット）
+  function drawPitchBackdrop() {
+    // 観客席（段々）
+    for (let r = 0; r < 3; r++) {
+      ctx.fillStyle = ["#4a5a6a", "#586a7c", "#66798c"][r];
+      ctx.fillRect(0, 120 + r*22, W, 22);
+      // 観客（点々）
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      for (let x = 8 + (r%2)*10; x < W; x += 20) ctx.fillRect(x, 124 + r*22, 6, 6);
+    }
+    // 広告ボード
+    ctx.fillStyle = "#12324f"; ctx.fillRect(0, 186, W, 20);
+    ctx.fillStyle = "#ffd34d"; ctx.font = "bold 12px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    for (let x = 70; x < W; x += 160) ctx.fillText("PORTUGAL FC", x, 196);
+    // 芝の帯（濃淡ストライプ）
+    for (let i = 0; i < 10; i++) {
+      ctx.fillStyle = (i % 2 === 0) ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)";
+      ctx.fillRect(i * (W/10), 206, W/10, BOSS_GROUND - 206);
+    }
+    // 奥のゴール（ネット）
+    ctx.strokeStyle = "#f4f7fa"; ctx.lineWidth = 4;
+    ctx.strokeRect(W/2 - 90, 214, 180, 54);
+    ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 1;
+    for (let x = W/2 - 84; x < W/2 + 90; x += 12) { ctx.beginPath(); ctx.moveTo(x, 216); ctx.lineTo(x, 266); ctx.stroke(); }
+    for (let y = 220; y < 268; y += 12) { ctx.beginPath(); ctx.moveTo(W/2 - 88, y); ctx.lineTo(W/2 + 88, y); ctx.stroke(); }
+  }
+
   // ボスの描画（種類ごとに振り分け）
   function drawBosses() {
     for (const b of bosses) {
@@ -3070,8 +3231,52 @@
       else if (b.kind === "sumo") drawSumoBoss(b);
       else if (b.kind === "mega") drawMegaBoss(b);
       else if (b.kind === "zagat") drawZagat(b);
+      else if (b.kind === "clovis") drawClovisBoss(b);
       else drawKuriBoss(b);
     }
+  }
+
+  // クリウド第2ラウンドのボス描画（PK戦のストライカー絵を流用）
+  function drawClovisBoss(b) {
+    const cx = b.x + b.w/2, footY = b.y + b.h;
+    // 影
+    ctx.fillStyle = "rgba(0,0,0,0.18)"; ctx.beginPath(); ctx.ellipse(cx, footY, 26, 6, 0, 0, 7); ctx.fill();
+    // 怒りモードのオーラ＋💢
+    if (b.raging && b.alive) {
+      ctx.save();
+      const pl = 0.5 + 0.5 * Math.sin(b.t * 0.3);
+      ctx.globalAlpha = 0.25 + pl * 0.2; ctx.fillStyle = "#ff5a4a";
+      ctx.beginPath(); ctx.ellipse(cx, footY - 54, 40, 62, 0, 0, 7); ctx.fill();
+      ctx.restore();
+      ctx.font = "20px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("💢", cx + b.face * 26, footY - 108);
+    }
+    ctx.save();
+    if (b.hurtFlash > 0 && Math.floor(b.hurtFlash/4) % 2 === 0) ctx.globalAlpha = 0.4;
+    // つぶれ（被弾・撃破）を縦スケールで表現
+    ctx.translate(cx, footY); ctx.scale(1, Math.max(0.15, b.squash)); ctx.translate(-cx, -footY);
+    const opts = {};
+    if (b.mode === "dribble" || b.mode === "dribwind") { opts.runup = b.runup; opts.lean = b.face * 0.16; }
+    else if (b.kickLeg > 0.35 && b.face > 0) { opts.kickLeg = 1; }   // 右向きの蹴りだけ脚を出す（絵の都合）
+    else if (b.mode !== "idle") { opts.lean = b.face * 0.08; }
+    pkDrawClovis(cx, footY, opts);
+    ctx.restore();
+    // 撃破時のセリフ
+    if (!b.alive && b.dyingT > 6 && b.dyingT < 78) drawClovisDefeatBubble(cx, b.y + 4);
+  }
+
+  // 撃破時の吹き出し「まいったよ…また勝負だ！」
+  function drawClovisDefeatBubble(cx, topY) {
+    const bw = 188, bh = 40, bx = Math.max(8, Math.min(W - bw - 8, cx - bw/2)), by = Math.max(8, topY - bh - 14);
+    ctx.save();
+    ctx.fillStyle = "#fff"; ctx.strokeStyle = "#1c2b33"; ctx.lineWidth = 2.5; ctx.lineJoin = "round";
+    roundRectPath(bx, by, bw, bh, 12); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - 8, by + bh); ctx.lineTo(cx + 2, by + bh + 12); ctx.lineTo(cx + 8, by + bh); ctx.closePath();
+    ctx.fillStyle = "#fff"; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx - 8, by + bh); ctx.lineTo(cx + 2, by + bh + 12); ctx.lineTo(cx + 8, by + bh); ctx.stroke();
+    ctx.fillStyle = "#1a2830"; ctx.font = "bold 16px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("まいったよ…また勝負だ！", bx + bw/2, by + bh/2);
+    ctx.restore();
   }
 
   // にせぺぎが投げるキュウリ／こうようがまく塩
@@ -3113,6 +3318,26 @@
         ctx.fillStyle = "rgba(196,176,138,0.5)";
         ctx.beginPath(); ctx.arc(2.5, 3, 1.3, 0, 7); ctx.arc(-3, 3.5, 1, 0, 7); ctx.arc(1, -4, 0.9, 0, 7); ctx.fill();
         ctx.restore();
+        continue;
+      }
+      if (cu.kind === "sball") {   // グラウンダーシュート（地を這うボール）＋影
+        ctx.fillStyle = "rgba(0,0,0,0.15)"; ctx.beginPath(); ctx.ellipse(cu.x, BOSS_GROUND + 1, 12, 4, 0, 0, 7); ctx.fill();
+        drawSoccerBallAt(cu.x, cu.y, 13, cu.rot || 0);
+        continue;
+      }
+      if (cu.kind === "lob") {   // オーバーヘッド・ロブ（落下中は着地マーカーを表示）
+        if (cu.y < BOSS_GROUND - 26) {
+          ctx.save();
+          const pulse = 0.5 + 0.5 * Math.sin(cu.t * 0.3);
+          ctx.strokeStyle = "rgba(217,35,42," + (0.55 + pulse * 0.4) + ")"; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.ellipse(cu.markX, BOSS_GROUND - 3, 17, 6, 0, 0, 7); ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(cu.markX - 9, BOSS_GROUND - 3); ctx.lineTo(cu.markX + 9, BOSS_GROUND - 3);
+          ctx.moveTo(cu.markX, BOSS_GROUND - 11); ctx.lineTo(cu.markX, BOSS_GROUND + 5);
+          ctx.stroke();
+          ctx.restore();
+        }
+        drawSoccerBallAt(cu.x, cu.y, 11, cu.t * 0.3);
         continue;
       }
       ctx.save();
@@ -3171,6 +3396,19 @@
   function heart(cx, cy, s) {
     ctx.beginPath(); ctx.arc(cx - s * 0.5, cy - s * 0.3, s * 0.55, 0, 7); ctx.arc(cx + s * 0.5, cy - s * 0.3, s * 0.55, 0, 7); ctx.fill();
     ctx.beginPath(); ctx.moveTo(cx - s, cy - s * 0.1); ctx.lineTo(cx + s, cy - s * 0.1); ctx.lineTo(cx, cy + s); ctx.closePath(); ctx.fill();
+  }
+
+  // サッカーボール（中心cx,cy・半径r）を描く共通関数
+  function drawSoccerBallAt(cx, cy, r, rot) {
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot || 0);
+    ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#c9ccd2"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke();
+    ctx.fillStyle = "#20242c"; pentagon(0, 0, r * 0.42);
+    for (let i = 0; i < 5; i++) {
+      const a = i * (Math.PI * 2 / 5) - Math.PI / 2;
+      ctx.beginPath(); ctx.arc(Math.cos(a) * r * 0.72, Math.sin(a) * r * 0.72, r * 0.15, 0, 7); ctx.fill();
+    }
+    ctx.restore();
   }
 
   // 蹴れるサッカーボール
@@ -3585,19 +3823,94 @@
     ctx.restore();
   }
 
+  // クリウドの顔アップ（胸から上のバストショット）
+  function drawClovisPortrait(cx, cy, sc) {
+    ctx.save();
+    ctx.translate(cx, cy); ctx.scale(sc, sc); ctx.translate(0, 104);  // 頭の中心 local(0,-104) が (cx,cy) に来る
+    // 肩・赤ユニフォーム
+    ctx.fillStyle = "#d8232a"; roundRectPath(-24, -92, 48, 34, 13); ctx.fill();
+    ctx.fillStyle = "#c01d24"; ctx.fillRect(-24, -74, 48, 3);
+    // 首（肌）
+    ctx.fillStyle = "#dca87e"; ctx.fillRect(-5, -98, 10, 8);
+    // 緑のV襟
+    ctx.strokeStyle = "#0a6b3b"; ctx.lineWidth = 3.5; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-8, -92); ctx.lineTo(0, -84); ctx.lineTo(8, -92); ctx.stroke();
+    // 頭（肌）
+    ctx.fillStyle = "#e3b487"; ctx.beginPath(); ctx.arc(0, -104, 10, 0, 7); ctx.fill();
+    // 髪（短髪スパイク＋刈り上げ）
+    ctx.fillStyle = "#2a2018";
+    ctx.beginPath();
+    ctx.moveTo(-9.5, -109);
+    ctx.quadraticCurveTo(-10.5, -113.5, -6, -114);
+    ctx.quadraticCurveTo(0, -115.5, 6, -114);
+    ctx.quadraticCurveTo(10.5, -113.5, 9.5, -109);
+    ctx.quadraticCurveTo(5, -110.5, 2.4, -109.6);
+    ctx.quadraticCurveTo(0, -108.8, -2.4, -109.6);
+    ctx.quadraticCurveTo(-5, -110.5, -9.5, -109);
+    ctx.closePath(); ctx.fill();
+    for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(i*5 - 2, -113.5); ctx.lineTo(i*5 + 0.5, -117); ctx.lineTo(i*5 + 2, -113.5); ctx.closePath(); ctx.fill(); }
+    ctx.fillStyle = "#3a2c20"; ctx.fillRect(-10, -110, 1.6, 5); ctx.fillRect(8.4, -110, 1.6, 5);
+    // 眉＋目
+    ctx.strokeStyle = "#241c14"; ctx.lineWidth = 1.4; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-6.3, -107); ctx.lineTo(-1.8, -106.6); ctx.moveTo(1.8, -106.6); ctx.lineTo(6.3, -107); ctx.stroke();
+    ctx.fillStyle = "#20303a"; ctx.beginPath(); ctx.arc(-3.6, -104.5, 1.5, 0, 7); ctx.arc(3.6, -104.5, 1.5, 0, 7); ctx.fill();
+    // 大きな笑顔（白い歯）— しゃべっている口パク
+    const talk = 1 + Math.sin(pk.t * 0.4) * 0.35;
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.ellipse(0, -99.5, 4.4, 2.6 * talk, 0, 0, Math.PI); ctx.fill();
+    ctx.strokeStyle = "#a85a3a"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, -100, 4.6, 0.15, Math.PI - 0.15); ctx.stroke();
+    ctx.restore();
+  }
+
+  // 吹き出し（左向きのしっぽ付き）
+  function drawSpeechBubble(bx, by, bw, bh, tailX, tailY) {
+    ctx.save();
+    ctx.fillStyle = "#fff"; ctx.strokeStyle = "#1c2b33"; ctx.lineWidth = 3; ctx.lineJoin = "round";
+    roundRectPath(bx, by, bw, bh, 16); ctx.fill(); ctx.stroke();
+    const ay = by + bh * 0.62;                       // しっぽの付け根
+    ctx.beginPath(); ctx.moveTo(bx + 2, ay - 15); ctx.lineTo(tailX, tailY); ctx.lineTo(bx + 2, ay + 15); ctx.closePath();
+    ctx.fillStyle = "#fff"; ctx.fill();              // 付け根の枠線を白で覆う
+    ctx.beginPath(); ctx.moveTo(bx + 2, ay - 15); ctx.lineTo(tailX, tailY); ctx.lineTo(bx + 2, ay + 15); ctx.stroke();
+    ctx.restore();
+  }
+
   function drawPKResult() {
     ctx.save();
-    ctx.fillStyle = pk.sub === "win" ? "rgba(0,40,10,0.55)" : "rgba(30,0,0,0.6)"; ctx.fillRect(0, 0, W, H);
+    const win = pk.sub === "win";
+    ctx.fillStyle = win ? "rgba(0,40,10,0.62)" : "rgba(30,0,0,0.66)"; ctx.fillRect(0, 0, W, H);
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    if (pk.sub === "win") {
+    // 勝ちは紙吹雪
+    if (win) {
       for (let i = 0; i < 40; i++) { const t = pk.t * 2 + i * 37; const x = (i * 61 + t * 0.6) % W; const y = (t * 1.2 + i * 40) % H; ctx.fillStyle = ["#e94560", "#ffd34d", "#66cc44", "#3aa8e0", "#fff"][i % 5]; ctx.fillRect(x, y, 6, 6); }
-      ctx.fillStyle = "#ffd34d"; ctx.font = "bold 46px 'Segoe UI',sans-serif"; ctx.fillText("かった！ 🎉", W / 2, H / 2 - 30);
-      ctx.fillStyle = "#fff"; ctx.font = "22px 'Segoe UI',sans-serif"; ctx.fillText("PK  " + pk.my + " - " + pk.foe + "  クリウド", W / 2, H / 2 + 14);
-    } else {
-      ctx.fillStyle = "#ff8a8a"; ctx.font = "bold 42px 'Segoe UI',sans-serif"; ctx.fillText("まけ…", W / 2, H / 2 - 24);
-      ctx.fillStyle = "#fff"; ctx.font = "18px 'Segoe UI',sans-serif";
-      ctx.fillText((lives - 1 > 0) ? "もういちど ちょうせん！" : "ゲームオーバー…", W / 2, H / 2 + 20);
     }
+    // 見出し
+    if (win) { ctx.fillStyle = "#ffd34d"; ctx.font = "bold 42px 'Segoe UI',sans-serif"; ctx.fillText("かった！ 🎉", W / 2, 70); }
+    else { ctx.fillStyle = "#ff8a8a"; ctx.font = "bold 40px 'Segoe UI',sans-serif"; ctx.fillText("まけ…", W / 2, 66); }
+
+    // クリウドの顔＋吹き出し（少し遅れて出す）
+    if (pk.t > 20) {
+      const px = 168, py = 250;
+      drawClovisPortrait(px, py, 2.7);
+      ctx.fillStyle = "#8be08b"; ctx.font = "bold 14px 'Segoe UI',sans-serif"; ctx.textAlign = "center";
+      ctx.fillText("クリウド", px, py + 66);
+      // 吹き出し
+      const bx = 288, bw = 468, by = 168, bh = win ? 96 : 118;
+      drawSpeechBubble(bx, by, bw, bh, px + 42, py - 14);
+      ctx.fillStyle = "#1a2830"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      const bcx = bx + bw / 2;
+      if (win) {
+        ctx.font = "bold 26px 'Segoe UI',sans-serif";
+        ctx.fillText("ケンカで決着付けようや", bcx, by + bh / 2);
+      } else {
+        ctx.font = "bold 23px 'Segoe UI',sans-serif";
+        ctx.fillText("なぜ笑うんだい？", bcx, by + 42);
+        ctx.fillText("まるりんのサッカーは上手だよ", bcx, by + 78);
+      }
+    }
+
+    // 下部メッセージ
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    if (win) { ctx.fillStyle = "#fff"; ctx.font = "20px 'Segoe UI',sans-serif"; ctx.fillText("PK  " + pk.my + " - " + pk.foe + "  クリウド", W / 2, 330); }
+    else { ctx.fillStyle = "#ffd34d"; ctx.font = "18px 'Segoe UI',sans-serif"; ctx.fillText((lives - 1 > 0) ? "もういちど ちょうせん！" : "ゲームオーバー…", W / 2, 336); }
     ctx.restore();
   }
 
