@@ -267,7 +267,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 6.12 (2026-07-08)";
+  const GAME_VERSION = "ver 6.13 (2026-07-08)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -2216,7 +2216,7 @@
         break;
       case "dwind":
         moveCursor();
-        if (pk.t > 20) {   // 予備動作を短く＝読む時間が少なく難しく
+        if (pk.t > 25) {   // 予備動作の長さ＝反応できる時間（ver6.13で20→25に少しゆるめた）
           pk.dive = pk.cursor;
           pk.sub = "dshot"; pk.t = 0;
           pk.ball.fly = true;
@@ -3640,7 +3640,7 @@
     let lean = 0, kickLeg = 0, runup = 0;
     if (pk.sub === "dready") runup = pk.t;
     // ヒントは「けり出す直前」に「ほんの少しだけ」出す（早くから方向が丸わかりにならない＝難しく）
-    if (pk.sub === "dwind" && pk.t > 13) lean = (pk.kickerDir - 1) * 0.12;
+    if (pk.sub === "dwind" && pk.t > 11) lean = (pk.kickerDir - 1) * 0.12;   // 蹴る方向の予備動作（ver6.13で13→11＝少し早く見せる）
     if (pk.sub === "dshot" || pk.sub === "dres") { kickLeg = 1; lean = (pk.kickerDir - 1) * 0.12; }
     pkDrawClovis(PKX.spotX - 30, 404, { lean, kickLeg, runup });
   }
