@@ -59,6 +59,7 @@
     pointer-events: none;
   }
   body.has-touch.playing #touch-controls { display: block; }
+  body.storymode #touch-controls { display: none !important; }
   #touch-controls .side {
     position: absolute;
     bottom: max(18px, env(safe-area-inset-bottom));
@@ -267,7 +268,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 6.14 (2026-07-08)";
+  const GAME_VERSION = "ver 6.15 (2026-07-08)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -416,6 +417,8 @@
   let elapsed = 0;
   let particles = [];
   let stageClearT = 0;
+  let story = null;   // ステージ間のムービー（非nullのとき state="story"）
+  let cutsceneActive = false;   // ムービー中（drawPlayerを「動く状態」で描く）
   let bosses = [];      // ボス戦のボス（1〜2体）
   let cukes = [];       // にせぺぎが投げるキュウリ
   let hazards = [];     // ステージ中に前から飛んでくるタイガーショット（タイランド）
@@ -604,6 +607,10 @@
   window.addEventListener("keyup", (e) => { const k = e.key.toLowerCase(); keys[k] = false; DOWN[k] = false; });
 
   function onPress(k) {
+    if (state === "story") {
+      if ([" ", "enter", "arrowup", "w", "arrowright", "d", "z", "x"].includes(k)) advanceStory();
+      return;
+    }
     if (k === "p" && (state === "play" || state === "pause")) {
       state = state === "play" ? "pause" : "play";
       if (state === "pause") stopBGM(); else startBGM();
@@ -895,6 +902,13 @@
       }
     }
     else if (state === "dead") updateDead();
+    else if (state === "story") {
+      if (story) {
+        story.t++;
+        const scenes = STORIES[story.key].scenes;
+        if (story.t >= scenes[story.scene].dur) nextScene();
+      }
+    }
     else if (state === "clear") { player.winPose++; }
     else if (state === "stageclear") {
       player.winPose++;
@@ -2269,9 +2283,66 @@
     buildLevel();
     if (keepPowered) setPowered(true);
     player.seed = keepSeed; player.wing = keepWing;
+    // このステージの前にストーリー（紙芝居）があれば先に見せる
+    if (STORIES[stageIndex]) { startStory(stageIndex); return; }
     stageBgm().currentTime = 0;
     startBGM();
     state = "play";
+  }
+
+  // ---------- ストーリー（ステージ間のムービー：今のまるりんが動く）----------
+  // 自然にステージを進めたとき、次のステージに入る前に一度だけ見せる。各シーンは自動再生。
+  // タップ／ジャンプで次のシーンへスキップできる。まるりんは通常のキャラ描画(drawPlayer)をそのまま動かす。
+  const STORY_GROUND = 300;   // ムービー内の地面の高さ
+  const STORIES = {
+    1: {   // ステージ2「南流山」の前
+      scenes: [
+        { dur: 220, act: sceneReturn,  lines: ["くさはらの おさんぽから、", "まるりんが おうちに かえって きました。"] },
+        { dur: 240, act: sceneEmpty,   lines: ["あれ？ だいすきな そーちゃんと", "しーちゃんが いません……。"] },
+        { dur: 210, act: sceneSetOut,  lines: ["ふたりを さがして、まるりんは", "ぼうけんに でることに しました。"] },
+        { dur: 260, act: sceneRampage, lines: ["でも どうしてか、まちの みんなが", "きょうぼうに なって おそって きます！"] },
+        { dur: 230, act: sceneCliff,   lines: ["まるりんは ぶじに ふたりに", "あえるのでしょうか——？"] }
+      ]
+    }
+  };
+
+  function startStory(key) {
+    // まるりんの「ステージ開始状態」を退避（ムービー後に戻す）
+    const p = player;
+    story = { key, scene: 0, t: 0, saved: {
+      x:p.x, y:p.y, vx:p.vx, vy:p.vy, face:p.face, onGround:p.onGround, animT:p.animT,
+      powered:p.powered, seed:p.seed, wing:p.wing, w:p.w, h:p.h, squash:p.squash } };
+    // ムービー中は素の（ちびの）まるりんで演技
+    p.powered = false; p.seed = false; p.wing = false; p.w = 28; p.h = 30; p.squash = 1; p.invuln = 0; p.stun = 0;
+    p.powerAnim = 0; p.gliding = false; p.glideUsed = false;
+    particles = [];
+    cutsceneActive = true;
+    stopBGM();
+    document.body.classList.add("storymode");
+    state = "story";
+  }
+  function nextScene() {
+    if (!story) return;
+    const scenes = STORIES[story.key].scenes;
+    story.scene++; story.t = 0; particles = [];
+    if (story.scene >= scenes.length) endStory();
+  }
+  function endStory() {
+    // 退避したまるりんの状態を復元（ステージ2の開始位置へ）
+    const s = story.saved, p = player;
+    p.x = s.x; p.y = s.y; p.vx = s.vx; p.vy = s.vy; p.face = s.face; p.onGround = s.onGround; p.animT = s.animT;
+    p.w = s.w; p.h = s.h; p.squash = s.squash; p.stun = 0;
+    if (s.powered) setPowered(true); p.seed = s.seed; p.wing = s.wing;
+    p.invuln = 90;
+    story = null; cutsceneActive = false;
+    document.body.classList.remove("storymode");
+    stageBgm().currentTime = 0; startBGM();
+    state = "play";
+  }
+  function advanceStory() {   // タップ／キーで次のシーンへ（開いた直後の誤操作は無視）
+    if (!story || story.t < 8) return;
+    beep(680, 0.05, "square", 0.05);
+    nextScene();
   }
 
   function updateParticles() {
@@ -2295,6 +2366,7 @@
 
   // ---------- 描画 ----------
   function draw() {
+    if (state === "story") { drawStory(); return; }      // ステージ間の紙芝居は専用画面
     if (state === "boss" && pk) { drawPK(); return; }   // ポルトガル：PK戦は専用画面
     if (inBoss && STAGES[stageIndex].boss === "penguins") {
       // 駅構内（ボス戦）：やわらかい室内色
@@ -5006,7 +5078,7 @@
   // ===== まるりん本人の描画 =====
   function drawPlayer() {
     const p = player;
-    const playing = state === "play" || state === "boss";
+    const playing = state === "play" || state === "boss" || cutsceneActive;   // ムービー中も動く
     if (p.invuln > 10 && Math.floor(p.invuln/4) % 2 === 0 && playing) return; // 点滅（被弾時のみ）
 
     const cx = p.x + p.w/2;
@@ -5327,6 +5399,166 @@
     ctx.restore();
   }
 
+  // ===== ストーリー・ムービーの描画 =====
+  function drawStory() {
+    const scenes = STORIES[story.key].scenes;
+    const idx = Math.min(story.scene, scenes.length - 1);
+    const sc = scenes[idx];
+    sc.act(story.t, sc.dur);                       // 背景＋まるりんの演技を描く
+    if (story.t < 14) { ctx.fillStyle = "rgba(0,0,0," + (1 - story.t/14).toFixed(3) + ")"; ctx.fillRect(0, 0, W, H); }  // フェードイン
+    drawStoryText(sc.lines, idx, scenes.length);
+  }
+  function drawStoryText(lines, idx, total) {
+    const boxH = 100, by = H - boxH - 10, bx = 12, bw = W - 24;
+    ctx.save();
+    ctx.fillStyle = "rgba(16,20,28,0.85)"; roundRectPath(bx, by, bw, boxH, 14); ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.22)"; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = "#fff"; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.font = "20px 'Segoe UI',sans-serif";
+    lines.forEach((ln, i) => ctx.fillText(ln, bx + 22, by + 30 + i * 30));
+    const last = idx === total - 1;
+    const blink = 0.5 + 0.5 * Math.sin(story.t * 0.15);
+    ctx.globalAlpha = blink; ctx.fillStyle = "#ffd34d"; ctx.textAlign = "right"; ctx.font = "bold 14px 'Segoe UI',sans-serif";
+    ctx.fillText(last ? "タップで ステージ2へ ▶" : "タップ／ジャンプで つぎへ ▶", bx + bw - 16, by + boxH - 14);
+    ctx.globalAlpha = 1;
+    for (let i = 0; i < total; i++) { ctx.fillStyle = i === idx ? "#ffd34d" : "rgba(255,255,255,0.35)"; ctx.beginPath(); ctx.arc(W/2 - (total-1)*7 + i*14, by - 10, 3.2, 0, 7); ctx.fill(); }
+    ctx.restore();
+  }
+  // まるりんをムービー内に配置して通常描画（moving=trueで歩き／走りアニメ）
+  function storyMaru(footCx, footY, face, moving) {
+    const p = player;
+    p.x = footCx - p.w/2; p.y = footY - p.h;
+    p.face = face; p.onGround = true; p.vx = moving ? face * 2 : 0; p.animT++;
+    drawPlayer();
+  }
+  // ムービー用の小物
+  function storyHouse(cx, groundY, w, doorOpen) {
+    const h = w * 0.8, x = cx - w/2, y = groundY - h;
+    ctx.fillStyle = "#f2e4c8"; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = "#d9713a"; ctx.beginPath(); ctx.moveTo(x - 10, y); ctx.lineTo(cx, y - w*0.4); ctx.lineTo(x + w + 10, y); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = doorOpen ? "#2e2015" : "#9c6b3f"; ctx.fillRect(cx - 17, groundY - 48, 34, 48);
+    if (!doorOpen) { ctx.fillStyle = "#ffd34d"; ctx.beginPath(); ctx.arc(cx + 9, groundY - 24, 2.6, 0, 7); ctx.fill(); }
+    ctx.fillStyle = "#8fc3e6"; ctx.fillRect(x + 16, y + 18, 28, 28); ctx.fillRect(x + w - 44, y + 18, 28, 28);
+    ctx.strokeStyle = "#7a5c3a"; ctx.lineWidth = 3; ctx.strokeRect(x + 16, y + 18, 28, 28); ctx.strokeRect(x + w - 44, y + 18, 28, 28);
+  }
+  function storyTownSilhouette(alpha) {
+    ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = "#b98a63";
+    let bx = -10;
+    while (bx < W) {
+      const bw = 44 + ((bx * 37) % 40), bh = 46 + ((bx * 53) % 64);
+      ctx.fillRect(bx, STORY_GROUND - bh, bw, bh);
+      ctx.beginPath(); ctx.moveTo(bx - 4, STORY_GROUND - bh); ctx.lineTo(bx + bw/2, STORY_GROUND - bh - 16); ctx.lineTo(bx + bw + 4, STORY_GROUND - bh); ctx.closePath(); ctx.fill();
+      bx += bw + 20;
+    }
+    ctx.restore();
+  }
+  function storyCushion(cx, y, color, label) {
+    ctx.fillStyle = "rgba(0,0,0,0.12)"; ctx.beginPath(); ctx.ellipse(cx, y + 2, 30, 7, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(cx, y - 6, 30, 12, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#fff8e6"; ctx.fillRect(cx - 15, y - 48, 30, 22);
+    ctx.strokeStyle = "#c9a15a"; ctx.lineWidth = 2; ctx.strokeRect(cx - 15, y - 48, 30, 22);
+    ctx.fillStyle = "#a5824c"; ctx.fillRect(cx - 2, y - 26, 4, 14);
+    ctx.fillStyle = "#5a4632"; ctx.font = "bold 15px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(label, cx, y - 37);
+  }
+  function storyDust(x, y, f) {
+    ctx.fillStyle = "rgba(205,185,145,0.55)";
+    for (let i = 0; i < 3; i++) { const px = x - i * 12 - (f % 12); const s = 6 - i * 1.4; ctx.beginPath(); ctx.arc(px, y - 4 - (i % 2) * 3, s, 0, 7); ctx.fill(); }
+  }
+  function storyAngry(x, y) {
+    ctx.font = "18px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("💢", x, y);
+  }
+  function storySweat(x, y, f) {
+    ctx.fillStyle = "#7fd0f0"; ctx.beginPath(); ctx.ellipse(x, y + (f % 18), 3, 5, 0, 0, 7); ctx.fill();
+  }
+
+  // シーン1：くさはらから南流山のおうちに帰宅（夕方）
+  function sceneReturn(f, dur) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#ffb15a"); g.addColorStop(0.5, "#ffd7a0"); g.addColorStop(1, "#fdeccf");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "rgba(255,170,80,0.85)"; ctx.beginPath(); ctx.arc(130, 96, 42, 0, 7); ctx.fill();
+    storyTownSilhouette(0.45);
+    ctx.fillStyle = "#cdb488"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
+    ctx.fillStyle = "#bda578"; ctx.fillRect(0, STORY_GROUND, W, 6);
+    storyHouse(600, STORY_GROUND, 150, false);
+    const walkEnd = dur - 50;
+    if (f < walkEnd) { const cx = 110 + 440 * (f / walkEnd); storyDust(cx - 20, STORY_GROUND, f); storyMaru(cx, STORY_GROUND, 1, true); }
+    else storyMaru(550, STORY_GROUND, 1, false);
+  }
+  // シーン2：家の中、そーちゃん・しーちゃんがいない
+  function sceneEmpty(f, dur) {
+    ctx.fillStyle = "#ecdcbb"; ctx.fillRect(0, 0, W, STORY_GROUND);
+    ctx.fillStyle = "#c9a877"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
+    ctx.fillStyle = "#b89765"; ctx.fillRect(0, STORY_GROUND, W, 6);
+    // 窓（夕暮れ）
+    ctx.fillStyle = "#8fbfe0"; ctx.fillRect(70, 60, 130, 96);
+    ctx.fillStyle = "#ffcf8c"; ctx.fillRect(70, 116, 130, 40);
+    ctx.strokeStyle = "#7a5c3a"; ctx.lineWidth = 6; ctx.strokeRect(70, 60, 130, 96);
+    ctx.beginPath(); ctx.moveTo(135, 60); ctx.lineTo(135, 156); ctx.moveTo(70, 108); ctx.lineTo(200, 108); ctx.stroke();
+    // 時計
+    ctx.fillStyle = "#e7d6b2"; ctx.beginPath(); ctx.arc(560, 92, 20, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#a2865c"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(560, 92, 20, 0, 7); ctx.stroke();
+    ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(560, 92); ctx.lineTo(560, 80); ctx.moveTo(560, 92); ctx.lineTo(569, 96); ctx.stroke();
+    storyCushion(300, STORY_GROUND - 2, "#7cc0e8", "そ");
+    storyCushion(500, STORY_GROUND - 2, "#8fd08a", "し");
+    const face = Math.sin(f * 0.05) < 0 ? -1 : 1;
+    storyMaru(400, STORY_GROUND, face, false);
+    const qx = 400 + face * 24, qy = STORY_GROUND - 44 + Math.sin(f * 0.18) * 2;
+    ctx.fillStyle = "#e94560"; ctx.font = "bold 24px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("？", qx, qy);
+  }
+  // シーン3：ふたりを探して冒険に出発（夕焼けの道を走る）
+  function sceneSetOut(f, dur) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#f2894a"); g.addColorStop(0.5, "#f7b070"); g.addColorStop(1, "#ffe0b0");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "rgba(255,150,70,0.85)"; ctx.beginPath(); ctx.arc(W - 140, 110, 46, 0, 7); ctx.fill();
+    storyTownSilhouette(0.4);
+    ctx.fillStyle = "#c7ac80"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
+    ctx.fillStyle = "#b89a6c"; ctx.fillRect(0, STORY_GROUND, W, 6);
+    const cx = 70 + (W - 60) * (f / dur);
+    storyDust(cx - 20, STORY_GROUND, f);
+    storyMaru(cx, STORY_GROUND, 1, true);
+  }
+  // シーン4：街のみんなが狂暴になって襲ってくる
+  function sceneRampage(f, dur) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#3a2140"); g.addColorStop(0.55, "#6a2836"); g.addColorStop(1, "#9c3a40");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    storyTownSilhouette(0.5);
+    ctx.fillStyle = "#5a4038"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
+    ctx.fillStyle = "#4a332c"; ctx.fillRect(0, STORY_GROUND, W, 6);
+    const adv = Math.min(1, f / (dur * 0.65));
+    const cat1 = { x: W - 90 - adv * 300, y: STORY_GROUND - 30, w: 40, h: 30, vx: -1, t: f, alive: true };
+    drawCat(cat1); storyAngry(cat1.x + 26, STORY_GROUND - 46);
+    const crow = { x: W - 40 - adv * 250, y: 150 + Math.sin(f * 0.12) * 12, w: 30, h: 24, vx: -1, t: f, alive: true };
+    drawCrow(crow); storyAngry(crow.x + 20, crow.y - 18);
+    const cat2 = { x: W - 10 - adv * 220, y: STORY_GROUND - 26, w: 36, h: 26, vx: -1, t: f + 20, alive: true };
+    drawCat(cat2); storyAngry(cat2.x + 24, STORY_GROUND - 42);
+    const mx = 150 - Math.max(0, adv - 0.35) * 40 + Math.sin(f * 0.7) * 1.4;
+    storyMaru(mx, STORY_GROUND, 1, false);
+    storySweat(mx + 9, STORY_GROUND - 34, f);
+  }
+  // シーン5：ぶじに会えるのか——？（たそがれ・遠くを見つめる）
+  function sceneCliff(f, dur) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#2b2b55"); g.addColorStop(0.5, "#5b4a77"); g.addColorStop(1, "#c98a6a");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    for (const s of [[120, 70], [260, 50], [420, 90], [600, 60], [700, 100]]) {
+      ctx.globalAlpha = 0.5 + 0.5 * Math.sin(f * 0.1 + s[0]); ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.arc(s[0], s[1], 1.8, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    storyTownSilhouette(0.3);
+    ctx.fillStyle = "#3f3550"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
+    ctx.fillStyle = "#4a3f5e";
+    ctx.beginPath(); ctx.moveTo(W/2 - 34, STORY_GROUND); ctx.lineTo(W/2 + 34, STORY_GROUND); ctx.lineTo(W/2 + 6, STORY_GROUND - 74); ctx.lineTo(W/2 - 6, STORY_GROUND - 74); ctx.closePath(); ctx.fill();
+    storyMaru(340, STORY_GROUND, 1, false);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 22px 'Segoe UI',sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText("…？", 366, STORY_GROUND - 42);
+  }
+
   function drawStageClear() {
     ctx.save();
     ctx.fillStyle = "rgba(0,20,40,0.55)"; ctx.fillRect(0, 0, W, H);
@@ -5395,6 +5627,7 @@
 
   // ゲームオーバー/クリア時は画面タップでメニューへ（もう一度／つづきを選べる）
   canvas.addEventListener("pointerdown", (e) => {
+    if (state === "story") { e.preventDefault(); advanceStory(); return; }
     if (state === "gameover" || state === "clear") { e.preventDefault(); showMenu(); }
   });
 
