@@ -268,7 +268,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 7.3 (2026-07-08)";
+  const GAME_VERSION = "ver 7.4 (2026-07-11)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -449,6 +449,8 @@
   let sps = [];               // アメリカ：ドランプ第1段階のSP（護衛）たち
   let drampPhase2 = false;    // アメリカ：SPを倒して第2段階（暴走＋ミサイル）に入っているか
   let jets = [];              // アメリカ：ドランプ第2段階の戦闘機（空爆）
+  let drampSpWave = 1;        // アメリカ：SPの波（1波目=2人／2波目=3人）
+  let bigBoom = 0;            // アメリカ：ミサイル着弾の画面いっぱい爆発（残りフレーム）
   let screenShake = 0;  // 画面（地面）を揺らすフレーム数（こうようの四股の着地など）
   let inBoss = false;   // ボス戦中かどうか（ミス時のやり直し判定用）
   let bossNutSpawned = false;   // ボス戦の開始10秒でナッツを出したか（各ボス戦で1回）
@@ -967,6 +969,7 @@
     }
     updateParticles();
     if (screenShake > 0) screenShake--;
+    if (bigBoom > 0) bigBoom--;
   }
 
   function updatePlay() {
@@ -1339,7 +1342,7 @@
     LEVEL_W = W; LEVEL_H = H; camX = 0;
     solids = []; coins = []; nuts = []; flowers = []; feathers = []; breads = [];
     enemies = []; questionBlocks = []; seeds = []; goal = null; particles = []; cukes = []; hazards = [];
-    sps = []; jets = [];
+    sps = []; jets = []; bigBoom = 0;
     const megaArena = STAGES[stageIndex].boss === "mega";
     for (let x = 0; x < W; x += TILE) {
       if (megaArena && !((x >= LDECK_L && x < LDECK_R) || (x >= RDECK_L && x < RDECK_R))) continue;   // デッキ以外は海（床なし）
@@ -1368,7 +1371,7 @@
     } else if (type === "dramp") {
       bosses = [ makeBoss("dramp", W/2 - 30) ];
       if (drampPhase2) startDrampPhase2(bosses[0]);   // やり直し時はSPをスキップして第2段階から
-      else spawnDrampSPs();
+      else { drampSpWave = 1; spawnDrampSPs(2); }     // 1波目＝SP2人（倒すと2波目で3人）
     } else {
       bosses = [ makeBoss("kuri", W - 170) ];
     }
@@ -1461,7 +1464,7 @@
       //          頭を3回踏んで倒す（30秒以内に倒せないとミサイル着弾＝負け）。HP1で怒りモード。
       return { kind, name: "ドランプ大統領", x, y: 96, w: 60, h: 92,
         vx: 0, vy: 0, onGround: false, face: -1,
-        hp: 6, maxHp: 6, stompDmg: 2, seedDmg: 2, hpPerHeart: 2,   // 踏み3回・ハート3個
+        hp: 10, maxHp: 10, stompDmg: 2, seedDmg: 1, hpPerHeart: 2,   // 踏み5回／タネ10発・ハート5個
         invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
         throws: false, alive: true, dyingT: 0,
         phase: 1, reachable: false, raging: false,
@@ -1540,8 +1543,13 @@
         if (cu.x < camX - 60 || cu.x > camX + W + 60) cu.dead = true;
         continue;
       }
-      if (cu.kind === "golf") {   // ドランプのゴルフショット（地を這う速い球・ジャンプでよける）
-        cu.x += cu.vx; cu.rot = (cu.rot || 0) + cu.vx * 0.1;
+      if (cu.kind === "golf") {   // ドランプのゴルフショット（山なりに飛んでバウンドして転がる）
+        cu.vy += 0.42; cu.x += cu.vx; cu.y += cu.vy; cu.rot = (cu.rot || 0) + cu.vx * 0.14;
+        if (cu.y > BOSS_GROUND - 8) {   // 地面でワンバウンド → 転がる
+          cu.y = BOSS_GROUND - 8;
+          if (cu.bounces < 2 && cu.vy > 1.5) { cu.vy = -cu.vy * 0.5; cu.vx *= 0.72; cu.bounces++; spawnParticles(cu.x, BOSS_GROUND - 4, "#dfe4ea", 4); beep(560, 0.03, "square", 0.04); }
+          else { cu.vy = 0; }   // 転がりモード
+        }
         const box = { x: cu.x - 8, y: cu.y - 8, w: 16, h: 16 };
         if (rectHit(p, box) && p.invuln <= 0) { cu.dead = true; hurtPlayer(); }
         else for (const sd of seeds) if (rectHit({ x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 }, box)) { cu.dead = true; sd.life = 0; score += 50; sfx.stomp(); break; }
@@ -1559,7 +1567,7 @@
       }
       if (cu.kind === "missile") {   // 時間切れのミサイル（演出のみ・killPlayerは別途）
         cu.vy += 0.3; cu.y += cu.vy;
-        if (cu.y > BOSS_GROUND - 10) { cu.dead = true; spawnParticles(cu.x, BOSS_GROUND - 10, "#ff5a1a", 26); spawnParticles(cu.x, BOSS_GROUND - 10, "#ffd24a", 16); screenShake = 30; beep(50, 0.5, "sawtooth", 0.16); }
+        if (cu.y > BOSS_GROUND - 10) { cu.dead = true; spawnParticles(cu.x, BOSS_GROUND - 10, "#ff5a1a", 40); spawnParticles(cu.x, BOSS_GROUND - 10, "#ffd24a", 30); screenShake = 40; bigBoom = 60; beep(45, 0.8, "sawtooth", 0.2); beep(80, 0.6, "square", 0.14); }
         continue;
       }
       if (cu.kind === "sball") {   // クリウドのグラウンダーシュート（地を這うボール・ジャンプでよける）
@@ -1940,10 +1948,11 @@
   }
 
   // ===== ドランプ大統領（ステージ7・アメリカ）＝2段階ボス =====
-  function spawnDrampSPs() {
+  function spawnDrampSPs(n) {
+    n = n || 3;
     sps = [];
-    const xs = [W*0.25, W*0.5, W*0.75];
-    for (let i = 0; i < 3; i++) {
+    const xs = n === 2 ? [W*0.32, W*0.68] : [W*0.25, W*0.5, W*0.75];
+    for (let i = 0; i < n; i++) {
       sps.push({ x: xs[i] - 16, y: BOSS_GROUND - 44, w: 32, h: 44, vx: (i % 2 ? 1 : -1) * 1.5, vy: 0, onGround: false, face: 1,
         alive: true, dyingT: 0, t: Math.random()*30, squash: 1, invuln: 0, hurtFlash: 0,
         shootCd: 50 + i*28 + Math.floor(Math.random()*40) });
@@ -1993,7 +2002,10 @@
       b.x = b.balconyX + Math.sin(b.t * 0.03) * 12;
       b.y = b.balconyY; b.onGround = true; b.invuln = 5;   // 無敵
       updateDrampSPs();
-      if (sps.length && sps.every(s => !s.alive && s.dyingT > 24)) startDrampPhase2(b);
+      if (sps.length && sps.every(s => !s.alive && s.dyingT > 24)) {
+        if (drampSpWave < 2) { drampSpWave = 2; spawnDrampSPs(3); sfx.stomp(); }   // 2波目＝SP3人
+        else startDrampPhase2(b);
+      }
       return;
     }
     updateDrampPhase2(b);
@@ -2002,7 +2014,7 @@
     drampPhase2 = true;
     b.phase = 2; b.reachable = true; b.invuln = 40;
     b.x = W/2 - b.w/2; b.y = BOSS_GROUND - b.h; b.vx = 0; b.vy = 0; b.onGround = true;
-    b.mode = "idle"; b.actCd = 46; b.missileT = 1800; b.doomT = 0;   // 30秒（60fps×30）
+    b.mode = "idle"; b.actCd = 46; b.missileT = 1200; b.doomT = 0;   // 20秒（60fps×20）
     sps = [];
     screenShake = 22;
     sfx.stomp(); beep(70, 0.45, "sawtooth", 0.14);   // ミサイルボタンのブザー
@@ -2018,9 +2030,11 @@
   function endDrampAttack(b) { b.mode = "idle"; b.windup = 0; b.actCd = (b.raging ? 26 : 50) + Math.floor(Math.random()*36); }
   function spawnGolf(b) {
     const dir = b.face;
-    cukes.push({ kind: "golf", x: b.x + b.w/2 + dir*24, y: BOSS_GROUND - 10, vx: dir * (b.raging ? 8.6 : 7), t: 0, rot: 0 });
-    beep(720, 0.05, "square", 0.05);
-    spawnParticles(b.x + b.w/2 + dir*24, BOSS_GROUND - 6, "#ffffff", 4);
+    // ゴルフスイングで高く打ち上げる → 山なりに飛んでワンバウンドして転がる（本物のゴルフっぽい弾道）
+    cukes.push({ kind: "golf", x: b.x + b.w/2 + dir*24, y: BOSS_GROUND - 44,
+      vx: dir * (b.raging ? 6.6 : 5.4), vy: -(b.raging ? 11 : 9.5), t: 0, rot: 0, bounces: 0 });
+    beep(240, 0.06, "square", 0.06); beep(760, 0.05, "square", 0.05);   // スパーン！というインパクト音
+    spawnParticles(b.x + b.w/2 + dir*24, BOSS_GROUND - 40, "#ffffff", 6);
   }
   function spawnJet(b) {
     const p = player;
@@ -2041,9 +2055,9 @@
     jets = jets.filter(j => !j.dead);
   }
   function drampMissileHit(b) {
-    b.doomT = 60;
+    b.doomT = 90;   // 着弾の大爆発を見せてからゲームオーバー
     screenShake = 30;
-    cukes.push({ kind: "missile", x: player.x + player.w/2, y: -50, vx: 0, vy: 8.5, t: 0 });
+    cukes.push({ kind: "missile", x: player.x + player.w/2, y: -60, vx: 0, vy: 13, t: 0 });
     beep(60, 0.7, "sawtooth", 0.16);
   }
   function updateDrampPhase2(b) {
@@ -2051,7 +2065,7 @@
     if (b.doomT > 0) { b.doomT--; if (b.doomT === 0) killPlayer(); updateJets(); return; }
     b.missileT--;
     if (b.missileT <= 0) { drampMissileHit(b); return; }
-    const raging = b.hp <= 1; b.raging = raging;
+    const raging = b.hp <= 2; b.raging = raging;
     const pcx = p.x + p.w/2, bcx = b.x + b.w/2;
     b.runup = (b.mode === "charge" || b.mode === "chargewind") ? b.runup + 1 : 0;
 
@@ -2774,6 +2788,7 @@
 
     drawHUD();
     if (inBoss && bosses[0] && bosses[0].kind === "dramp" && bosses[0].phase === 2 && bosses[0].alive) drawMissileTimer(bosses[0]);
+    if (bigBoom > 0) drawBigBoom();
 
     if (state === "pause")      drawCenterText("ポーズ中", "Pキーで再開");
     if (state === "gameover")   drawGameOver();
@@ -3722,6 +3737,29 @@
       ctx.restore();
     }
   }
+  // ミサイル着弾の画面いっぱいの大爆発（スクリーン座標・カメラ変換の外で描く）
+  function drawBigBoom() {
+    const prog = 1 - bigBoom / 60;          // 0→1
+    const cx = W/2, cy = BOSS_GROUND - 20;
+    ctx.save();
+    // 白フラッシュ（最初の一瞬まぶしく）
+    if (prog < 0.35) { ctx.fillStyle = "rgba(255,255,255," + (0.9 * (1 - prog/0.35)) + ")"; ctx.fillRect(0, 0, W, H); }
+    // 広がる火球（画面をはみ出すほど大きく）
+    const R = 40 + prog * (W * 0.95);
+    const layers = [["rgba(255,80,20,",0.9],["rgba(255,150,30,",0.85],["rgba(255,210,70,",0.8],["rgba(255,255,200,",0.75]];
+    for (let i = 0; i < layers.length; i++) {
+      const rr = R * (1 - i*0.18);
+      ctx.fillStyle = layers[i][0] + (layers[i][1] * (1 - prog) * (0.6 + 0.4*Math.sin(bigBoom*0.5))) + ")";
+      ctx.beginPath(); ctx.arc(cx + (Math.random()-0.5)*8, cy + (Math.random()-0.5)*8, Math.max(1, rr), 0, 7); ctx.fill();
+    }
+    // もくもくキノコ雲風の暗い縁＋煙
+    ctx.fillStyle = "rgba(60,30,10," + (0.35 * (1 - prog)) + ")";
+    for (let i = 0; i < 10; i++) { const a = i/10*7 + bigBoom*0.1; const d = R*0.85; ctx.beginPath(); ctx.arc(cx + Math.cos(a)*d, cy + Math.sin(a)*d*0.7, R*0.28, 0, 7); ctx.fill(); }
+    // 放射状の閃光
+    ctx.strokeStyle = "rgba(255,240,180," + (0.7 * (1 - prog)) + ")"; ctx.lineWidth = 3;
+    for (let i = 0; i < 12; i++) { const a = i/12*7; ctx.beginPath(); ctx.moveTo(cx + Math.cos(a)*R*0.3, cy + Math.sin(a)*R*0.3); ctx.lineTo(cx + Math.cos(a)*R*1.1, cy + Math.sin(a)*R*1.1); ctx.stroke(); }
+    ctx.restore();
+  }
   // ミサイル発射までのカウントダウンHUD（第2段階）
   function drawMissileTimer(b) {
     const sec = Math.max(0, Math.ceil(b.missileT / 60));
@@ -3733,7 +3771,7 @@
     ctx.textAlign = "left"; ctx.textBaseline = "middle";
     ctx.font = "18px 'Segoe UI',sans-serif"; ctx.fillText("🚀", bx + 10, by + 20);
     ctx.fillStyle = "#fff"; ctx.font = "bold 13px 'Segoe UI',sans-serif"; ctx.fillText("ミサイル発射まで", bx + 34, by + 13);
-    const barW = bw - 90, frac = Math.max(0, b.missileT / 1800);
+    const barW = bw - 90, frac = Math.max(0, b.missileT / 1200);
     ctx.fillStyle = "#3a1010"; ctx.fillRect(bx + 34, by + 22, barW, 8);
     ctx.fillStyle = sec <= 5 ? "#ff3a3a" : "#ffb020"; ctx.fillRect(bx + 34, by + 22, barW * frac, 8);
     ctx.fillStyle = "#fff"; ctx.textAlign = "right"; ctx.font = "bold 22px 'Segoe UI',sans-serif"; ctx.fillText(sec + "", bx + bw - 12, by + 20);
