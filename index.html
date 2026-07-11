@@ -268,7 +268,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 7.0 (2026-07-08)";
+  const GAME_VERSION = "ver 7.1 (2026-07-08)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -798,6 +798,8 @@
     new Audio("audio/bgm_boss7.mp3")   // ステージ7ボス（ドランプ大統領）※曲を置けば鳴る
   ];
   BOSS_BGM.forEach(a => { if (a) { a.loop = true; a.volume = 0.2; } });
+  const ENDING_BGM = new Audio("audio/bgm_ending.mp3");   // 世界編フィナーレ用（エンディング演出で使用）
+  ENDING_BGM.loop = true; ENDING_BGM.volume = 0.2;
   let bgm = BGM[0];                           // 今鳴らしているBGM
   function stageBgm() { return BGM[Math.min(stageIndex, BGM.length - 1)]; }
   function currentBgm() {
@@ -5922,12 +5924,40 @@
     ctx.font = "bold 9px 'Segoe UI',sans-serif"; ctx.fillText("ROUTE", x, gy - 112);
     ctx.font = "bold 16px 'Segoe UI',sans-serif"; ctx.fillText("66", x, gy - 97);
   }
+  function usTaxi(x, gy) {
+    const y = gy - 22;
+    ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(x - 15, y + 6, 6, 0, 7); ctx.arc(x + 15, y + 6, 6, 0, 7); ctx.fill();
+    ctx.fillStyle = "#888"; ctx.beginPath(); ctx.arc(x - 15, y + 6, 2.5, 0, 7); ctx.arc(x + 15, y + 6, 2.5, 0, 7); ctx.fill();
+    ctx.fillStyle = "#f2c200"; roundRectPath(x - 26, y - 14, 52, 20, 5); ctx.fill();
+    ctx.fillStyle = "#f7d64a"; roundRectPath(x - 14, y - 26, 30, 16, 4); ctx.fill();
+    ctx.fillStyle = "#bfe6ff"; ctx.fillRect(x - 11, y - 23, 12, 11); ctx.fillRect(x + 3, y - 23, 10, 11);
+    ctx.fillStyle = "#111"; for (let i = 0; i < 8; i++) ctx.fillRect(x - 26 + i*6.5, y - 2, 3.2, 3);   // チェッカー帯
+    ctx.fillStyle = "#111"; ctx.fillRect(x - 5, y - 31, 10, 5);
+    ctx.fillStyle = "#f2c200"; ctx.fillRect(x - 4, y - 30, 8, 3);   // TAXIサイン
+  }
+  function fireHydrant(x, gy) {
+    ctx.fillStyle = "#d8232a";
+    ctx.fillRect(x - 6, gy - 22, 12, 22);
+    ctx.beginPath(); ctx.arc(x, gy - 24, 6, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = "#b01d24"; ctx.fillRect(x - 9, gy - 16, 3, 6); ctx.fillRect(x + 6, gy - 16, 3, 6);
+    ctx.fillStyle = "#8a1419"; ctx.beginPath(); ctx.arc(x, gy - 24, 2.5, 0, 7); ctx.fill();
+    ctx.fillStyle = "#d8232a"; ctx.fillRect(x - 8, gy - 2, 16, 2);
+  }
   function drawAmericaDecor() {
     const gy = GROUND_Y;
-    // 遠くのビル群（パララックス）
-    const par = camX * 0.4;
-    for (let i = 0; i < 44; i++) {
-      const bx = i * 150 - par;
+    // 星条旗の三角ガーランド（上部・街に張った飾り）
+    const y0 = 46;
+    ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(camX - 40, y0); ctx.lineTo(camX + W + 40, y0); ctx.stroke();
+    const startC = Math.floor((camX - 40) / 30) * 30;
+    for (let x = startC; x < camX + W + 40; x += 30) {
+      ctx.fillStyle = ["#e0323a", "#f4f4f4", "#2b4aa0"][((x / 30) | 0) % 3];
+      ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x + 30, y0); ctx.lineTo(x + 15, y0 + 16); ctx.closePath(); ctx.fill();
+    }
+    // 遠くのビル群（ゆっくり動く遠景＝パララックス0.4倍）
+    const par = camX * 0.6;
+    for (let i = 0; i < 60; i++) {
+      const bx = i * 150 + par;   // translate(-camX)後の画面移動＝0.4倍（遠く・ゆっくり）
       if (bx < camX - 160 || bx > camX + W + 60) continue;
       const bw = 60 + (i*37 % 42), bh = 90 + (i*53 % 120);
       ctx.fillStyle = i % 2 ? "#8fa6bd" : "#9db2c7";
@@ -5939,6 +5969,8 @@
     if (onScreen(820)) statueOfLiberty(820, gy);
     for (const fx of [360, 1300, 2200, 3100, 4100, 5000]) if (onScreen(fx)) usFlag(fx, gy - 150);
     for (const rx of [1700, 3600]) if (onScreen(rx)) route66Sign(rx, gy);
+    for (const tx of [560, 2500, 4300]) if (onScreen(tx)) usTaxi(tx, gy);          // イエローキャブ
+    for (const hx of [240, 1500, 2900, 3900, 4900]) if (onScreen(hx)) fireHydrant(hx, gy);   // 消火栓
   }
   // ゴール：ホワイトハウス（アメリカ）
   function drawWhiteHouseGoal(gl) {
