@@ -268,7 +268,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 6.18 (2026-07-08)";
+  const GAME_VERSION = "ver 7.0 (2026-07-08)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -393,6 +393,24 @@
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
       ]
+    },
+    {
+      name: "ステージ7 アメリカ",
+      theme: "america",
+      boss: "dramp",
+      level: [
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------o-o-o-o-----------------------------------------o-o-o---------------------------------------o-o-o-o-----------o-o-o-o-----------G---",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "--------------N-----------------------------------o-o-o-----------------------------------------o-o-o---------------------H---------------------------",
+        "----P-----------------?-------b-----------------------F---?-------####--b---U-----------------b-----A---?-----####----------------------?-------------",
+        "--------------------------------------------------#####-------------------------------------------------------------------------#####-----------------",
+        "--------------------w---------------w---------------------------w-----------------w-------------#####-------w---------------w---------------w---------",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      ]
     }
   ];
   let stageIndex = 0;
@@ -493,6 +511,7 @@
         else if (ch === "r") { enemySpawns.push({ x, y, kind: "rooster" }); enemies.push(makeEnemy(x, y, { kind: "rooster" })); }
         else if (ch === "i") { enemySpawns.push({ x, y, kind: "sardine" }); enemies.push(makeEnemy(x, y, { kind: "sardine" })); }
         else if (ch === "t") { enemySpawns.push({ x, y, kind: "octopus" }); enemies.push(makeEnemy(x, y, { kind: "octopus" })); }
+        else if (ch === "w") { enemySpawns.push({ x, y, kind: "gator" }); enemies.push(makeEnemy(x, y, { kind: "gator" })); }
         else if (ch === "O") { balls.push({ x: x + 7, y: y + 8, w: 26, h: 26, vx: 0, vy: 0, onGround: false, rot: 0 }); }   // 蹴れるサッカーボール
         else if (ch === "P") start = { x, y };
         else if (ch === "G") goal = { x: x + TILE / 2, y: y, top: y };
@@ -587,6 +606,11 @@
     if (kind === "octopus") {
       // タコにいさん：足をウネウネさせながらゆっくり歩く（大きめ・ポルトガル料理のタコ）
       return { kind, x: x + 2, y: y + TILE - 34, w: 40, h: 34, vx: opts.slow ? 0 : -0.7,
+               alive: true, t: Math.random()*6, squash: 1, slow: !!opts.slow };
+    }
+    if (kind === "gator") {
+      // ワニ：長い体で地面を低くゆっくり歩く（アメリカ・沼地）。口をパクパク。踏める。
+      return { kind, x: x + 2, y: y + TILE - 22, w: 54, h: 22, vx: opts.slow ? 0 : -0.9,
                alive: true, t: Math.random()*6, squash: 1, slow: !!opts.slow };
     }
     // 地上の敵（kuri=クリ / cat=ネコ）
@@ -759,7 +783,8 @@
     new Audio("audio/bgm_stage3.mp3"),   // ステージ3
     new Audio("audio/bgm_stage4.mp3"),   // ステージ4（ハワイ・サンシャインビーチ）
     new Audio("audio/bgm_stage5.mp3"),   // ステージ5（タイランド）※曲を置けば鳴る
-    new Audio("audio/bgm_stage6.mp3")    // ステージ6（ポルトガル）※曲を置けば鳴る
+    new Audio("audio/bgm_stage6.mp3"),   // ステージ6（ポルトガル）※曲を置けば鳴る
+    new Audio("audio/bgm_stage7.mp3")    // ステージ7（アメリカ）※曲を置けば鳴る
   ];
   BGM.forEach(a => { a.loop = true; a.volume = 0.15; });  // 小さめ・ループ
   // ボス戦BGM（ステージ別。無いステージはnull＝通常BGMのまま）
@@ -769,7 +794,8 @@
     new Audio("audio/bgm_boss3.mp3"),  // ステージ3ボス（こうよう）※太鼓連打
     new Audio("audio/bgm_boss4.mp3"),  // ステージ4ボス（メガロドン）※Will you still cry
     new Audio("audio/bgm_boss5.mp3"),  // ステージ5ボス（ザガット）※曲を置けば鳴る
-    new Audio("audio/bgm_boss6.mp3")   // ステージ6ボス（クリウド・PK戦）※曲を置けば鳴る
+    new Audio("audio/bgm_boss6.mp3"),  // ステージ6ボス（クリウド・PK戦）※曲を置けば鳴る
+    new Audio("audio/bgm_boss7.mp3")   // ステージ7ボス（ドランプ大統領）※曲を置けば鳴る
   ];
   BOSS_BGM.forEach(a => { if (a) { a.loop = true; a.volume = 0.2; } });
   let bgm = BGM[0];                           // 今鳴らしているBGM
@@ -1272,7 +1298,7 @@
   // ボス登場時に出す名前
   function bossTitle() {
     const k = STAGES[stageIndex].boss;
-    return k === "penguins" ? "ペギ＆ニセペギ" : k === "sumo" ? "こうよう" : k === "mega" ? "メガロドン" : k === "zagat" ? "ザガット" : k === "clovis" ? "クリウド" : "くりだいおう";
+    return k === "penguins" ? "ペギ＆ニセペギ" : k === "sumo" ? "こうよう" : k === "mega" ? "メガロドン" : k === "zagat" ? "ザガット" : k === "clovis" ? "クリウド" : k === "dramp" ? "ドランプ大統領" : "くりだいおう";
   }
 
   function startBoss() {
@@ -1313,6 +1339,8 @@
       bosses = [ makeBoss("zagat", W - 150) ];
     } else if (type === "clovis") {
       bosses = [ makeBoss("clovis", W - 190) ];
+    } else if (type === "dramp") {
+      bosses = [ makeBoss("dramp", W - 190) ];
     } else {
       bosses = [ makeBoss("kuri", W - 170) ];
     }
@@ -1398,6 +1426,17 @@
         throws: false, alive: true, dyingT: 0, raging: false,
         mode: "idle", actCd: 60, windup: 0, chargeT: 0, chargeDir: -1, shotDir: -1, didDouble: false, runup: 0, kickLeg: 0 };
     }
+    if (kind === "dramp") {
+      // ドランプ大統領（ステージ7・アメリカ／パロディ）※第1段階=仮の単体ボス。
+      // TODO: 本実装＝SP3人戦→暴走＋ミサイル30秒＋戦闘機/ハンバーガー/ゴルフ/突進。
+      // 今はハンバーガーを投げる歩きボス。頭を3回踏むと撃破。
+      return { kind, name: "ドランプ大統領", x, y: BOSS_GROUND - 92, w: 60, h: 92,
+        vx: -1, vy: 0, onGround: false, face: -1,
+        hp: 6, maxHp: 6, stompDmg: 2, seedDmg: 2, hpPerHeart: 2,   // 踏み3回・ハート3個
+        invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
+        jumpCd: 150, throwCd: 80 + Math.floor(Math.random()*40), throwBase: 90,
+        speedBase: 1.3, throws: true, alive: true, dyingT: 0 };
+    }
     // クリだいおう（ステージ1）
     return { kind, name: "クリだいおう", x, y: BOSS_GROUND - 90, w: 96, h: 90,
       vx: -1.4, vy: 0, onGround: false, face: -1,
@@ -1428,7 +1467,8 @@
     const dir = (p.x + p.w/2) < (b.x + b.w/2) ? -1 : 1;
     const water = b.kind === "mega";
     const salt = b.kind === "sumo";
-    const kind = water ? "water" : (salt ? "salt" : "cuke");
+    const burger = b.kind === "dramp";
+    const kind = water ? "water" : (salt ? "salt" : (burger ? "burger" : "cuke"));
     cukes.push({ x: b.x + b.w/2, y: b.y + (salt ? 4 : 8), vx: dir * (water ? 2.6 + Math.random()*1.4 : 3.2 + Math.random()*1.6), vy: water ? -9.2 : (salt ? -8.4 : -7.6), t: 0, kind });
     sfx.seed();
   }
@@ -1475,7 +1515,7 @@
       cu.vy += 0.42;                    // 山なりに落ちる
       cu.x += cu.vx; cu.y += cu.vy;
       const box = { x: cu.x - 10, y: cu.y - 6, w: 20, h: 12 };
-      const puff = cu.kind === "salt" ? "#ffffff" : (cu.kind === "water" ? "#8fd0ee" : (cu.kind === "egg" ? "#f3e6c8" : (cu.kind === "lob" ? "#ffffff" : "#6cae3e")));
+      const puff = cu.kind === "salt" ? "#ffffff" : (cu.kind === "water" ? "#8fd0ee" : (cu.kind === "egg" ? "#f3e6c8" : (cu.kind === "lob" ? "#ffffff" : (cu.kind === "burger" ? "#e0a94a" : "#6cae3e"))));
       // 地面に落ちたら割れる
       for (const s of solids) { if (rectHit(box, s)) { cu.dead = true; spawnParticles(cu.x, cu.y, puff, 6); break; } }
       // たねで撃ち落とせる
@@ -2230,7 +2270,7 @@
         break;
       case "dwind":
         moveCursor();
-        if (pk.t > 22) {   // 予備動作の長さ＝反応できる時間（合図pk.t>10〜ここ＝約12フレーム。ver6.17で21→22＋予備動作を大きく）
+        if (pk.t > 25) {   // 予備動作の長さ＝反応できる時間（合図pk.t>11〜ここ＝約14フレーム。ver6.19で戻した）
           pk.dive = pk.cursor;
           pk.sub = "dshot"; pk.t = 0;
           pk.ball.fly = true;
@@ -2426,6 +2466,14 @@
       g.addColorStop(1, "#eaf6fc");
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
       drawClouds();
+    } else if (theme === "america") {
+      // アメリカ：広い青空
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#3f7fd0");
+      g.addColorStop(0.55, "#9cc4ee");
+      g.addColorStop(1, "#e8f2fb");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      drawClouds();
     } else if (theme === "hawaii") {
       // 前半＝ビーチの空／後半＝海の中（カメラ位置でクロスフェード）
       const t = Math.max(0, Math.min(1, (camX + W/2 - 2720) / 620));
@@ -2490,6 +2538,7 @@
     else if (theme === "hawaii") drawHawaiiDecor();
     else if (theme === "thailand") drawThaiDecor();
     else if (theme === "portugal") drawPortugalDecor();
+    else if (theme === "america") drawAmericaDecor();
     drawSolids();
     drawCoins();
     drawNuts();
@@ -2756,6 +2805,15 @@
           ctx.fillStyle = "#5b9bd8";
           for (let bx = s.x + 3; bx < s.x + s.w - 3; bx += 12) ctx.fillRect(bx, s.y + 1, 6, 4);
         }
+      } else if (s.type === "ground" && theme === "america") {
+        // アメリカ：乾いた土＋緑の草（国立公園ぽい）
+        ctx.fillStyle = "#a5794a"; ctx.fillRect(s.x, s.y, s.w, s.h);
+        ctx.fillStyle = "#946a3f";
+        for (let i=0;i<3;i++) for(let j=0;j<3;j++) ctx.fillRect(s.x+4+i*13, s.y+13+j*10, 7, 5);
+        if (!isSolidAt(s.x, s.y - TILE)) {
+          ctx.fillStyle = "#5aa03a"; ctx.fillRect(s.x, s.y, s.w, 9);
+          ctx.fillStyle = "#6cbd46"; ctx.fillRect(s.x, s.y, s.w, 4);
+        }
       } else if (s.type === "ground" && theme === "hawaii") {
         // ハワイ：砂浜／海底の砂
         const underwater = s.x + s.w/2 > 3000;
@@ -2862,6 +2920,7 @@
     if (theme === "narita") { drawAirport(gl); return; }
     if (theme === "hawaii") { drawHawaiiGoal(gl); return; }
     if (theme === "portugal") { drawStadiumGoal(gl); return; }
+    if (theme === "america") { drawWhiteHouseGoal(gl); return; }
     const x = gl.x;
     // ポール
     ctx.fillStyle = "#cfcfcf"; ctx.fillRect(x-3, gl.top, 6, TILE*6);
@@ -3219,6 +3278,7 @@
       if (e.kind === "rooster") { drawRooster(e); continue; }
       if (e.kind === "sardine") { drawSardine(e); continue; }
       if (e.kind === "octopus") { drawOctopus(e); continue; }
+      if (e.kind === "gator") { drawGator(e); continue; }
       ctx.save();
       const cx = e.x + e.w/2, by = e.y + e.h;
       ctx.translate(cx, by);
@@ -3318,8 +3378,54 @@
       else if (b.kind === "mega") drawMegaBoss(b);
       else if (b.kind === "zagat") drawZagat(b);
       else if (b.kind === "clovis") drawClovisBoss(b);
+      else if (b.kind === "dramp") drawDrampBoss(b);
       else drawKuriBoss(b);
     }
+  }
+
+  // ドランプ大統領（アメリカ・パロディのカリカチュア）
+  function drawDrampBoss(b) {
+    const cx = b.x + b.w/2, footY = b.y + b.h;
+    ctx.fillStyle = "rgba(0,0,0,0.18)"; ctx.beginPath(); ctx.ellipse(cx, footY, 30, 6, 0, 0, 7); ctx.fill();
+    ctx.save();
+    if (b.hurtFlash > 0 && Math.floor(b.hurtFlash/4) % 2 === 0) ctx.globalAlpha = 0.4;
+    ctx.translate(cx, footY); ctx.scale(1, Math.max(0.15, b.squash)); ctx.translate(-cx, -footY);
+    ctx.save(); ctx.translate(cx, footY); ctx.scale(b.face, 1); ctx.translate(-cx, -footY);
+    const bob = Math.sin(b.t * 0.1) * 1.5;
+    // 脚（濃紺スーツのズボン）
+    ctx.fillStyle = "#22314a";
+    ctx.fillRect(cx - 15, footY - 30, 12, 30); ctx.fillRect(cx + 3, footY - 30, 12, 30);
+    // 靴
+    ctx.fillStyle = "#111"; ctx.beginPath(); ctx.ellipse(cx - 9, footY - 1, 9, 4, 0, 0, 7); ctx.ellipse(cx + 9, footY - 1, 9, 4, 0, 0, 7); ctx.fill();
+    // ジャケット（濃紺）
+    ctx.fillStyle = "#26374f"; roundRectPath(cx - 22, footY - 66, 44, 40, 6); ctx.fill();
+    // 白いシャツ（前）
+    ctx.fillStyle = "#f4f4f0"; ctx.beginPath(); ctx.moveTo(cx - 7, footY - 66); ctx.lineTo(cx + 7, footY - 66); ctx.lineTo(cx + 5, footY - 30); ctx.lineTo(cx - 5, footY - 30); ctx.closePath(); ctx.fill();
+    // 赤い長いネクタイ
+    ctx.fillStyle = "#d8232a"; ctx.beginPath(); ctx.moveTo(cx - 4, footY - 62); ctx.lineTo(cx + 4, footY - 62); ctx.lineTo(cx + 3, footY - 34); ctx.lineTo(cx, footY - 28); ctx.lineTo(cx - 3, footY - 34); ctx.closePath(); ctx.fill();
+    // ジャケットの襟
+    ctx.fillStyle = "#1e2c40"; ctx.beginPath(); ctx.moveTo(cx - 8, footY - 66); ctx.lineTo(cx, footY - 50); ctx.lineTo(cx - 14, footY - 52); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx + 8, footY - 66); ctx.lineTo(cx, footY - 50); ctx.lineTo(cx + 14, footY - 52); ctx.closePath(); ctx.fill();
+    // 腕
+    ctx.fillStyle = "#26374f"; ctx.fillRect(cx - 28, footY - 64, 8, 26); ctx.fillRect(cx + 20, footY - 64, 8, 26);
+    ctx.fillStyle = "#e8b98c"; ctx.beginPath(); ctx.arc(cx - 24, footY - 36, 4, 0, 7); ctx.arc(cx + 24, footY - 36, 4, 0, 7); ctx.fill();
+    // 頭（日焼けオレンジ）
+    ctx.fillStyle = "#e8a86a"; ctx.beginPath(); ctx.arc(cx, footY - 78 + bob, 15, 0, 7); ctx.fill();
+    // 目・眉・口
+    ctx.fillStyle = "#3a2a1a"; ctx.beginPath(); ctx.arc(cx - 5, footY - 80 + bob, 1.8, 0, 7); ctx.arc(cx + 5, footY - 80 + bob, 1.8, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#c8935a"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(cx - 8, footY - 84 + bob); ctx.lineTo(cx - 2, footY - 83 + bob); ctx.moveTo(cx + 2, footY - 83 + bob); ctx.lineTo(cx + 8, footY - 84 + bob); ctx.stroke();
+    ctx.strokeStyle = "#8a5a3a"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(cx - 4, footY - 72 + bob); ctx.lineTo(cx + 4, footY - 72 + bob); ctx.stroke();
+    // 金髪（横分けのボリューム）
+    ctx.fillStyle = "#e8cf6a";
+    ctx.beginPath();
+    ctx.moveTo(cx - 15, footY - 82 + bob);
+    ctx.quadraticCurveTo(cx - 18, footY - 96 + bob, cx - 4, footY - 95 + bob);
+    ctx.quadraticCurveTo(cx + 10, footY - 96 + bob, cx + 16, footY - 88 + bob);
+    ctx.quadraticCurveTo(cx + 10, footY - 90 + bob, cx + 2, footY - 89 + bob);
+    ctx.quadraticCurveTo(cx - 8, footY - 88 + bob, cx - 15, footY - 82 + bob);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+    ctx.restore();
   }
 
   // クリウド第2ラウンドのボス描画（PK戦のストライカー絵を流用）
@@ -3403,6 +3509,17 @@
         ctx.fillStyle = "#fffaf0"; ctx.beginPath(); ctx.ellipse(-2, -2, 3, 4.5, 0, 0, 7); ctx.fill();
         ctx.fillStyle = "rgba(196,176,138,0.5)";
         ctx.beginPath(); ctx.arc(2.5, 3, 1.3, 0, 7); ctx.arc(-3, 3.5, 1, 0, 7); ctx.arc(1, -4, 0.9, 0, 7); ctx.fill();
+        ctx.restore();
+        continue;
+      }
+      if (cu.kind === "burger") {   // ドランプが投げるハンバーガー
+        ctx.save(); ctx.translate(cu.x, cu.y); ctx.rotate(cu.t * 0.12);
+        ctx.fillStyle = "#e0a94a"; ctx.beginPath(); ctx.ellipse(0, -5, 12, 6, 0, Math.PI, 0); ctx.fill();   // 上バンズ
+        ctx.fillStyle = "#fff"; for (let i=-2;i<=2;i++){ ctx.beginPath(); ctx.arc(i*4, -8, 1, 0, 7); ctx.fill(); }   // ごま
+        ctx.fillStyle = "#6cae3e"; ctx.fillRect(-12, -1, 24, 2);   // レタス
+        ctx.fillStyle = "#b5442f"; ctx.fillRect(-11, 0, 22, 3);    // パティ
+        ctx.fillStyle = "#f4c542"; ctx.fillRect(-11, 2, 22, 1.5);  // チーズ
+        ctx.fillStyle = "#d99a3c"; ctx.beginPath(); ctx.ellipse(0, 5, 12, 5, 0, 0, Math.PI); ctx.fill();   // 下バンズ
         ctx.restore();
         continue;
       }
@@ -3536,6 +3653,43 @@
   }
 
   // バルセロスのオンドリ
+  // ワニ（アメリカ・沼地）
+  function drawGator(e) {
+    ctx.save();
+    const cx = e.x + e.w/2, by = e.y + e.h;
+    ctx.translate(cx, by);
+    if (!e.alive) { ctx.scale(1.05, 0.25); ctx.globalAlpha = 0.7; }
+    const dir = e.vx > 0 ? 1 : -1;
+    ctx.scale(dir, 1);
+    const wob = Math.sin(e.t*0.2)*1.5;
+    const jaw = e.alive ? (Math.sin(e.t*0.1) > 0.4 ? 4 : 0) : 0;   // 口パク
+    // 尾
+    ctx.fillStyle = "#4f8f43";
+    ctx.beginPath(); ctx.moveTo(-16, -7); ctx.lineTo(-30, -2); ctx.lineTo(-16, -1); ctx.closePath(); ctx.fill();
+    // 体
+    ctx.fillStyle = "#57a04a";
+    ctx.beginPath(); ctx.ellipse(-2, -7, 18, 7, 0, 0, 7); ctx.fill();
+    // 背中のゴツゴツ
+    ctx.fillStyle = "#4f8f43";
+    for (let i = -2; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(i*7 - 2, -13); ctx.lineTo(i*7 + 1, -17); ctx.lineTo(i*7 + 4, -13); ctx.closePath(); ctx.fill(); }
+    // 足
+    ctx.fillStyle = "#3f7a37";
+    ctx.beginPath(); ctx.ellipse(-9 + wob, 0, 4, 3, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(7 - wob, 0, 4, 3, 0, 0, 7); ctx.fill();
+    // 頭
+    ctx.fillStyle = "#57a04a"; ctx.beginPath(); ctx.ellipse(16, -8, 10, 6, 0, 0, 7); ctx.fill();
+    // 上あご／下あご（口パクで開く）
+    ctx.beginPath(); ctx.moveTo(14, -10); ctx.lineTo(32, -11); ctx.lineTo(32, -7); ctx.lineTo(14, -7); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(14, -5); ctx.lineTo(32, -3 + jaw); ctx.lineTo(32, -0.5 + jaw); ctx.lineTo(14, -3); ctx.closePath(); ctx.fill();
+    if (jaw > 0) { ctx.fillStyle = "#b5442f"; ctx.beginPath(); ctx.moveTo(22, -7); ctx.lineTo(32, -8); ctx.lineTo(32, -2 + jaw); ctx.lineTo(22, -5); ctx.closePath(); ctx.fill(); }
+    // 歯
+    ctx.fillStyle = "#fff";
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(18 + i*4, -7); ctx.lineTo(19.5 + i*4, -4.5); ctx.lineTo(21 + i*4, -7); ctx.closePath(); ctx.fill(); }
+    // 目
+    if (e.alive) { ctx.fillStyle = "#f4e04a"; ctx.beginPath(); ctx.arc(13, -15, 3.2, 0, 7); ctx.fill(); ctx.fillStyle = "#111"; ctx.fillRect(12.2, -16.5, 1.5, 3.6); }
+    ctx.restore();
+  }
+
   function drawRooster(e) {
     const cx = e.x + e.w / 2, by = e.y + e.h, dir = e.vx > 0 ? 1 : -1;
     ctx.save(); ctx.translate(cx, by);
@@ -3726,8 +3880,8 @@
     let lean = 0, kickLeg = 0, runup = 0;
     if (pk.sub === "dready") runup = pk.t;
     // ヒントは「けり出す直前」に「ほんの少しだけ」出す（早くから方向が丸わかりにならない＝難しく）
-    if (pk.sub === "dwind" && pk.t > 10) lean = (pk.kickerDir - 1) * 0.22;   // 蹴る方向の予備動作（ver6.17で早く＆大きく＝読みやすく）
-    if (pk.sub === "dshot" || pk.sub === "dres") { kickLeg = 1; lean = (pk.kickerDir - 1) * 0.22; }
+    if (pk.sub === "dwind" && pk.t > 11) lean = (pk.kickerDir - 1) * 0.12;   // 蹴る方向の予備動作（ver6.19で0.12に戻す）
+    if (pk.sub === "dshot" || pk.sub === "dres") { kickLeg = 1; lean = (pk.kickerDir - 1) * 0.12; }
     pkDrawClovis(PKX.spotX - 30, 404, { lean, kickLeg, runup });
   }
   function drawMaruKicker() {
@@ -5738,6 +5892,80 @@
     // 巡航（左→右へ）
     const px = 120 + (W * 0.4) * (f / dur);
     storyFlyingPlane(px, 175, 1.6, f);
+  }
+
+  // ===== アメリカ（ステージ7）の風景・ゴール =====
+  function usFlag(x, y) {
+    ctx.fillStyle = "#9a9a9a"; ctx.fillRect(x, y, 3, 150);
+    const w = 48;
+    for (let i = 0; i < 7; i++) { ctx.fillStyle = i % 2 ? "#f2f2f2" : "#e0323a"; ctx.fillRect(x + 3, y + i*4, w, 4); }
+    ctx.fillStyle = "#2b4aa0"; ctx.fillRect(x + 3, y, 20, 16);
+    ctx.fillStyle = "#fff"; for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) ctx.fillRect(x + 6 + c*4, y + 3 + r*7, 2, 2);
+  }
+  function statueOfLiberty(x, gy) {
+    ctx.fillStyle = "#8a8578"; ctx.fillRect(x - 26, gy - 70, 52, 70);
+    ctx.fillStyle = "#9a9488"; ctx.fillRect(x - 30, gy - 78, 60, 10);
+    ctx.fillStyle = "#5fae94";
+    ctx.beginPath(); ctx.moveTo(x - 16, gy - 70); ctx.lineTo(x - 10, gy - 150); ctx.lineTo(x + 10, gy - 150); ctx.lineTo(x + 16, gy - 70); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, gy - 162, 10, 0, 7); ctx.fill();
+    for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(x + i*5, gy - 170); ctx.lineTo(x + i*5 + 1, gy - 180); ctx.lineTo(x + i*5 + 3, gy - 170); ctx.closePath(); ctx.fill(); }
+    ctx.strokeStyle = "#5fae94"; ctx.lineWidth = 6; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(x + 8, gy - 140); ctx.lineTo(x + 22, gy - 178); ctx.stroke();
+    ctx.fillStyle = "rgba(255,220,120,0.5)"; ctx.beginPath(); ctx.arc(x + 24, gy - 184, 11, 0, 7); ctx.fill();
+    ctx.fillStyle = "#ffd34d"; ctx.beginPath(); ctx.arc(x + 24, gy - 184, 6, 0, 7); ctx.fill();
+  }
+  function route66Sign(x, gy) {
+    ctx.fillStyle = "#777"; ctx.fillRect(x - 2, gy - 90, 4, 90);
+    ctx.fillStyle = "#fff"; roundRectPath(x - 20, gy - 122, 40, 38, 6); ctx.fill();
+    ctx.strokeStyle = "#222"; ctx.lineWidth = 2; roundRectPath(x - 20, gy - 122, 40, 38, 6); ctx.stroke();
+    ctx.fillStyle = "#222"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = "bold 9px 'Segoe UI',sans-serif"; ctx.fillText("ROUTE", x, gy - 112);
+    ctx.font = "bold 16px 'Segoe UI',sans-serif"; ctx.fillText("66", x, gy - 97);
+  }
+  function drawAmericaDecor() {
+    const gy = GROUND_Y;
+    // 遠くのビル群（パララックス）
+    const par = camX * 0.4;
+    for (let i = 0; i < 44; i++) {
+      const bx = i * 150 - par;
+      if (bx < camX - 160 || bx > camX + W + 60) continue;
+      const bw = 60 + (i*37 % 42), bh = 90 + (i*53 % 120);
+      ctx.fillStyle = i % 2 ? "#8fa6bd" : "#9db2c7";
+      ctx.fillRect(bx, gy - bh, bw, bh);
+      ctx.fillStyle = "rgba(255,255,255,0.45)";
+      for (let wy = gy - bh + 8; wy < gy - 10; wy += 14) for (let wx = bx + 6; wx < bx + bw - 6; wx += 14) ctx.fillRect(wx, wy, 6, 7);
+    }
+    const onScreen = (x, m = 170) => x > camX - m && x < camX + W + m;
+    if (onScreen(820)) statueOfLiberty(820, gy);
+    for (const fx of [360, 1300, 2200, 3100, 4100, 5000]) if (onScreen(fx)) usFlag(fx, gy - 150);
+    for (const rx of [1700, 3600]) if (onScreen(rx)) route66Sign(rx, gy);
+  }
+  // ゴール：ホワイトハウス（アメリカ）
+  function drawWhiteHouseGoal(gl) {
+    const x = gl.x, gy = GROUND_Y;
+    ctx.fillStyle = "#5aa03a"; ctx.fillRect(x - 92, gy - 6, 184, 6);   // 芝
+    ctx.fillStyle = "#f4f4ee"; ctx.fillRect(x - 70, gy - 80, 140, 80); // 本館
+    ctx.fillStyle = "#e6e6dc"; ctx.fillRect(x - 70, gy - 80, 140, 6);
+    // 中央の張り出し
+    ctx.fillStyle = "#f8f8f2"; ctx.fillRect(x - 30, gy - 104, 60, 104);
+    // 破風（三角）
+    ctx.fillStyle = "#eeeee6"; ctx.beginPath(); ctx.moveTo(x - 36, gy - 104); ctx.lineTo(x, gy - 126); ctx.lineTo(x + 36, gy - 104); ctx.closePath(); ctx.fill();
+    // 円柱
+    ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#d8d8cc"; ctx.lineWidth = 1;
+    for (let i = -2; i <= 2; i++) { ctx.fillRect(x + i*12 - 2, gy - 104, 5, 104); ctx.strokeRect(x + i*12 - 2, gy - 104, 5, 104); }
+    // 窓
+    ctx.fillStyle = "#3a5a7a";
+    for (let i = 0; i < 3; i++) { ctx.fillRect(x - 66 + i*15, gy - 62, 9, 16); ctx.fillRect(x + 36 + i*12, gy - 62, 9, 16); }
+    // ドア
+    ctx.fillStyle = "#2b4a6a"; ctx.fillRect(x - 9, gy - 30, 18, 30);
+    // 屋根のドーム＋旗ポール
+    ctx.fillStyle = "#eeeee6"; ctx.beginPath(); ctx.arc(x, gy - 104, 16, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = "#c9b46a"; ctx.beginPath(); ctx.arc(x, gy - 120, 4, 0, 7); ctx.fill();
+    usFlag(x + 60, gy - 118);
+    // GOALバナー
+    ctx.fillStyle = "rgba(20,40,80,0.85)"; roundRectPath(x - 34, gy - 150, 68, 22, 6); ctx.fill();
+    ctx.fillStyle = "#ffd34d"; ctx.font = "bold 14px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("GOAL", x, gy - 139);
   }
 
   function drawStageClear() {
