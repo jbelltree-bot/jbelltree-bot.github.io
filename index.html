@@ -268,7 +268,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 7.1 (2026-07-08)";
+  const GAME_VERSION = "ver 7.3 (2026-07-08)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -405,9 +405,9 @@
         "------------------o-o-o-o-----------------------------------------o-o-o---------------------------------------o-o-o-o-----------o-o-o-o-----------G---",
         "------------------------------------------------------------------------------------------------------------------------------------------------------",
         "--------------N-----------------------------------o-o-o-----------------------------------------o-o-o---------------------H---------------------------",
-        "----P-----------------?-------b-----------------------F---?-------####--b---U-----------------b-----A---?-----####----------------------?-------------",
+        "----P-----------------?-------l-----------------------F---?-------####--l---U-----------------b-----A---?-----####----------------------?-------------",
         "--------------------------------------------------#####-------------------------------------------------------------------------#####-----------------",
-        "--------------------w---------------w---------------------------w-----------------w-------------#####-------w---------------w---------------w---------",
+        "--------------------w---------------y---------------------------z-----------------w-------------#####-------y---------------z---------------w---------",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
       ]
@@ -446,6 +446,9 @@
   let barrelCd = 0;     // 次の樽までのカウント
   let pk = null;        // PK戦（ポルトガルのボス戦）の状態。非nullのときPK戦
   let clovisPhase2 = false;   // ポルトガル：PKに勝って第2ラウンド（直接対決）に入っているか
+  let sps = [];               // アメリカ：ドランプ第1段階のSP（護衛）たち
+  let drampPhase2 = false;    // アメリカ：SPを倒して第2段階（暴走＋ミサイル）に入っているか
+  let jets = [];              // アメリカ：ドランプ第2段階の戦闘機（空爆）
   let screenShake = 0;  // 画面（地面）を揺らすフレーム数（こうようの四股の着地など）
   let inBoss = false;   // ボス戦中かどうか（ミス時のやり直し判定用）
   let bossNutSpawned = false;   // ボス戦の開始10秒でナッツを出したか（各ボス戦で1回）
@@ -512,6 +515,9 @@
         else if (ch === "i") { enemySpawns.push({ x, y, kind: "sardine" }); enemies.push(makeEnemy(x, y, { kind: "sardine" })); }
         else if (ch === "t") { enemySpawns.push({ x, y, kind: "octopus" }); enemies.push(makeEnemy(x, y, { kind: "octopus" })); }
         else if (ch === "w") { enemySpawns.push({ x, y, kind: "gator" }); enemies.push(makeEnemy(x, y, { kind: "gator" })); }
+        else if (ch === "l") { enemySpawns.push({ x, y, kind: "eagle" }); enemies.push(makeEnemy(x, y, { kind: "eagle" })); }
+        else if (ch === "y") { enemySpawns.push({ x, y, kind: "football" }); enemies.push(makeEnemy(x, y, { kind: "football" })); }
+        else if (ch === "z") { enemySpawns.push({ x, y, kind: "bison" }); enemies.push(makeEnemy(x, y, { kind: "bison" })); }
         else if (ch === "O") { balls.push({ x: x + 7, y: y + 8, w: 26, h: 26, vx: 0, vy: 0, onGround: false, rot: 0 }); }   // 蹴れるサッカーボール
         else if (ch === "P") start = { x, y };
         else if (ch === "G") goal = { x: x + TILE / 2, y: y, top: y };
@@ -611,6 +617,22 @@
     if (kind === "gator") {
       // ワニ：長い体で地面を低くゆっくり歩く（アメリカ・沼地）。口をパクパク。踏める。
       return { kind, x: x + 2, y: y + TILE - 22, w: 54, h: 22, vx: opts.slow ? 0 : -0.9,
+               alive: true, t: Math.random()*6, squash: 1, slow: !!opts.slow };
+    }
+    if (kind === "eagle") {
+      // ハクトウワシ：空を飛ぶ（白い頭・すばやい）。カラスと同じフワフワ動き。
+      const baseY = y + 2;
+      return { kind, x: x + 3, y: baseY, w: 40, h: 26, vx: opts.slow ? -1.2 : -2.0,
+               alive: true, t: Math.random()*6, squash: 1, fly: true, baseY, homeX: x + 3, range: 150 };
+    }
+    if (kind === "football") {
+      // アメフト選手：ヘルメットで地面を速く突進する（車なみに速い）。踏める。
+      return { kind, x: x + 2, y: y + TILE - 34, w: 40, h: 34, vx: opts.slow ? 0 : -2.6,
+               alive: true, t: Math.random()*6, squash: 1, slow: !!opts.slow };
+    }
+    if (kind === "bison") {
+      // バッファロー：大きくてゆっくり地面を歩く（アメリカ西部）。踏める。
+      return { kind, x: x + 2, y: y + TILE - 34, w: 58, h: 34, vx: opts.slow ? 0 : -1.0,
                alive: true, t: Math.random()*6, squash: 1, slow: !!opts.slow };
     }
     // 地上の敵（kuri=クリ / cat=ネコ）
@@ -1273,7 +1295,7 @@
 
   // ボス撃破 or ボス無しステージ：クリア処理
   function stageCleared() {
-    inBoss = false; bosses = []; cukes = []; pk = null;
+    inBoss = false; bosses = []; cukes = []; pk = null; sps = []; jets = [];
     player.winPose = 0;
     score += Math.max(0, 2000 - Math.floor(elapsed / 3));
     stopBGM();
@@ -1305,6 +1327,7 @@
 
   function startBoss() {
     inBoss = true;
+    if (STAGES[stageIndex].boss === "dramp") drampPhase2 = false;   // ボスに初めて入るときは第1段階から
     if (STAGES[stageIndex].boss === "clovis") setupPK();   // ポルトガルはPK戦
     else setupBossArena();
     state = "boss";
@@ -1316,6 +1339,7 @@
     LEVEL_W = W; LEVEL_H = H; camX = 0;
     solids = []; coins = []; nuts = []; flowers = []; feathers = []; breads = [];
     enemies = []; questionBlocks = []; seeds = []; goal = null; particles = []; cukes = []; hazards = [];
+    sps = []; jets = [];
     const megaArena = STAGES[stageIndex].boss === "mega";
     for (let x = 0; x < W; x += TILE) {
       if (megaArena && !((x >= LDECK_L && x < LDECK_R) || (x >= RDECK_L && x < RDECK_R))) continue;   // デッキ以外は海（床なし）
@@ -1342,7 +1366,9 @@
     } else if (type === "clovis") {
       bosses = [ makeBoss("clovis", W - 190) ];
     } else if (type === "dramp") {
-      bosses = [ makeBoss("dramp", W - 190) ];
+      bosses = [ makeBoss("dramp", W/2 - 30) ];
+      if (drampPhase2) startDrampPhase2(bosses[0]);   // やり直し時はSPをスキップして第2段階から
+      else spawnDrampSPs();
     } else {
       bosses = [ makeBoss("kuri", W - 170) ];
     }
@@ -1429,15 +1455,18 @@
         mode: "idle", actCd: 60, windup: 0, chargeT: 0, chargeDir: -1, shotDir: -1, didDouble: false, runup: 0, kickLeg: 0 };
     }
     if (kind === "dramp") {
-      // ドランプ大統領（ステージ7・アメリカ／パロディ）※第1段階=仮の単体ボス。
-      // TODO: 本実装＝SP3人戦→暴走＋ミサイル30秒＋戦闘機/ハンバーガー/ゴルフ/突進。
-      // 今はハンバーガーを投げる歩きボス。頭を3回踏むと撃破。
-      return { kind, name: "ドランプ大統領", x, y: BOSS_GROUND - 92, w: 60, h: 92,
-        vx: -1, vy: 0, onGround: false, face: -1,
+      // ドランプ大統領（ステージ7・アメリカ／パロディ）＝2段階ボス。
+      // 第1段階：高い演壇にいて無敵、SP3人が銃で守る（SPは踏んで倒す・タネは防弾で無効）。
+      // 第2段階：暴走してミサイルボタン→30秒カウントダウン。戦闘機空爆/ハンバーガー/ゴルフ/突進で攻める。
+      //          頭を3回踏んで倒す（30秒以内に倒せないとミサイル着弾＝負け）。HP1で怒りモード。
+      return { kind, name: "ドランプ大統領", x, y: 96, w: 60, h: 92,
+        vx: 0, vy: 0, onGround: false, face: -1,
         hp: 6, maxHp: 6, stompDmg: 2, seedDmg: 2, hpPerHeart: 2,   // 踏み3回・ハート3個
         invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
-        jumpCd: 150, throwCd: 80 + Math.floor(Math.random()*40), throwBase: 90,
-        speedBase: 1.3, throws: true, alive: true, dyingT: 0 };
+        throws: false, alive: true, dyingT: 0,
+        phase: 1, reachable: false, raging: false,
+        mode: "idle", actCd: 60, windup: 0, chargeT: 0, chargeDir: -1, didDouble: false, runup: 0,
+        missileT: 0, doomT: 0, balconyX: W/2 - 30, balconyY: 96 };
     }
     // クリだいおう（ステージ1）
     return { kind, name: "クリだいおう", x, y: BOSS_GROUND - 90, w: 96, h: 90,
@@ -1504,6 +1533,35 @@
         continue;
       }
       if (cu.kind === "tiger" || cu.kind === "gtiger") { stepTigerShot(cu, p); continue; }  // まっすぐ飛ぶ弾
+      if (cu.kind === "bullet") {   // SPの銃弾（横に飛ぶ・ジャンプでよける・タネでは消せない）
+        cu.x += cu.vx;
+        const box = { x: cu.x - 6, y: cu.y - 4, w: 12, h: 8 };
+        if (rectHit(p, box) && p.invuln <= 0) { cu.dead = true; hurtPlayer(); spawnParticles(cu.x, cu.y, "#ffd24a", 5); }
+        if (cu.x < camX - 60 || cu.x > camX + W + 60) cu.dead = true;
+        continue;
+      }
+      if (cu.kind === "golf") {   // ドランプのゴルフショット（地を這う速い球・ジャンプでよける）
+        cu.x += cu.vx; cu.rot = (cu.rot || 0) + cu.vx * 0.1;
+        const box = { x: cu.x - 8, y: cu.y - 8, w: 16, h: 16 };
+        if (rectHit(p, box) && p.invuln <= 0) { cu.dead = true; hurtPlayer(); }
+        else for (const sd of seeds) if (rectHit({ x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 }, box)) { cu.dead = true; sd.life = 0; score += 50; sfx.stomp(); break; }
+        if (cu.x < camX - 70 || cu.x > camX + W + 70) cu.dead = true;
+        continue;
+      }
+      if (cu.kind === "bomb") {   // 戦闘機が落とす爆弾（着地で爆発・マーカーでよける）
+        cu.vy += 0.4; cu.y += cu.vy;
+        const box = { x: cu.x - 8, y: cu.y - 8, w: 16, h: 16 };
+        let landed = false;
+        for (const s of solids) if (rectHit(box, s)) { landed = true; break; }
+        if (rectHit(p, box) && p.invuln <= 0) { cu.dead = true; hurtPlayer(); spawnParticles(cu.x, cu.y, "#ff7a1a", 12); screenShake = Math.max(screenShake, 10); }
+        else if (landed || cu.y > BOSS_GROUND) { cu.dead = true; spawnParticles(cu.x, BOSS_GROUND - 4, "#ff7a1a", 16); spawnParticles(cu.x, BOSS_GROUND - 4, "#ffd24a", 10); screenShake = Math.max(screenShake, 12); beep(90, 0.18, "sawtooth", 0.1); }
+        continue;
+      }
+      if (cu.kind === "missile") {   // 時間切れのミサイル（演出のみ・killPlayerは別途）
+        cu.vy += 0.3; cu.y += cu.vy;
+        if (cu.y > BOSS_GROUND - 10) { cu.dead = true; spawnParticles(cu.x, BOSS_GROUND - 10, "#ff5a1a", 26); spawnParticles(cu.x, BOSS_GROUND - 10, "#ffd24a", 16); screenShake = 30; beep(50, 0.5, "sawtooth", 0.16); }
+        continue;
+      }
       if (cu.kind === "sball") {   // クリウドのグラウンダーシュート（地を這うボール・ジャンプでよける）
         cu.x += cu.vx; cu.rot = (cu.rot || 0) + cu.vx * 0.06;
         const box = { x: cu.x - 13, y: cu.y - 13, w: 26, h: 26 };
@@ -1685,6 +1743,7 @@
       if (b.kind === "mega") { updateMega(b); continue; }
       if (b.kind === "zagat") { updateZagat(b); continue; }
       if (b.kind === "clovis") { updateClovis(b); continue; }
+      if (b.kind === "dramp") { updateDramp(b); continue; }
       const phase = b.kind === "kuri" ? (b.hp <= 5 ? 2 : (b.hp <= 10 ? 1 : 0)) : 0;
       let speed = b.speedBase + phase * 0.7;
       // こうよう：構え（windup）→ 突進（charging）＋ 四股（真上ジャンプ→着地でスタン）＋ 怒りモード
@@ -1878,6 +1937,156 @@
     const vy0 = (BOSS_GROUND - sy - 0.5*g*T*T) / T;   // T フレームで地面に落ちる山なり
     cukes.push({ kind: "lob", x: sx, y: sy, vx: (tx - sx)/T, vy: vy0, t: 0, markX: tx });
     sfx.seed();
+  }
+
+  // ===== ドランプ大統領（ステージ7・アメリカ）＝2段階ボス =====
+  function spawnDrampSPs() {
+    sps = [];
+    const xs = [W*0.25, W*0.5, W*0.75];
+    for (let i = 0; i < 3; i++) {
+      sps.push({ x: xs[i] - 16, y: BOSS_GROUND - 44, w: 32, h: 44, vx: (i % 2 ? 1 : -1) * 1.5, vy: 0, onGround: false, face: 1,
+        alive: true, dyingT: 0, t: Math.random()*30, squash: 1, invuln: 0, hurtFlash: 0,
+        shootCd: 50 + i*28 + Math.floor(Math.random()*40) });
+    }
+  }
+  function spawnBullet(s) {
+    const p = player;
+    const dir = (p.x + p.w/2 < s.x + s.w/2) ? -1 : 1;
+    s.face = dir;
+    cukes.push({ kind: "bullet", x: s.x + s.w/2 + dir*16, y: s.y + 14, vx: dir * 6.4, t: 0 });
+    beep(520, 0.04, "square", 0.05);
+  }
+  function updateDrampSPs() {
+    const p = player;
+    for (const s of sps) {
+      if (!s.alive) { s.dyingT++; s.squash += (0.2 - s.squash) * 0.2; continue; }
+      s.t++;
+      if (s.invuln > 0) s.invuln--;
+      if (s.hurtFlash > 0) s.hurtFlash--;
+      s.squash += (1 - s.squash) * 0.2;
+      s.x += s.vx;
+      if (s.x < 16) { s.x = 16; s.vx = Math.abs(s.vx); }
+      if (s.x + s.w > W - 16) { s.x = W - 16 - s.w; s.vx = -Math.abs(s.vx); }
+      s.face = (p.x + p.w/2 < s.x + s.w/2) ? -1 : 1;
+      s.vy += GRAVITY; if (s.vy > 18) s.vy = 18;
+      s.y += s.vy; s.onGround = false;
+      for (const sol of solids) if (rectHit(s, sol) && s.vy > 0 && (s.y + s.h) - sol.y < 42) { s.y = sol.y - s.h; s.vy = 0; s.onGround = true; }
+      s.shootCd--;
+      if (s.shootCd <= 0 && s.onGround) { spawnBullet(s); s.shootCd = 80 + Math.floor(Math.random()*70); }
+      if (rectHit(p, s)) {
+        const fromAbove = p.vy > 0 && (p.y + p.h) - s.y < s.h * 0.6 + Math.max(0, p.vy);
+        if (fromAbove) {
+          s.alive = false; s.dyingT = 0; s.squash = 0.3; sfx.stomp(); score += 300;
+          spawnParticles(s.x + s.w/2, s.y + s.h*0.3, "#222", 12);
+          const timed = jumpKey() || jumpBuffer > 0; p.vy = timed ? -15 : -10; p.bounceLock = 12; jumpBuffer = 0; p.squash = 0.7; p.invuln = Math.max(p.invuln, 8);
+        } else if (p.invuln <= 0) hurtPlayer();
+      }
+      // タネは防弾チョッキで効かない（消えるだけ）
+      for (const sd of seeds) if (rectHit({ x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 }, s)) { sd.life = 0; spawnParticles(sd.x, sd.y, "#cfcfcf", 4); beep(280, 0.03, "square", 0.05); break; }
+    }
+  }
+  function updateDramp(b) {
+    if (b.phase === 1) {
+      const p = player;
+      // ドランプは演壇の上（無敵）。左右にゆれてまるりんの方を向く。
+      b.face = (p.x + p.w/2 < b.x + b.w/2) ? -1 : 1;
+      b.x = b.balconyX + Math.sin(b.t * 0.03) * 12;
+      b.y = b.balconyY; b.onGround = true; b.invuln = 5;   // 無敵
+      updateDrampSPs();
+      if (sps.length && sps.every(s => !s.alive && s.dyingT > 24)) startDrampPhase2(b);
+      return;
+    }
+    updateDrampPhase2(b);
+  }
+  function startDrampPhase2(b) {
+    drampPhase2 = true;
+    b.phase = 2; b.reachable = true; b.invuln = 40;
+    b.x = W/2 - b.w/2; b.y = BOSS_GROUND - b.h; b.vx = 0; b.vy = 0; b.onGround = true;
+    b.mode = "idle"; b.actCd = 46; b.missileT = 1800; b.doomT = 0;   // 30秒（60fps×30）
+    sps = [];
+    screenShake = 22;
+    sfx.stomp(); beep(70, 0.45, "sawtooth", 0.14);   // ミサイルボタンのブザー
+  }
+  function chooseDrampAttack(b) {
+    const p = player; b.face = (p.x + p.w/2 < b.x + b.w/2) ? -1 : 1;
+    const r = Math.random();
+    if (r < 0.27)      { b.mode = "burgerwind"; b.windup = 16; }
+    else if (r < 0.51) { b.mode = "golfwind";   b.windup = 16; }
+    else if (r < 0.75) { b.mode = "jetwind";    b.windup = 18; }
+    else               { b.mode = "chargewind"; b.windup = 16; b.chargeDir = b.face; }
+  }
+  function endDrampAttack(b) { b.mode = "idle"; b.windup = 0; b.actCd = (b.raging ? 26 : 50) + Math.floor(Math.random()*36); }
+  function spawnGolf(b) {
+    const dir = b.face;
+    cukes.push({ kind: "golf", x: b.x + b.w/2 + dir*24, y: BOSS_GROUND - 10, vx: dir * (b.raging ? 8.6 : 7), t: 0, rot: 0 });
+    beep(720, 0.05, "square", 0.05);
+    spawnParticles(b.x + b.w/2 + dir*24, BOSS_GROUND - 6, "#ffffff", 4);
+  }
+  function spawnJet(b) {
+    const p = player;
+    const fromLeft = Math.random() < 0.5;
+    jets.push({ x: fromLeft ? -70 : W + 70, y: 102 + Math.random()*22, vx: fromLeft ? 7 : -7,
+      dropX: Math.max(44, Math.min(W - 44, p.x + p.w/2)), dropped: false, t: 0 });
+    beep(300, 0.3, "sawtooth", 0.08);
+  }
+  function updateJets() {
+    for (const j of jets) {
+      j.t++; j.x += j.vx;
+      if (!j.dropped && ((j.vx > 0 && j.x >= j.dropX) || (j.vx < 0 && j.x <= j.dropX))) {
+        j.dropped = true;
+        cukes.push({ kind: "bomb", x: j.x, y: j.y + 12, vx: 0, vy: 1.6, t: 0, markX: j.dropX });
+      }
+      if (j.x < -90 || j.x > W + 90) j.dead = true;
+    }
+    jets = jets.filter(j => !j.dead);
+  }
+  function drampMissileHit(b) {
+    b.doomT = 60;
+    screenShake = 30;
+    cukes.push({ kind: "missile", x: player.x + player.w/2, y: -50, vx: 0, vy: 8.5, t: 0 });
+    beep(60, 0.7, "sawtooth", 0.16);
+  }
+  function updateDrampPhase2(b) {
+    const p = player;
+    if (b.doomT > 0) { b.doomT--; if (b.doomT === 0) killPlayer(); updateJets(); return; }
+    b.missileT--;
+    if (b.missileT <= 0) { drampMissileHit(b); return; }
+    const raging = b.hp <= 1; b.raging = raging;
+    const pcx = p.x + p.w/2, bcx = b.x + b.w/2;
+    b.runup = (b.mode === "charge" || b.mode === "chargewind") ? b.runup + 1 : 0;
+
+    if (b.mode === "idle") {
+      b.face = pcx < bcx ? -1 : 1;
+      const target = pcx < bcx ? pcx + 200 : pcx - 200;
+      if (Math.abs(bcx - target) > 10) b.x += Math.sign(target - bcx) * (raging ? 2.5 : 1.8);
+      b.actCd--; if (b.actCd <= 0 && b.onGround) chooseDrampAttack(b);
+    } else if (b.mode === "burgerwind") {
+      b.windup--; if (b.windup <= 0) { throwCuke(b); b.mode = "rec"; b.windup = 16; }
+    } else if (b.mode === "golfwind") {
+      b.windup--; if (b.windup <= 0) { spawnGolf(b); b.mode = "rec"; b.windup = 18; }
+    } else if (b.mode === "jetwind") {
+      b.windup--; if (b.windup <= 0) { spawnJet(b); b.mode = "rec"; b.windup = 28; }
+    } else if (b.mode === "chargewind") {
+      b.face = b.chargeDir; b.windup--; if (b.windup <= 0) { b.mode = "charge"; b.chargeT = raging ? 72 : 56; }
+    } else if (b.mode === "charge") {
+      b.face = b.chargeDir; b.x += b.chargeDir * (raging ? 8.4 : 6.8); b.chargeT--;
+      if (b.chargeT <= 0) { b.mode = "rec"; b.windup = 22; }
+    } else if (b.mode === "rec") {
+      b.windup--; if (b.windup <= 0) endDrampAttack(b);
+    }
+    if (b.x < 16) { b.x = 16; if (b.mode === "charge") b.chargeDir = 1; }
+    if (b.x + b.w > W - 16) { b.x = W - 16 - b.w; if (b.mode === "charge") b.chargeDir = -1; }
+    b.vy += GRAVITY; if (b.vy > 18) b.vy = 18; b.y += b.vy; b.onGround = false;
+    for (const s of solids) if (rectHit(b, s) && b.vy > 0 && (b.y + b.h) - s.y < 42) { b.y = s.y - b.h; b.vy = 0; b.onGround = true; }
+    if (rectHit(p, b)) {
+      const fromAbove = p.vy > 0 && (p.y + p.h) - b.y < b.h * 0.55 + Math.max(0, p.vy);
+      if (fromAbove) {
+        if (b.invuln <= 0) damageBoss(b, false);
+        const timed = jumpKey() || jumpBuffer > 0; p.vy = timed ? -15 : -10; p.bounceLock = 12; jumpBuffer = 0; p.squash = 0.7; p.invuln = Math.max(p.invuln, 8);
+      } else if (p.invuln <= 0) hurtPlayer();
+    }
+    if (b.invuln <= 0) for (const sd of seeds) if (rectHit({ x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 }, b)) { damageBoss(b, true); sd.life = 0; break; }
+    updateJets();
   }
 
   // ザガット（ステージ5ボス）：立ち位置は右。タイガーショット（上段）／グランドタイガーショット（下段）を
@@ -2553,7 +2762,9 @@
     drawEnemies();
     drawBalls();
     drawBarrels();
+    if (jets.length) drawJets();
     if (bosses.length) drawBosses();
+    if (sps.length) drawDrampSPs();
     drawCukes();
     drawHazards();
     drawParticles();
@@ -2562,6 +2773,7 @@
     ctx.restore();
 
     drawHUD();
+    if (inBoss && bosses[0] && bosses[0].kind === "dramp" && bosses[0].phase === 2 && bosses[0].alive) drawMissileTimer(bosses[0]);
 
     if (state === "pause")      drawCenterText("ポーズ中", "Pキーで再開");
     if (state === "gameover")   drawGameOver();
@@ -3281,6 +3493,9 @@
       if (e.kind === "sardine") { drawSardine(e); continue; }
       if (e.kind === "octopus") { drawOctopus(e); continue; }
       if (e.kind === "gator") { drawGator(e); continue; }
+      if (e.kind === "eagle") { drawEagle(e); continue; }
+      if (e.kind === "football") { drawFootball(e); continue; }
+      if (e.kind === "bison") { drawBison(e); continue; }
       ctx.save();
       const cx = e.x + e.w/2, by = e.y + e.h;
       ctx.translate(cx, by);
@@ -3328,6 +3543,7 @@
     if (STAGES[stageIndex].boss === "mega") { drawDeepSeaBackdrop(); return; }
     if (STAGES[stageIndex].boss === "zagat") { drawZagatBackdrop(); return; }
     if (STAGES[stageIndex].boss === "clovis") { drawPitchBackdrop(); return; }
+    if (STAGES[stageIndex].boss === "dramp") { drawWhiteHouseBackdrop(); return; }
     if (STAGES[stageIndex].boss !== "penguins") return;
     // 奥の壁と柱
     ctx.fillStyle = "#cdd9e4"; ctx.fillRect(0, 150, W, 130);
@@ -3372,6 +3588,23 @@
     for (let y = 220; y < 268; y += 12) { ctx.beginPath(); ctx.moveTo(W/2 - 88, y); ctx.lineTo(W/2 + 88, y); ctx.stroke(); }
   }
 
+  // ドランプ戦の背景：ホワイトハウスの正面
+  function drawWhiteHouseBackdrop() {
+    const gy = BOSS_GROUND, x = W/2;
+    ctx.fillStyle = "#f2f2ec"; ctx.fillRect(x - 190, gy - 140, 380, 140);
+    ctx.fillStyle = "#e6e6dc"; ctx.fillRect(x - 190, gy - 140, 380, 8);
+    ctx.fillStyle = "#f8f8f2"; ctx.fillRect(x - 58, gy - 176, 116, 176);
+    ctx.fillStyle = "#eeeee6"; ctx.beginPath(); ctx.moveTo(x - 66, gy - 176); ctx.lineTo(x, gy - 208); ctx.lineTo(x + 66, gy - 176); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.strokeStyle = "#dcdcd0"; ctx.lineWidth = 1;
+    for (let i = -3; i <= 3; i++) { ctx.fillRect(x + i*17 - 3, gy - 176, 7, 176); ctx.strokeRect(x + i*17 - 3, gy - 176, 7, 176); }
+    ctx.fillStyle = "#eeeee6"; ctx.beginPath(); ctx.arc(x, gy - 176, 26, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = "#c9b46a"; ctx.beginPath(); ctx.arc(x, gy - 202, 6, 0, 7); ctx.fill();
+    ctx.fillStyle = "#3a5a7a";
+    for (let i = 0; i < 5; i++) { ctx.fillRect(x - 178 + i*22, gy - 100, 11, 22); ctx.fillRect(x + 84 + i*20, gy - 100, 11, 22); }
+    ctx.fillStyle = "#2b4a6a"; ctx.fillRect(x - 10, gy - 40, 20, 40);   // ドア
+    usFlag(x + 158, gy - 206);
+  }
+
   // ボスの描画（種類ごとに振り分け）
   function drawBosses() {
     for (const b of bosses) {
@@ -3388,7 +3621,26 @@
   // ドランプ大統領（アメリカ・パロディのカリカチュア）
   function drawDrampBoss(b) {
     const cx = b.x + b.w/2, footY = b.y + b.h;
-    ctx.fillStyle = "rgba(0,0,0,0.18)"; ctx.beginPath(); ctx.ellipse(cx, footY, 30, 6, 0, 0, 7); ctx.fill();
+    if (b.phase === 1) {
+      // 演壇（バルコニー）＋手すり＋星条旗の垂れ幕
+      ctx.fillStyle = "#d8d8cc"; ctx.fillRect(cx - 60, footY, 120, 42);
+      ctx.fillStyle = "#c2c2b4"; ctx.fillRect(cx - 60, footY, 120, 6);
+      ctx.fillStyle = "#eeeee6"; ctx.fillRect(cx - 60, footY + 8, 120, 5);
+      for (let i = -55; i < 60; i += 12) ctx.fillRect(cx + i, footY + 8, 3, 24);
+      ctx.fillStyle = "#2b4aa0"; ctx.fillRect(cx - 42, footY + 5, 22, 20);
+      ctx.fillStyle = "#e0323a"; for (let i = 0; i < 3; i++) ctx.fillRect(cx - 18, footY + 5 + i*7, 54, 3.5);
+    } else {
+      ctx.fillStyle = "rgba(0,0,0,0.18)"; ctx.beginPath(); ctx.ellipse(cx, footY, 30, 6, 0, 0, 7); ctx.fill();
+      if (b.raging && b.alive) {
+        ctx.save();
+        const pl = 0.5 + 0.5 * Math.sin(b.t * 0.3);
+        ctx.globalAlpha = 0.22 + pl * 0.18; ctx.fillStyle = "#ff5a4a";
+        ctx.beginPath(); ctx.ellipse(cx, footY - 46, 40, 56, 0, 0, 7); ctx.fill();
+        ctx.restore();
+        ctx.font = "20px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText("💢", cx + b.face * 28, footY - 92);
+      }
+    }
     ctx.save();
     if (b.hurtFlash > 0 && Math.floor(b.hurtFlash/4) % 2 === 0) ctx.globalAlpha = 0.4;
     ctx.translate(cx, footY); ctx.scale(1, Math.max(0.15, b.squash)); ctx.translate(-cx, -footY);
@@ -3427,6 +3679,65 @@
     ctx.quadraticCurveTo(cx - 8, footY - 88 + bob, cx - 15, footY - 82 + bob);
     ctx.closePath(); ctx.fill();
     ctx.restore();
+    ctx.restore();
+  }
+
+  // ドランプのSP（護衛・黒服サングラス・拳銃）
+  function drawDrampSPs() {
+    for (const s of sps) {
+      if (s.x + s.w < camX - 40 || s.x > camX + W + 40) continue;
+      const cx = s.x + s.w/2, footY = s.y + s.h;
+      ctx.fillStyle = "rgba(0,0,0,0.18)"; ctx.beginPath(); ctx.ellipse(cx, footY, 15, 4, 0, 0, 7); ctx.fill();
+      ctx.save();
+      if (s.hurtFlash > 0 && Math.floor(s.hurtFlash/4) % 2 === 0) ctx.globalAlpha = 0.4;
+      ctx.translate(cx, footY); ctx.scale(1, Math.max(0.2, s.squash)); ctx.translate(-cx, -footY);
+      ctx.save(); ctx.translate(cx, footY); ctx.scale(s.face, 1); ctx.translate(-cx, -footY);
+      ctx.fillStyle = "#1a1a1f"; ctx.fillRect(cx - 8, footY - 16, 7, 16); ctx.fillRect(cx + 1, footY - 16, 7, 16);
+      ctx.fillStyle = "#111"; ctx.beginPath(); ctx.ellipse(cx - 5, footY - 1, 6, 3, 0, 0, 7); ctx.ellipse(cx + 5, footY - 1, 6, 3, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#23242a"; roundRectPath(cx - 11, footY - 38, 22, 24, 4); ctx.fill();
+      ctx.fillStyle = "#e8e8e8"; ctx.beginPath(); ctx.moveTo(cx - 4, footY - 38); ctx.lineTo(cx + 4, footY - 38); ctx.lineTo(cx + 3, footY - 18); ctx.lineTo(cx - 3, footY - 18); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#111"; ctx.fillRect(cx - 1.5, footY - 38, 3, 18);
+      // 腕＋拳銃（前方）
+      ctx.fillStyle = "#23242a"; ctx.fillRect(cx + 9, footY - 36, 6, 14);
+      ctx.fillStyle = "#333"; ctx.fillRect(cx + 14, footY - 27, 11, 4); ctx.fillRect(cx + 14, footY - 25, 4, 6);
+      ctx.fillStyle = "#23242a"; ctx.fillRect(cx - 15, footY - 36, 6, 16);
+      // 頭
+      ctx.fillStyle = "#d8a878"; ctx.beginPath(); ctx.arc(cx, footY - 46, 8, 0, 7); ctx.fill();
+      ctx.fillStyle = "#2a2a2e"; ctx.beginPath(); ctx.arc(cx, footY - 50, 8, Math.PI, 0); ctx.fill();   // 髪
+      ctx.fillStyle = "#111"; ctx.fillRect(cx - 7, footY - 48, 14, 4);   // サングラス
+      ctx.strokeStyle = "#888"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cx + 7, footY - 47); ctx.lineTo(cx + 9, footY - 40); ctx.stroke();   // イヤホン
+      ctx.restore(); ctx.restore();
+    }
+  }
+  // 戦闘機（ドランプ第2段階の空爆）
+  function drawJets() {
+    for (const j of jets) {
+      ctx.save(); ctx.translate(j.x, j.y);
+      const dir = j.vx > 0 ? 1 : -1; ctx.scale(dir, 1);
+      ctx.fillStyle = "rgba(255,150,40,0.7)"; ctx.beginPath(); ctx.moveTo(-26, -2); ctx.lineTo(-40, 0); ctx.lineTo(-26, 2); ctx.closePath(); ctx.fill();   // 噴射
+      ctx.fillStyle = "#5a6470"; ctx.beginPath(); ctx.moveTo(-26, 0); ctx.lineTo(20, -4); ctx.lineTo(30, 0); ctx.lineTo(20, 4); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#48505a"; ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(-18, 12); ctx.lineTo(2, 3); ctx.closePath(); ctx.fill();   // 主翼
+      ctx.beginPath(); ctx.moveTo(-24, -1); ctx.lineTo(-30, -12); ctx.lineTo(-18, -2); ctx.closePath(); ctx.fill();   // 尾翼
+      ctx.fillStyle = "#9fd0ee"; ctx.beginPath(); ctx.ellipse(12, -2, 5, 3, 0, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+  }
+  // ミサイル発射までのカウントダウンHUD（第2段階）
+  function drawMissileTimer(b) {
+    const sec = Math.max(0, Math.ceil(b.missileT / 60));
+    const warn = b.doomT > 0 || sec <= 5;
+    ctx.save();
+    const bw = 264, bx = W/2 - bw/2, by = 46;
+    ctx.fillStyle = "rgba(20,0,0,0.72)"; roundRectPath(bx, by, bw, 40, 8); ctx.fill();
+    ctx.strokeStyle = warn && Math.floor(elapsed/6) % 2 === 0 ? "#ff5a5a" : "#e0323a"; ctx.lineWidth = 2; roundRectPath(bx, by, bw, 40, 8); ctx.stroke();
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.font = "18px 'Segoe UI',sans-serif"; ctx.fillText("🚀", bx + 10, by + 20);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 13px 'Segoe UI',sans-serif"; ctx.fillText("ミサイル発射まで", bx + 34, by + 13);
+    const barW = bw - 90, frac = Math.max(0, b.missileT / 1800);
+    ctx.fillStyle = "#3a1010"; ctx.fillRect(bx + 34, by + 22, barW, 8);
+    ctx.fillStyle = sec <= 5 ? "#ff3a3a" : "#ffb020"; ctx.fillRect(bx + 34, by + 22, barW * frac, 8);
+    ctx.fillStyle = "#fff"; ctx.textAlign = "right"; ctx.font = "bold 22px 'Segoe UI',sans-serif"; ctx.fillText(sec + "", bx + bw - 12, by + 20);
+    if (b.doomT > 0) { ctx.fillStyle = "#ff3a3a"; ctx.textAlign = "center"; ctx.font = "bold 24px 'Segoe UI',sans-serif"; ctx.fillText("ミサイル発射！！", W/2, by + 62); }
     ctx.restore();
   }
 
@@ -3511,6 +3822,46 @@
         ctx.fillStyle = "#fffaf0"; ctx.beginPath(); ctx.ellipse(-2, -2, 3, 4.5, 0, 0, 7); ctx.fill();
         ctx.fillStyle = "rgba(196,176,138,0.5)";
         ctx.beginPath(); ctx.arc(2.5, 3, 1.3, 0, 7); ctx.arc(-3, 3.5, 1, 0, 7); ctx.arc(1, -4, 0.9, 0, 7); ctx.fill();
+        ctx.restore();
+        continue;
+      }
+      if (cu.kind === "bullet") {   // SPの銃弾
+        ctx.save(); ctx.translate(cu.x, cu.y);
+        ctx.fillStyle = "rgba(255,210,74,0.4)"; ctx.beginPath(); ctx.moveTo(-cu.vx*1.4, 0); ctx.lineTo(0, -3); ctx.lineTo(0, 3); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#f4c542"; ctx.beginPath(); ctx.ellipse(0, 0, 4, 2.4, 0, 0, 7); ctx.fill();
+        ctx.restore();
+        continue;
+      }
+      if (cu.kind === "golf") {   // ゴルフボール
+        ctx.fillStyle = "rgba(0,0,0,0.15)"; ctx.beginPath(); ctx.ellipse(cu.x, BOSS_GROUND + 1, 8, 3, 0, 0, 7); ctx.fill();
+        ctx.save(); ctx.translate(cu.x, cu.y); ctx.rotate(cu.rot || 0);
+        ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, 0, 8, 0, 7); ctx.fill();
+        ctx.strokeStyle = "#c9ccd2"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, 0, 8, 0, 7); ctx.stroke();
+        ctx.fillStyle = "#d8dbe0"; for (let i = 0; i < 5; i++) { const a = i*1.3; ctx.beginPath(); ctx.arc(Math.cos(a)*3.5, Math.sin(a)*3.5, 1, 0, 7); ctx.fill(); }
+        ctx.restore();
+        continue;
+      }
+      if (cu.kind === "bomb") {   // 爆弾＋着地マーカー
+        if (cu.y < BOSS_GROUND - 30) {
+          const pulse = 0.5 + 0.5 * Math.sin(cu.t * 0.3);
+          ctx.strokeStyle = "rgba(224,50,58," + (0.5 + pulse*0.4) + ")"; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.ellipse(cu.markX, BOSS_GROUND - 3, 16, 6, 0, 0, 7); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(cu.markX - 9, BOSS_GROUND - 3); ctx.lineTo(cu.markX + 9, BOSS_GROUND - 3); ctx.moveTo(cu.markX, BOSS_GROUND - 11); ctx.lineTo(cu.markX, BOSS_GROUND + 5); ctx.stroke();
+        }
+        ctx.save(); ctx.translate(cu.x, cu.y);
+        ctx.fillStyle = "#2a2e35"; ctx.beginPath(); ctx.arc(0, 0, 8, 0, 7); ctx.fill();
+        ctx.fillStyle = "#4a4f58"; ctx.beginPath(); ctx.arc(-2.5, -2.5, 3, 0, 7); ctx.fill();
+        ctx.fillStyle = "#7a5a2a"; ctx.fillRect(-1.5, -12, 3, 5);
+        ctx.fillStyle = "#ffb020"; ctx.beginPath(); ctx.arc(0, -13, 2 + Math.sin(cu.t*0.6), 0, 7); ctx.fill();
+        ctx.restore();
+        continue;
+      }
+      if (cu.kind === "missile") {   // ミサイル
+        ctx.save(); ctx.translate(cu.x, cu.y);
+        ctx.fillStyle = "rgba(255,140,30,0.7)"; ctx.beginPath(); ctx.moveTo(-4, -16); ctx.lineTo(0, -16 - 14 - Math.random()*6); ctx.lineTo(4, -16); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#d0d5da"; roundRectPath(-5, -16, 10, 26, 4); ctx.fill();
+        ctx.fillStyle = "#e0323a"; ctx.beginPath(); ctx.moveTo(-5, 10); ctx.lineTo(0, 20); ctx.lineTo(5, 10); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#e0323a"; ctx.fillRect(-8, -4, 3, 7); ctx.fillRect(5, -4, 3, 7);
         ctx.restore();
         continue;
       }
@@ -3689,6 +4040,95 @@
     for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(18 + i*4, -7); ctx.lineTo(19.5 + i*4, -4.5); ctx.lineTo(21 + i*4, -7); ctx.closePath(); ctx.fill(); }
     // 目
     if (e.alive) { ctx.fillStyle = "#f4e04a"; ctx.beginPath(); ctx.arc(13, -15, 3.2, 0, 7); ctx.fill(); ctx.fillStyle = "#111"; ctx.fillRect(12.2, -16.5, 1.5, 3.6); }
+    ctx.restore();
+  }
+
+  // ハクトウワシ（アメリカ・飛ぶ）
+  function drawEagle(e) {
+    ctx.save();
+    const cx = e.x + e.w/2, cy = e.y + e.h/2;
+    ctx.translate(cx, cy);
+    if (!e.alive) { ctx.scale(1.1, 0.3); ctx.globalAlpha = 0.7; }
+    const dir = e.vx > 0 ? 1 : -1;
+    const flap = Math.sin(e.t*0.3)*11;
+    // 翼（茶）
+    ctx.fillStyle = "#6b4a2a";
+    ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(-22, -2 - flap); ctx.lineTo(-4, 7); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(22, -2 - flap); ctx.lineTo(4, 7); ctx.closePath(); ctx.fill();
+    // 尾（白）
+    ctx.fillStyle = "#f2f2ee"; ctx.beginPath(); ctx.moveTo(-dir*9, 0); ctx.lineTo(-dir*20, 5); ctx.lineTo(-dir*9, 8); ctx.closePath(); ctx.fill();
+    // 体（茶）
+    ctx.fillStyle = "#7a5230"; ctx.beginPath(); ctx.ellipse(0, 1, 13, 9, 0, 0, 7); ctx.fill();
+    // 頭（白）
+    ctx.fillStyle = "#f4f4ef"; ctx.beginPath(); ctx.arc(dir*11, -5, 7, 0, 7); ctx.fill();
+    // くちばし（黄・カギ状）
+    ctx.fillStyle = "#f0a51e"; ctx.beginPath(); ctx.moveTo(dir*16, -6); ctx.lineTo(dir*27, -3); ctx.lineTo(dir*24, -1); ctx.lineTo(dir*16, -2); ctx.closePath(); ctx.fill();
+    if (e.alive) {
+      ctx.fillStyle = "#f4c542"; ctx.beginPath(); ctx.arc(dir*10, -6, 2.6, 0, 7); ctx.fill();
+      ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(dir*11, -6, 1.3, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+  // アメフト選手（アメリカ・速い突進）
+  function drawFootball(e) {
+    ctx.save();
+    const cx = e.x + e.w/2, by = e.y + e.h;
+    ctx.translate(cx, by);
+    if (!e.alive) { ctx.scale(1.1, 0.25); ctx.globalAlpha = 0.7; }
+    const dir = e.vx > 0 ? 1 : -1;
+    ctx.scale(dir, 1);
+    const run = Math.sin(e.t*0.4)*3;
+    // 脚
+    ctx.fillStyle = "#f2f2f2";
+    ctx.fillRect(-9, -14, 7, 14 + run); ctx.fillRect(3, -14, 7, 14 - run);
+    ctx.fillStyle = "#222"; ctx.fillRect(-9, -2, 7, 3); ctx.fillRect(3, -2, 7, 3);   // 靴
+    // ユニフォーム（濃紺＋番号）
+    ctx.fillStyle = "#1f3a6a"; roundRectPath(-14, -40, 28, 28, 5); ctx.fill();
+    // 肩パッド
+    ctx.fillStyle = "#2b4d86"; ctx.fillRect(-18, -40, 8, 10); ctx.fillRect(10, -40, 8, 10);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 11px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.save(); ctx.scale(dir, 1); ctx.fillText("7", 0, -26); ctx.restore();
+    // 腕＋ボール
+    ctx.fillStyle = "#1f3a6a"; ctx.fillRect(-20, -36, 7, 18);
+    ctx.fillStyle = "#8a4a26"; ctx.beginPath(); ctx.ellipse(-22, -18, 8, 5, 0.3, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-26, -18); ctx.lineTo(-18, -18); ctx.stroke();
+    // ヘルメット
+    ctx.fillStyle = "#d8232a"; ctx.beginPath(); ctx.arc(0, -48, 10, 0, 7); ctx.fill();
+    ctx.fillStyle = "#b01d24"; ctx.fillRect(-10, -49, 20, 4);
+    if (e.alive) { ctx.strokeStyle = "#eee"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(6, -50); ctx.lineTo(11, -46); ctx.moveTo(6, -46); ctx.lineTo(11, -44); ctx.stroke(); }  // フェイスマスク
+    ctx.restore();
+  }
+  // バッファロー（アメリカ西部・大きい）
+  function drawBison(e) {
+    ctx.save();
+    const cx = e.x + e.w/2, by = e.y + e.h;
+    ctx.translate(cx, by);
+    if (!e.alive) { ctx.scale(1.05, 0.25); ctx.globalAlpha = 0.7; }
+    const dir = e.vx > 0 ? 1 : -1;
+    ctx.scale(dir, 1);
+    const wob = Math.sin(e.t*0.2)*1.5;
+    // 脚
+    ctx.fillStyle = "#3a2a1c";
+    ctx.fillRect(-16, -12, 6, 12); ctx.fillRect(-4, -12, 6, 12); ctx.fillRect(8, -12, 6, 12); ctx.fillRect(18, -12, 5, 12);
+    // 胴（濃茶・後ろが低くお尻）
+    ctx.fillStyle = "#5a3f28"; ctx.beginPath(); ctx.ellipse(-4, -20, 22, 13, 0, 0, 7); ctx.fill();
+    // 肩の盛り上がり（バイソンの特徴）
+    ctx.fillStyle = "#6b4a2e"; ctx.beginPath(); ctx.ellipse(10, -26, 12, 12, 0, 0, 7); ctx.fill();
+    // もふもふ前脚まわり
+    ctx.fillStyle = "#4a3320"; ctx.beginPath(); ctx.ellipse(12, -14, 10, 8, 0, 0, 7); ctx.fill();
+    // 頭（下向き・毛むくじゃら）
+    ctx.fillStyle = "#3f2c1c"; ctx.beginPath(); ctx.ellipse(24, -14, 9, 10, 0, 0, 7); ctx.fill();
+    // 角
+    ctx.strokeStyle = "#d8cbb0"; ctx.lineWidth = 3; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(22, -22); ctx.quadraticCurveTo(30, -24, 31, -18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(26, -22); ctx.quadraticCurveTo(33, -22, 33, -16); ctx.stroke();
+    // 目・鼻
+    if (e.alive) {
+      ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(26, -16, 1.6, 0, 7); ctx.fill();
+      ctx.fillStyle = "#2a1c12"; ctx.beginPath(); ctx.ellipse(31, -10, 3, 4, 0, 0, 7); ctx.fill();
+    }
+    // 息（怒りの鼻息）
+    if (e.alive && Math.sin(e.t*0.15) > 0.6) { ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.beginPath(); ctx.arc(35 + wob, -10, 3, 0, 7); ctx.fill(); }
     ctx.restore();
   }
 
