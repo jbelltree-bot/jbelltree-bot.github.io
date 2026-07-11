@@ -268,7 +268,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 6.15 (2026-07-08)";
+  const GAME_VERSION = "ver 6.18 (2026-07-08)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -2230,7 +2230,7 @@
         break;
       case "dwind":
         moveCursor();
-        if (pk.t > 21) {   // 予備動作の長さ＝反応できる時間（合図pk.t>11〜ここ＝約10フレーム。ver6.14で25→21）
+        if (pk.t > 22) {   // 予備動作の長さ＝反応できる時間（合図pk.t>10〜ここ＝約12フレーム。ver6.17で21→22＋予備動作を大きく）
           pk.dive = pk.cursor;
           pk.sub = "dshot"; pk.t = 0;
           pk.ball.fly = true;
@@ -2296,12 +2296,22 @@
   const STORY_GROUND = 300;   // ムービー内の地面の高さ
   const STORIES = {
     1: {   // ステージ2「南流山」の前
+      bgm: 0,   // ステージ1のBGM
       scenes: [
         { dur: 220, act: sceneReturn,  lines: ["くさはらの おさんぽから、", "まるりんが おうちに かえって きました。"] },
         { dur: 240, act: sceneEmpty,   lines: ["あれ？ だいすきな そーちゃんと", "しーちゃんが いません……。"] },
         { dur: 210, act: sceneSetOut,  lines: ["ふたりを さがして、まるりんは", "ぼうけんに でることに しました。"] },
         { dur: 260, act: sceneRampage, lines: ["でも どうしてか、まちの みんなが", "きょうぼうに なって おそって きます！"] },
         { dur: 230, act: sceneCliff,   lines: ["まるりんは ぶじに ふたりに", "あえるのでしょうか——？"] }
+      ]
+    },
+    3: {   // ステージ4「ハワイ」の前（成田空港から世界へ飛び立つ）
+      bgm: 2,   // 成田（ステージ3）のBGM
+      scenes: [
+        { dur: 210, act: sceneAirport, lines: ["にほんじゅうを さがしても、", "そーちゃんと しーちゃんは みつかりません。"] },
+        { dur: 220, act: sceneDecide,  lines: ["ふたりは にほんに いないのかも。", "せかいへ さがしに いこう！"] },
+        { dur: 210, act: sceneTakeoff, lines: ["まるりんは ひこうきに のって、", "せかいへ とびたちました！"] },
+        { dur: 240, act: sceneOcean,   lines: ["うみを こえて、", "あたらしい くにへ——！"] }
       ]
     }
   };
@@ -2317,7 +2327,10 @@
     p.powerAnim = 0; p.gliding = false; p.glideUsed = false;
     particles = [];
     cutsceneActive = true;
+    // ストーリー中はそのストーリー指定のBGM（無ければステージ1）を流す
+    const bi = STORIES[key].bgm ?? 0;
     stopBGM();
+    try { bgm = BGM[bi]; BGM[bi].currentTime = 0; BGM[bi].play().catch(() => {}); } catch (e) {}
     document.body.classList.add("storymode");
     state = "story";
   }
@@ -2336,6 +2349,7 @@
     p.invuln = 90;
     story = null; cutsceneActive = false;
     document.body.classList.remove("storymode");
+    elapsed = 0;                       // ステージ名バナー（elapsed<150）を出すためリセット
     stageBgm().currentTime = 0; startBGM();
     state = "play";
   }
@@ -3712,8 +3726,8 @@
     let lean = 0, kickLeg = 0, runup = 0;
     if (pk.sub === "dready") runup = pk.t;
     // ヒントは「けり出す直前」に「ほんの少しだけ」出す（早くから方向が丸わかりにならない＝難しく）
-    if (pk.sub === "dwind" && pk.t > 11) lean = (pk.kickerDir - 1) * 0.12;   // 蹴る方向の予備動作（ver6.13で13→11＝少し早く見せる）
-    if (pk.sub === "dshot" || pk.sub === "dres") { kickLeg = 1; lean = (pk.kickerDir - 1) * 0.12; }
+    if (pk.sub === "dwind" && pk.t > 10) lean = (pk.kickerDir - 1) * 0.22;   // 蹴る方向の予備動作（ver6.17で早く＆大きく＝読みやすく）
+    if (pk.sub === "dshot" || pk.sub === "dres") { kickLeg = 1; lean = (pk.kickerDir - 1) * 0.22; }
     pkDrawClovis(PKX.spotX - 30, 404, { lean, kickLeg, runup });
   }
   function drawMaruKicker() {
@@ -5451,14 +5465,29 @@
     }
     ctx.restore();
   }
-  function storyCushion(cx, y, color, label) {
-    ctx.fillStyle = "rgba(0,0,0,0.12)"; ctx.beginPath(); ctx.ellipse(cx, y + 2, 30, 7, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(cx, y - 6, 30, 12, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = "#fff8e6"; ctx.fillRect(cx - 15, y - 48, 30, 22);
-    ctx.strokeStyle = "#c9a15a"; ctx.lineWidth = 2; ctx.strokeRect(cx - 15, y - 48, 30, 22);
-    ctx.fillStyle = "#a5824c"; ctx.fillRect(cx - 2, y - 26, 4, 14);
-    ctx.fillStyle = "#5a4632"; ctx.font = "bold 15px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(label, cx, y - 37);
+  // いない子を表す「点線の男の子のシルエット」
+  function storyMissingKid(cx, groundY, label) {
+    ctx.save();
+    ctx.setLineDash([5, 4]);
+    ctx.lineWidth = 2.2; ctx.lineJoin = "round"; ctx.lineCap = "round";
+    ctx.strokeStyle = "rgba(255,255,255,0.72)";
+    ctx.fillStyle = "rgba(255,255,255,0.06)";
+    const headR = 11, headCy = groundY - 66;   // 子供らしく少し小さめ（ver6.17）
+    // 頭
+    ctx.beginPath(); ctx.arc(cx, headCy, headR, 0, 7); ctx.fill(); ctx.stroke();
+    // 胴（少しふっくら）
+    const tTop = headCy + headR + 2, tBot = groundY - 24, tw = 24;
+    ctx.beginPath(); roundRectPath(cx - tw/2, tTop, tw, tBot - tTop, 8); ctx.fill(); ctx.stroke();
+    // 腕
+    ctx.beginPath(); ctx.moveTo(cx - tw/2 + 2, tTop + 5); ctx.lineTo(cx - tw/2 - 9, tTop + 22); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + tw/2 - 2, tTop + 5); ctx.lineTo(cx + tw/2 + 9, tTop + 22); ctx.stroke();
+    // 脚
+    ctx.beginPath(); ctx.moveTo(cx - 7, tBot); ctx.lineTo(cx - 8, groundY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 7, tBot); ctx.lineTo(cx + 8, groundY); ctx.stroke();
+    ctx.restore();
+    // 名前（点線の下に小さく）
+    ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.font = "12px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(label, cx, groundY + 14);
   }
   function storyDust(x, y, f) {
     ctx.fillStyle = "rgba(205,185,145,0.55)";
@@ -5500,8 +5529,8 @@
     ctx.fillStyle = "#e7d6b2"; ctx.beginPath(); ctx.arc(560, 92, 20, 0, 7); ctx.fill();
     ctx.strokeStyle = "#a2865c"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(560, 92, 20, 0, 7); ctx.stroke();
     ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(560, 92); ctx.lineTo(560, 80); ctx.moveTo(560, 92); ctx.lineTo(569, 96); ctx.stroke();
-    storyCushion(300, STORY_GROUND - 2, "#7cc0e8", "そ");
-    storyCushion(500, STORY_GROUND - 2, "#8fd08a", "し");
+    storyMissingKid(280, STORY_GROUND, "そーちゃん");
+    storyMissingKid(520, STORY_GROUND, "しーちゃん");
     const face = Math.sin(f * 0.05) < 0 ? -1 : 1;
     storyMaru(400, STORY_GROUND, face, false);
     const qx = 400 + face * 24, qy = STORY_GROUND - 44 + Math.sin(f * 0.18) * 2;
@@ -5557,6 +5586,158 @@
     storyMaru(340, STORY_GROUND, 1, false);
     ctx.fillStyle = "#fff"; ctx.font = "bold 22px 'Segoe UI',sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
     ctx.fillText("…？", 366, STORY_GROUND - 42);
+  }
+
+  // ===== ストーリー：成田空港から飛行機で世界へ（ステージ4ハワイの前）=====
+  function storyCloud(x, y, s) {
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    ctx.beginPath();
+    ctx.ellipse(x, y, 26*s, 16*s, 0, 0, 7);
+    ctx.ellipse(x - 22*s, y + 6*s, 18*s, 12*s, 0, 0, 7);
+    ctx.ellipse(x + 22*s, y + 6*s, 20*s, 13*s, 0, 0, 7);
+    ctx.fill();
+  }
+  function storyClouds(f, speed) {
+    const xs = [100, 340, 560, 730], ys = [70, 140, 210, 100], ss = [1, 0.7, 1.1, 0.8];
+    for (let i = 0; i < 4; i++) {
+      let x = xs[i] - (f * speed) % (W + 140);
+      if (x < -140) x += W + 140;
+      storyCloud(x, ys[i], ss[i]);
+    }
+  }
+  // 飛行機（右向き・胴体中心cx,cy）
+  function storyPlaneBody(cx, cy, sc) {
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(sc, sc);
+    // 尾翼（垂直＋水平）
+    ctx.fillStyle = "#e0554f";
+    ctx.beginPath(); ctx.moveTo(-58, -4); ctx.lineTo(-86, -30); ctx.lineTo(-66, -2); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-58, 0); ctx.lineTo(-84, -4); ctx.lineTo(-60, 6); ctx.closePath(); ctx.fill();
+    // 奥の主翼
+    ctx.fillStyle = "#c2ccd5"; ctx.beginPath(); ctx.moveTo(2, 4); ctx.lineTo(-26, 30); ctx.lineTo(22, 8); ctx.closePath(); ctx.fill();
+    // 胴体
+    ctx.fillStyle = "#f6f9fc"; ctx.beginPath(); ctx.ellipse(0, 0, 72, 18, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#d2dae1"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, 72, 18, 0, 0, 7); ctx.stroke();
+    // ノーズの青帯
+    ctx.save(); ctx.beginPath(); ctx.ellipse(0, 0, 72, 18, 0, 0, 7); ctx.clip();
+    ctx.fillStyle = "#4a9fe0"; ctx.fillRect(52, -20, 30, 40); ctx.restore();
+    // 窓
+    ctx.fillStyle = "#bfe6ff";
+    for (let i = 0; i < 7; i++) { ctx.beginPath(); ctx.arc(-40 + i * 13, -2, 3.2, 0, 7); ctx.fill(); }
+    // 手前の主翼
+    ctx.fillStyle = "#dbe3ea"; ctx.beginPath(); ctx.moveTo(8, 4); ctx.lineTo(-12, 34); ctx.lineTo(32, 8); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  // 飛行中の飛行機＋屋根に乗って手をふるまるりん
+  function storyFlyingPlane(cx, cy, sc, f) {
+    // 飛行機雲
+    ctx.strokeStyle = "rgba(255,255,255,0.6)"; ctx.lineWidth = 6; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(cx - 84*sc, cy - 4); ctx.lineTo(cx - 84*sc - 90, cy - 4 + Math.sin(f*0.2)*3); ctx.stroke();
+    storyPlaneBody(cx, cy, sc);
+    // コックピットの座席
+    const cpx = cx + 6*sc, cpFootY = cy - 18*sc;
+    ctx.fillStyle = "#b0563a"; ctx.beginPath(); ctx.ellipse(cpx, cpFootY, 12, 5, 0, 0, 7); ctx.fill();
+    storyMaru(cpx, cpFootY, 1, false);
+    // 風防（前方の半透明ドーム）
+    ctx.save(); ctx.strokeStyle = "rgba(150,210,240,0.9)"; ctx.fillStyle = "rgba(185,228,246,0.3)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cpx + 4, cpFootY - 13, 17, -2.0, -0.15); ctx.stroke();
+    ctx.restore();
+  }
+  function storyControlTower(x, groundY) {
+    ctx.fillStyle = "#c2ccd6"; ctx.fillRect(x - 8, groundY - 118, 16, 118);
+    ctx.fillStyle = "#d8e0e8"; roundRectPath(x - 24, groundY - 150, 48, 34, 8); ctx.fill();
+    ctx.fillStyle = "#5a86a8"; ctx.fillRect(x - 20, groundY - 146, 40, 14);
+    ctx.fillStyle = "#e0554f"; ctx.fillRect(x - 1, groundY - 164, 2, 14);
+  }
+  function storyParkedPlane(cx, groundY) {
+    const cy = groundY - 46;
+    ctx.strokeStyle = "#8a8f96"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(cx - 30, cy + 20); ctx.lineTo(cx - 30, groundY - 6); ctx.moveTo(cx + 20, cy + 20); ctx.lineTo(cx + 20, groundY - 6); ctx.stroke();
+    ctx.fillStyle = "#333"; ctx.beginPath(); ctx.arc(cx - 30, groundY - 4, 7, 0, 7); ctx.arc(cx + 20, groundY - 4, 7, 0, 7); ctx.fill();
+    storyPlaneBody(cx, cy, 1.4);
+  }
+  // 成田空港の背景（まるりん以外）
+  function storyAirportBg(f) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#7ec2ee"); g.addColorStop(0.6, "#bfe2f5"); g.addColorStop(1, "#e6f4fb");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    storyClouds(f, 0.25);
+    // ターミナル
+    ctx.fillStyle = "#cfd8e0"; ctx.fillRect(0, STORY_GROUND - 64, W, 64);
+    ctx.fillStyle = "#9fb0bf"; for (let x = 20; x < W; x += 34) ctx.fillRect(x, STORY_GROUND - 54, 20, 26);
+    // 看板
+    ctx.fillStyle = "#2f6db0"; ctx.fillRect(W/2 - 78, STORY_GROUND - 94, 156, 22);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 14px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("NARITA AIRPORT", W/2, STORY_GROUND - 83);
+    storyControlTower(724, STORY_GROUND - 64);
+    // 滑走路
+    ctx.fillStyle = "#8a8f96"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
+    ctx.fillStyle = "#e8c53a";
+    const midY = STORY_GROUND + (H - STORY_GROUND) / 2;
+    for (let x = -(f * 0.6) % 80; x < W; x += 80) ctx.fillRect(x, midY, 36, 5);
+    storyParkedPlane(560, STORY_GROUND);
+  }
+  // シーン1：成田空港「日本中さがしても見つからない」
+  function sceneAirport(f, dur) {
+    storyAirportBg(f);
+    const stop = dur * 0.55;
+    if (f < stop) { const cx = 90 + 200 * (f / stop); storyDust(cx - 18, STORY_GROUND, f); storyMaru(cx, STORY_GROUND, 1, true); }
+    else {
+      storyMaru(290, STORY_GROUND, 1, false);
+      ctx.fillStyle = "#2f5c88"; ctx.font = "bold 22px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("？", 290 + 22, STORY_GROUND - 42 + Math.sin(f * 0.16) * 2);
+    }
+  }
+  // シーン2：世界へ探しに行こう！（飛行機に向かって歩く・決意）
+  function sceneDecide(f, dur) {
+    storyAirportBg(f);
+    // 飛行機へ向かって歩く
+    const cx = 110 + 320 * (f / dur);
+    storyDust(cx - 18, STORY_GROUND, f);
+    storyMaru(cx, STORY_GROUND, 1, true);
+    // 決意の「！」
+    if (f > dur * 0.3) {
+      ctx.fillStyle = "#e0554f"; ctx.font = "bold 24px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("！", cx + 22, STORY_GROUND - 44 + Math.sin(f * 0.3) * 2);
+    }
+  }
+  // シーン3：飛行機に乗って飛び立つ（斜め上へ上昇）
+  function sceneTakeoff(f, dur) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#5fb0ea"); g.addColorStop(0.6, "#a8d8f4"); g.addColorStop(1, "#dff0fb");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    storyClouds(f, 0.9);
+    // 遠ざかる地面（下へ）
+    const gy = H - 40 + (f / dur) * 120;
+    ctx.fillStyle = "#8fae5a"; ctx.fillRect(0, gy, W, H - gy + 40);
+    ctx.fillStyle = "#8a8f96"; ctx.fillRect(0, gy, W, 8);
+    // 斜め上へ上昇
+    const k = f / dur;
+    const px = 150 + (W * 0.45) * k;
+    const py = (STORY_GROUND + 10) - 150 * k;
+    storyFlyingPlane(px, py, 1.5, f);
+  }
+  // シーン4：海を越えて新しい国へ（島が見えてくる）
+  function sceneOcean(f, dur) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#6bb8ec"); g.addColorStop(0.5, "#a6d8f2"); g.addColorStop(0.65, "#dff0fb");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    storyClouds(f, 0.6);
+    // 海
+    const seaY = 330;
+    const sg = ctx.createLinearGradient(0, seaY, 0, H);
+    sg.addColorStop(0, "#2e93c8"); sg.addColorStop(1, "#1c6ea0");
+    ctx.fillStyle = sg; ctx.fillRect(0, seaY, W, H - seaY);
+    ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 2;
+    for (let i = 0; i < 5; i++) { const wy = seaY + 16 + i * 20; ctx.beginPath(); for (let x = 0; x < W; x += 24) ctx.lineTo(x, wy + Math.sin((x + f * 2) * 0.05) * 3); ctx.stroke(); }
+    // 島（右・ヤシの木）＝あたらしい国のヒント
+    const ix = W - 120 - (f * 0.3);
+    ctx.fillStyle = "#d8c088"; ctx.beginPath(); ctx.ellipse(ix, seaY + 8, 60, 16, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#3f9a4a"; ctx.beginPath(); ctx.ellipse(ix, seaY - 2, 30, 12, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#8a5f38"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(ix + 14, seaY); ctx.quadraticCurveTo(ix + 20, seaY - 26, ix + 12, seaY - 40); ctx.stroke();
+    ctx.fillStyle = "#3f9a4a"; for (let a = 0; a < 4; a++) { ctx.save(); ctx.translate(ix + 12, seaY - 40); ctx.rotate(-1 + a * 0.6); ctx.beginPath(); ctx.ellipse(10, 0, 14, 4, 0, 0, 7); ctx.fill(); ctx.restore(); }
+    // 巡航（左→右へ）
+    const px = 120 + (W * 0.4) * (f / dur);
+    storyFlyingPlane(px, 175, 1.6, f);
   }
 
   function drawStageClear() {
