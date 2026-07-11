@@ -268,7 +268,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 7.4 (2026-07-11)";
+  const GAME_VERSION = "ver 7.5 (2026-07-11)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -1304,7 +1304,9 @@
     stopBGM();
     sfx.win();
     playVoice("get");   // クリア時
-    if (stageIndex < STAGES.length - 1) {
+    if (STAGES[stageIndex].boss === "dramp") {
+      startEnding();            // ドランプ撃破＝世界編フィナーレのムービーへ
+    } else if (stageIndex < STAGES.length - 1) {
       state = "stageclear";     // まだ次のステージがある
       stageClearT = 0;
     } else {
@@ -2578,6 +2580,19 @@
         { dur: 210, act: sceneTakeoff, lines: ["まるりんは ひこうきに のって、", "せかいへ とびたちました！"] },
         { dur: 240, act: sceneOcean,   lines: ["うみを こえて、", "あたらしい くにへ——！"] }
       ]
+    },
+    ending: {   // 世界編フィナーレ（ドランプ撃破後・ボスBGMではなくエンディング曲）
+      isEnding: true,
+      endHint: "タップで メニューへ ▶",
+      scenes: [
+        { dur: 250, act: sceneReasonDevice, lines: ["みんなが きょうぼうに なっていたのは、", "「いかりの でんぱそうち」の せいでした。"] },
+        { dur: 260, act: sceneReasonPower,  lines: ["そうちは いじげんから きた なぞの ちからで うごき、", "ドランプ だいとうりょうも あやつられて いたのです。"] },
+        { dur: 260, act: sceneReunion,      lines: ["おくの へやには、そーちゃんと しーちゃんが！", "まるりんは うれしくて とびはねます。"] },
+        { dur: 260, act: sceneWarp,         lines: ["「さあ、みなみながれやまに かえろう！」", "——そのとき、いじげんへの ワープが あらわれ……！"] },
+        { dur: 240, act: sceneScream,       lines: ["「まるりーん！！」", "そーちゃんと しーちゃんが さけびます。"] },
+        { dur: 230, act: sceneWorldEnd,     lines: ["まるりんは、いじげんへ きえて いった——。"] },
+        { dur: 480, act: sceneToBeContinued,lines: ["まるりんの ぼうけんは、まだ つづく。"] }
+      ]
     }
   };
 
@@ -2601,9 +2616,9 @@
   }
   function nextScene() {
     if (!story) return;
-    const scenes = STORIES[story.key].scenes;
+    const def = STORIES[story.key];
     story.scene++; story.t = 0; particles = [];
-    if (story.scene >= scenes.length) endStory();
+    if (story.scene >= def.scenes.length) { if (def.isEnding) finishEnding(); else endStory(); }
   }
   function endStory() {
     // 退避したまるりんの状態を復元（ステージ2の開始位置へ）
@@ -2622,6 +2637,27 @@
     if (!story || story.t < 8) return;
     beep(680, 0.05, "square", 0.05);
     nextScene();
+  }
+  // 世界編フィナーレ（ドランプ撃破後のエンディング・ムービー）を開始
+  function startEnding() {
+    const p = player;
+    story = { key: "ending", scene: 0, t: 0, saved: {
+      x:p.x, y:p.y, vx:p.vx, vy:p.vy, face:p.face, onGround:p.onGround, animT:p.animT,
+      powered:p.powered, seed:p.seed, wing:p.wing, w:p.w, h:p.h, squash:p.squash } };
+    p.powered = false; p.seed = false; p.wing = false; p.w = 28; p.h = 30; p.squash = 1; p.invuln = 0; p.stun = 0;
+    p.powerAnim = 0; p.gliding = false; p.glideUsed = false;
+    particles = []; cukes = []; sps = []; jets = []; bigBoom = 0; bosses = []; inBoss = false;
+    cutsceneActive = true;
+    stopBGM();
+    try { bgm = ENDING_BGM; ENDING_BGM.currentTime = 0; ENDING_BGM.play().catch(() => {}); } catch (e) {}
+    document.body.classList.add("storymode");
+    state = "story";
+  }
+  // エンディング終了 → 全クリアメニューへ（エンディング曲はそのまま流す）
+  function finishEnding() {
+    story = null; cutsceneActive = false;
+    document.body.classList.remove("storymode");
+    state = "clear";
   }
 
   function updateParticles() {
@@ -6066,7 +6102,7 @@
     const last = idx === total - 1;
     const blink = 0.5 + 0.5 * Math.sin(story.t * 0.15);
     ctx.globalAlpha = blink; ctx.fillStyle = "#ffd34d"; ctx.textAlign = "right"; ctx.font = "bold 14px 'Segoe UI',sans-serif";
-    ctx.fillText(last ? "タップで ステージ2へ ▶" : "タップ／ジャンプで つぎへ ▶", bx + bw - 16, by + boxH - 14);
+    ctx.fillText(last ? (STORIES[story.key].endHint || "タップで つぎへ ▶") : "タップ／ジャンプで つぎへ ▶", bx + bw - 16, by + boxH - 14);
     ctx.globalAlpha = 1;
     for (let i = 0; i < total; i++) { ctx.fillStyle = i === idx ? "#ffd34d" : "rgba(255,255,255,0.35)"; ctx.beginPath(); ctx.arc(W/2 - (total-1)*7 + i*14, by - 10, 3.2, 0, 7); ctx.fill(); }
     ctx.restore();
@@ -6372,6 +6408,200 @@
     // 巡航（左→右へ）
     const px = 120 + (W * 0.4) * (f / dur);
     storyFlyingPlane(px, 175, 1.6, f);
+  }
+
+  // ===== 世界編フィナーレ（ドランプ撃破後のエンディング・ムービー）=====
+  // ホワイトハウス室内の背景（クリーム壁＋柱＋窓＋星条旗＋赤じゅうたん）
+  function storyGovRoom(dim) {
+    const g = ctx.createLinearGradient(0, 0, 0, STORY_GROUND);
+    g.addColorStop(0, "#efe6d0"); g.addColorStop(1, "#e2d4b6");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, STORY_GROUND);
+    // 窓
+    ctx.fillStyle = "#bcd6ec"; ctx.fillRect(96, 54, 150, 104);
+    ctx.fillStyle = "#a9cbe6"; ctx.fillRect(96, 110, 150, 48);
+    ctx.strokeStyle = "#9c7a4a"; ctx.lineWidth = 6; ctx.strokeRect(96, 54, 150, 104);
+    ctx.beginPath(); ctx.moveTo(171, 54); ctx.lineTo(171, 158); ctx.moveTo(96, 106); ctx.lineTo(246, 106); ctx.stroke();
+    // 星条旗（右上・壁掛け）
+    ctx.fillStyle = "#b22234"; ctx.fillRect(560, 58, 96, 60);
+    ctx.fillStyle = "#fff"; for (let i = 1; i < 6; i += 2) ctx.fillRect(560, 58 + i * 10, 96, 10);
+    ctx.fillStyle = "#3c3b6e"; ctx.fillRect(560, 58, 42, 32);
+    ctx.fillStyle = "#fff"; ctx.font = "9px 'Segoe UI',sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) ctx.fillText("★", 564 + c * 9, 61 + r * 9);
+    // 柱
+    storyColumn(60); storyColumn(740);
+    // 赤じゅうたん
+    ctx.fillStyle = "#8a2f2f"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
+    ctx.fillStyle = "#7a2727"; ctx.fillRect(0, STORY_GROUND, W, 6);
+    ctx.fillStyle = "#c8a04a"; ctx.fillRect(W/2 - 90, STORY_GROUND, 180, 4);
+    if (dim > 0) { ctx.fillStyle = "rgba(20,10,30," + dim + ")"; ctx.fillRect(0, 0, W, H); }
+  }
+  function storyColumn(x) {
+    ctx.fillStyle = "#f3efe6"; ctx.fillRect(x - 16, 60, 32, STORY_GROUND - 60);
+    ctx.fillStyle = "#e0d8c8"; for (let i = 0; i < 4; i++) ctx.fillRect(x - 13 + i * 8, 60, 3, STORY_GROUND - 60);
+    ctx.fillStyle = "#f7f3ea"; ctx.fillRect(x - 22, 50, 44, 14); ctx.fillRect(x - 22, STORY_GROUND - 12, 44, 12);
+  }
+  // 見つかった子ども（実線・元気）：mode = "wave" 手をふる／"still" ふつう／"reach" 両手をのばして叫ぶ
+  function storyKid(cx, groundY, label, shirt, f, mode) {
+    const headR = 11, headCy = groundY - 66, tTop = headCy + headR - 2, tBot = groundY - 24;
+    // 脚
+    ctx.strokeStyle = "#39415c"; ctx.lineWidth = 6; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(cx - 6, tBot); ctx.lineTo(cx - 7, groundY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 6, tBot); ctx.lineTo(cx + 7, groundY); ctx.stroke();
+    // 胴（シャツ）
+    ctx.fillStyle = shirt; roundRectPath(cx - 12, tTop, 24, tBot - tTop + 2, 7); ctx.fill();
+    // 腕
+    ctx.strokeStyle = shirt; ctx.lineWidth = 6;
+    if (mode === "reach") {
+      const sway = Math.sin(f * 0.3) * 3;
+      ctx.beginPath(); ctx.moveTo(cx - 9, tTop + 6); ctx.lineTo(cx - 20, headCy - 12 + sway); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx + 9, tTop + 6); ctx.lineTo(cx + 20, headCy - 12 - sway); ctx.stroke();
+    } else if (mode === "wave") {
+      ctx.beginPath(); ctx.moveTo(cx - 9, tTop + 6); ctx.lineTo(cx - 19, tTop + 20); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx + 9, tTop + 6); ctx.lineTo(cx + 18, headCy - 4 + Math.sin(f * 0.3) * 4); ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.moveTo(cx - 9, tTop + 6); ctx.lineTo(cx - 18, tBot); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx + 9, tTop + 6); ctx.lineTo(cx + 18, tBot); ctx.stroke();
+    }
+    // 頭・髪・笑顔
+    ctx.fillStyle = "#f2c9a0"; ctx.beginPath(); ctx.arc(cx, headCy, headR, 0, 7); ctx.fill();
+    ctx.fillStyle = "#3a2a1a"; ctx.beginPath(); ctx.arc(cx, headCy - 2, headR, Math.PI, 0); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx - 4, headCy, 1.6, 0, 7); ctx.arc(cx + 4, headCy, 1.6, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#3a2a1a"; ctx.lineWidth = 1.6;
+    if (mode === "reach") { ctx.beginPath(); ctx.arc(cx, headCy + 5, 3.4, 0, 7); ctx.stroke(); }   // 叫ぶ口（○）
+    else { ctx.beginPath(); ctx.arc(cx, headCy + 3, 4, 0.2, Math.PI - 0.2); ctx.stroke(); }         // 笑顔
+    ctx.fillStyle = "rgba(40,30,20,0.9)"; ctx.font = "12px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(label, cx, groundY + 14);
+  }
+  // 怒りの電波装置（異次元の光でうごく）：wild=暴走
+  function storyDevice(cx, groundY, f, wild) {
+    const rift = wild ? 0.9 : 0.5, R = wild ? 150 : 90;
+    const rg = ctx.createRadialGradient(cx, groundY - 70, 4, cx, groundY - 70, R);
+    rg.addColorStop(0, "rgba(200,130,255," + rift + ")");
+    rg.addColorStop(0.5, "rgba(120,80,220," + (rift * 0.45) + ")");
+    rg.addColorStop(1, "rgba(120,80,220,0)");
+    ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(cx, groundY - 70, R, 0, 7); ctx.fill();
+    // 本体
+    ctx.fillStyle = "#3a3f47"; roundRectPath(cx - 34, groundY - 70, 68, 70, 6); ctx.fill();
+    ctx.fillStyle = "#4c525c"; ctx.fillRect(cx - 34, groundY - 70, 68, 12);
+    ctx.fillStyle = "#8a4fd0"; ctx.fillRect(cx - 22, groundY - 54, 44, 26);
+    ctx.fillStyle = "rgba(235,205,255," + (0.45 + 0.45 * Math.sin(f * 0.3)) + ")"; ctx.fillRect(cx - 22, groundY - 54, 44, 11);
+    // アンテナ＋赤ランプ
+    ctx.strokeStyle = "#2a2e35"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx, groundY - 70); ctx.lineTo(cx, groundY - 104); ctx.stroke();
+    ctx.fillStyle = "#e0323a"; ctx.beginPath(); ctx.arc(cx, groundY - 108, 5 + Math.sin(f * 0.4) * 1.5, 0, 7); ctx.fill();
+    // 怒りの電波
+    ctx.strokeStyle = "rgba(224,50,58," + (0.3 + 0.3 * Math.sin(f * 0.2)) + ")"; ctx.lineWidth = 2;
+    for (let i = 1; i <= 3; i++) { const rr = i * 11 + (f * 0.5) % 11; ctx.beginPath(); ctx.arc(cx, groundY - 108, rr, -2.5, -0.6); ctx.stroke(); }
+    if (wild) for (let i = 0; i < 5; i++) { const a = Math.random() * 7, rr = 20 + Math.random() * 34; ctx.fillStyle = "#ffe08a"; ctx.beginPath(); ctx.arc(cx + Math.cos(a) * rr, groundY - 70 + Math.sin(a) * rr * 0.6, 1.6, 0, 7); ctx.fill(); }
+  }
+  // あやつられていたドランプ（小さめ・うなだれ→解放で顔を上げる）
+  function storySlump(cx, groundY, release) {
+    ctx.fillStyle = "rgba(0,0,0,0.15)"; ctx.beginPath(); ctx.ellipse(cx, groundY, 20, 5, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#1c2733"; ctx.fillRect(cx - 10, groundY - 34, 8, 34); ctx.fillRect(cx + 2, groundY - 34, 8, 34);
+    ctx.fillStyle = "#20304a"; roundRectPath(cx - 16, groundY - 64, 32, 34, 6); ctx.fill();
+    ctx.fillStyle = "#d0202a"; ctx.beginPath(); ctx.moveTo(cx, groundY - 58); ctx.lineTo(cx - 4, groundY - 40); ctx.lineTo(cx, groundY - 34); ctx.lineTo(cx + 4, groundY - 40); ctx.closePath(); ctx.fill();
+    const hy = groundY - 74 + (release ? 0 : 6);
+    ctx.fillStyle = "#e8b98a"; ctx.beginPath(); ctx.arc(cx, hy, 10, 0, 7); ctx.fill();
+    ctx.fillStyle = "#e8c85a"; ctx.beginPath(); ctx.arc(cx, hy - 3, 10, Math.PI, 0); ctx.fill(); ctx.fillRect(cx - 10, hy - 4, 20, 3);
+  }
+  // 異次元ワープ（渦をまく紫×水色のうずまき）
+  function storyWarp(cx, cy, r, f) {
+    if (r <= 1) return;
+    ctx.save();
+    ctx.translate(cx, cy); ctx.rotate(f * 0.06);
+    for (let i = 0; i < 6; i++) {
+      ctx.globalAlpha = 0.85 - i * 0.08;
+      ctx.fillStyle = i % 2 ? "#7a3fd0" : "#3fd0e0";
+      ctx.beginPath(); ctx.ellipse(0, 0, r * (1 - i * 0.15), r * 0.8 * (1 - i * 0.15), i * 0.5, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1; ctx.fillStyle = "#f0e8ff"; ctx.beginPath(); ctx.arc(0, 0, r * 0.24, 0, 7); ctx.fill();
+    ctx.restore();
+    for (let i = 0; i < 8; i++) { const a = f * 0.1 + i * 0.8, rr = r * 1.3 - (f * 2 + i * 20) % (r * 1.3); ctx.globalAlpha = 0.6 * (rr / (r * 1.3)); ctx.fillStyle = i % 2 ? "#bfa0ff" : "#a0e8ff"; ctx.beginPath(); ctx.arc(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * 0.8, 2.4, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = 1;
+  }
+  // まるりんを拡大縮小・回転して描く（ワープ吸い込み用）
+  function storyMaruXform(footCx, footY, face, moving, scale, spin) {
+    ctx.save();
+    ctx.translate(footCx, footY); ctx.scale(scale, scale); ctx.rotate(spin); ctx.translate(-footCx, -footY);
+    storyMaru(footCx, footY, face, moving);
+    ctx.restore();
+  }
+  function storyStarfield(f) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#0a0620"); g.addColorStop(0.6, "#161038"); g.addColorStop(1, "#241a4a");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    for (let i = 0; i < 60; i++) { const x = (i * 137) % W, y = (i * 89) % H; ctx.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(f * 0.05 + i)); ctx.fillStyle = i % 7 ? "#ffffff" : "#bfa0ff"; ctx.fillRect(x, y, 2, 2); }
+    ctx.globalAlpha = 1;
+  }
+  // ムービー各シーン
+  function sceneReasonDevice(f, dur) {
+    storyGovRoom(0.08);
+    storyDevice(470, STORY_GROUND, f, false);
+    storyMaru(230, STORY_GROUND, 1, false);
+    ctx.fillStyle = "#e94560"; ctx.font = "bold 24px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("！", 252, STORY_GROUND - 46 + Math.sin(f * 0.18) * 2);
+  }
+  function sceneReasonPower(f, dur) {
+    storyGovRoom(0.38);
+    storyDevice(400, STORY_GROUND, f, true);
+    const release = f > dur * 0.55, dx = 624;
+    const topY = release ? Math.max(-20, 40 - (f - dur * 0.55) * 0.8) : 40;
+    ctx.strokeStyle = "rgba(200,170,255," + (release ? 0.18 : 0.7) + ")"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(dx - 8, topY); ctx.lineTo(dx - 8, STORY_GROUND - 64); ctx.moveTo(dx + 8, topY); ctx.lineTo(dx + 8, STORY_GROUND - 64); ctx.stroke();
+    storySlump(dx, STORY_GROUND, release);
+    storyMaru(170, STORY_GROUND, 1, false);
+  }
+  function sceneReunion(f, dur) {
+    storyGovRoom(0);
+    storyKid(250, STORY_GROUND, "そーちゃん", "#3aa0e0", f, "wave");
+    storyKid(560, STORY_GROUND, "しーちゃん", "#4bbf5a", f, "wave");
+    const jump = Math.abs(Math.sin(f * 0.18)) * 42;
+    storyMaru(405, STORY_GROUND - jump, 1, jump > 6);
+    ctx.font = "18px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    for (let i = 0; i < 3; i++) { const t = (f + i * 30) % 90; ctx.globalAlpha = 1 - t / 90; ctx.fillText("💛", 405 - 30 + i * 30, STORY_GROUND - 74 - t * 0.8); }
+    ctx.globalAlpha = 1;
+  }
+  function sceneWarp(f, dur) {
+    storyGovRoom(Math.min(0.5, (f / dur) * 0.6));
+    storyKid(200, STORY_GROUND, "そーちゃん", "#3aa0e0", f, "still");
+    storyKid(300, STORY_GROUND, "しーちゃん", "#4bbf5a", f, "still");
+    const px = 580, py = STORY_GROUND - 74;
+    const r = Math.min(1, Math.max(0, (f - dur * 0.30) / (dur * 0.40))) * 96;
+    const suck = f >= dur * 0.58;
+    storyWarp(px, py, r, f);
+    if (!suck) {
+      storyMaru(430, STORY_GROUND, 1, false);
+      if (r > 6) { ctx.fillStyle = "#e94560"; ctx.font = "bold 24px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("！", 452, STORY_GROUND - 46 + Math.sin(f * 0.3) * 2); }
+    } else {
+      const k = Math.min(1, (f - dur * 0.58) / (dur * 0.42));
+      const mx = 430 + (px - 430) * k, footY = STORY_GROUND + ((py + 14) - STORY_GROUND) * k;
+      storyMaruXform(mx, footY, -1, false, 1 - 0.82 * k, k * 7);
+    }
+  }
+  function sceneScream(f, dur) {
+    storyGovRoom(0.42);
+    const r = Math.max(0, 1 - f / (dur * 0.85)) * 78;
+    storyWarp(560, STORY_GROUND - 74, r, f);
+    storyKid(250, STORY_GROUND, "そーちゃん", "#3aa0e0", f, "reach");
+    storyKid(362, STORY_GROUND, "しーちゃん", "#4bbf5a", f, "reach");
+    ctx.fillStyle = "#fff"; ctx.font = "bold 30px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("まるりーん！", 306, 150 + Math.sin(f * 0.3) * 3);
+  }
+  function sceneWorldEnd(f, dur) {
+    storyStarfield(f);
+    ctx.globalAlpha = Math.min(1, f / 30);
+    ctx.fillStyle = "#ffd34d"; ctx.font = "bold 54px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("世界編 完", W / 2, H / 2 - 26);
+    ctx.globalAlpha = 1;
+  }
+  function sceneToBeContinued(f, dur) {
+    storyStarfield(f);
+    storyWarp(W / 2, 128, 44, f);
+    ctx.globalAlpha = Math.min(1, f / 40);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 40px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("異世界編へ つづく", W / 2, H / 2 + 30);
+    ctx.font = "16px 'Segoe UI',sans-serif"; ctx.fillStyle = "#bfa0ff";
+    ctx.fillText("マリオならぬ まるりんの ぼうけんは まだつづく！", W / 2, H / 2 + 66);
+    ctx.globalAlpha = 1;
   }
 
   // ===== アメリカ（ステージ7）の風景・ゴール =====
