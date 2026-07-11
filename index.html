@@ -268,7 +268,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 7.5 (2026-07-11)";
+  const GAME_VERSION = "ver 7.6 (2026-07-11)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -405,7 +405,7 @@
         "------------------o-o-o-o-----------------------------------------o-o-o---------------------------------------o-o-o-o-----------o-o-o-o-----------G---",
         "------------------------------------------------------------------------------------------------------------------------------------------------------",
         "--------------N-----------------------------------o-o-o-----------------------------------------o-o-o---------------------H---------------------------",
-        "----P-----------------?-------l-----------------------F---?-------####--l---U-----------------b-----A---?-----####----------------------?-------------",
+        "----P-----------------?-------l-----------------------F---?-------####--l---U-----------------l-----A---?-----####----------------------?-------------",
         "--------------------------------------------------#####-------------------------------------------------------------------------#####-----------------",
         "--------------------w---------------y---------------------------z-----------------w-------------#####-------y---------------z---------------w---------",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXX--XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
@@ -1471,6 +1471,7 @@
         throws: false, alive: true, dyingT: 0,
         phase: 1, reachable: false, raging: false,
         mode: "idle", actCd: 60, windup: 0, chargeT: 0, chargeDir: -1, didDouble: false, runup: 0,
+        burgerCd: 420, swingT: 0, shoutT: 0,   // バーガー回復のクールダウン／ゴルフのフォロースルー／演説シャウト
         missileT: 0, doomT: 0, balconyX: W/2 - 30, balconyY: 96 };
     }
     // クリだいおう（ステージ1）
@@ -1543,6 +1544,13 @@
         const box = { x: cu.x - 6, y: cu.y - 4, w: 12, h: 8 };
         if (rectHit(p, box) && p.invuln <= 0) { cu.dead = true; hurtPlayer(); spawnParticles(cu.x, cu.y, "#ffd24a", 5); }
         if (cu.x < camX - 60 || cu.x > camX + W + 60) cu.dead = true;
+        continue;
+      }
+      if (cu.kind === "shockwave") {   // 演説の衝撃波（地を這う・ジャンプでよける・タネ不可）
+        cu.x += cu.vx;
+        const box = { x: cu.x - 16, y: BOSS_GROUND - 22, w: 32, h: 22 };
+        if (p.onGround && rectHit(p, box) && p.invuln <= 0) { hurtPlayer(); cu.dead = true; }
+        if (cu.x < camX - 90 || cu.x > camX + W + 90) cu.dead = true;
         continue;
       }
       if (cu.kind === "golf") {   // ドランプのゴルフショット（山なりに飛んでバウンドして転がる）
@@ -2017,17 +2025,27 @@
     b.phase = 2; b.reachable = true; b.invuln = 40;
     b.x = W/2 - b.w/2; b.y = BOSS_GROUND - b.h; b.vx = 0; b.vy = 0; b.onGround = true;
     b.mode = "idle"; b.actCd = 46; b.missileT = 1200; b.doomT = 0;   // 20秒（60fps×20）
+    b.burgerCd = 420; b.swingT = 0; b.shoutT = 0;   // 回復は約7秒後から1回だけ
     sps = [];
     screenShake = 22;
     sfx.stomp(); beep(70, 0.45, "sawtooth", 0.14);   // ミサイルボタンのブザー
   }
   function chooseDrampAttack(b) {
     const p = player; b.face = (p.x + p.w/2 < b.x + b.w/2) ? -1 : 1;
+    // ハンバーガーを食べて回復（HPが減っているときだけ・20秒に1回くらい＝クールダウン制）
+    if (b.burgerCd <= 0 && b.hp < b.maxHp) { b.mode = "burgereat"; b.windup = 46; return; }
+    // 攻撃技：ゴルフ／演説シャウト（地を這う衝撃波）／戦闘機空爆／突進
     const r = Math.random();
-    if (r < 0.27)      { b.mode = "burgerwind"; b.windup = 16; }
-    else if (r < 0.51) { b.mode = "golfwind";   b.windup = 16; }
-    else if (r < 0.75) { b.mode = "jetwind";    b.windup = 18; }
+    if (r < 0.34)      { b.mode = "golfwind";   b.windup = 22; }   // 振りかぶりを長めに＝スイングが分かる
+    else if (r < 0.60) { b.mode = "shoutwind";  b.windup = 20; }   // 新技：演説の衝撃波
+    else if (r < 0.80) { b.mode = "jetwind";    b.windup = 18; }
     else               { b.mode = "chargewind"; b.windup = 16; b.chargeDir = b.face; }
+  }
+  // 演説シャウト：左右に地を這う衝撃波（ジャンプでよける・タネ不可）
+  function spawnShout(b) {
+    for (const dir of [-1, 1]) cukes.push({ kind: "shockwave", x: b.x + b.w/2, y: BOSS_GROUND, vx: dir * (b.raging ? 6.2 : 5), t: 0 });
+    beep(170, 0.18, "sawtooth", 0.12); beep(110, 0.22, "sawtooth", 0.1);
+    screenShake = Math.max(screenShake, 10);
   }
   function endDrampAttack(b) { b.mode = "idle"; b.windup = 0; b.actCd = (b.raging ? 26 : 50) + Math.floor(Math.random()*36); }
   function spawnGolf(b) {
@@ -2070,16 +2088,28 @@
     const raging = b.hp <= 2; b.raging = raging;
     const pcx = p.x + p.w/2, bcx = b.x + b.w/2;
     b.runup = (b.mode === "charge" || b.mode === "chargewind") ? b.runup + 1 : 0;
+    if (b.burgerCd > 0) b.burgerCd--;
+    if (b.swingT > 0) b.swingT--;
+    if (b.shoutT > 0) b.shoutT--;
 
     if (b.mode === "idle") {
       b.face = pcx < bcx ? -1 : 1;
       const target = pcx < bcx ? pcx + 200 : pcx - 200;
       if (Math.abs(bcx - target) > 10) b.x += Math.sign(target - bcx) * (raging ? 2.5 : 1.8);
       b.actCd--; if (b.actCd <= 0 && b.onGround) chooseDrampAttack(b);
-    } else if (b.mode === "burgerwind") {
-      b.windup--; if (b.windup <= 0) { throwCuke(b); b.mode = "rec"; b.windup = 16; }
+    } else if (b.mode === "burgereat") {
+      b.windup--;
+      if (b.windup === 22) {   // 食べた瞬間に1ライフ（ハート1個ぶん）回復
+        b.hp = Math.min(b.maxHp, b.hp + b.hpPerHeart);
+        b.burgerCd = 100000;   // このボス戦ではもう食べない（20秒に1回くらい）
+        beep(420, 0.09, "square", 0.09); beep(640, 0.09, "square", 0.07);
+        spawnParticles(b.x + b.w/2, b.y + 8, "#7ee07e", 14);
+      }
+      if (b.windup <= 0) { b.mode = "rec"; b.windup = 12; }
     } else if (b.mode === "golfwind") {
-      b.windup--; if (b.windup <= 0) { spawnGolf(b); b.mode = "rec"; b.windup = 18; }
+      b.windup--; if (b.windup <= 0) { spawnGolf(b); b.swingT = 16; b.mode = "rec"; b.windup = 18; }
+    } else if (b.mode === "shoutwind") {
+      b.windup--; if (b.windup <= 0) { spawnShout(b); b.shoutT = 22; b.mode = "rec"; b.windup = 20; }
     } else if (b.mode === "jetwind") {
       b.windup--; if (b.windup <= 0) { spawnJet(b); b.mode = "rec"; b.windup = 28; }
     } else if (b.mode === "chargewind") {
@@ -3729,8 +3759,42 @@
     ctx.quadraticCurveTo(cx + 10, footY - 90 + bob, cx + 2, footY - 89 + bob);
     ctx.quadraticCurveTo(cx - 8, footY - 88 + bob, cx - 15, footY - 82 + bob);
     ctx.closePath(); ctx.fill();
+    // ゴルフクラブ（振りかぶり→振り下ろし）※flip中なので前方＝＋x
+    if (b.mode === "golfwind" || b.swingT > 0) {
+      const hx = cx + 16, hy = footY - 44;
+      const ang = b.mode === "golfwind" ? -2.0 : (-0.2 + (16 - b.swingT) * 0.1);   // 頭の上へ振りかぶる→前下へ振り抜く
+      ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang);
+      ctx.strokeStyle = "#2f343c"; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(52, 0); ctx.stroke();
+      ctx.fillStyle = "#c9ccd2"; ctx.beginPath(); ctx.ellipse(54, 3, 10, 6, 0.4, 0, 7); ctx.fill();   // クラブヘッド（銀）
+      ctx.restore();
+      // 手（クラブを握る）
+      ctx.fillStyle = "#e8b98c"; ctx.beginPath(); ctx.arc(hx, hy, 4.5, 0, 7); ctx.fill();
+    }
+    // ハンバーガーを口元へ（食べて回復）
+    if (b.mode === "burgereat") {
+      const mx = cx + 9, my = footY - 74 + bob + (b.windup < 22 ? 1.5 : 0);
+      ctx.fillStyle = "#e0a94a"; ctx.beginPath(); ctx.ellipse(mx, my - 4, 9, 5, 0, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = "#6cae3e"; ctx.fillRect(mx - 9, my - 1, 18, 1.6);
+      ctx.fillStyle = "#b5442f"; ctx.fillRect(mx - 8, my, 16, 2.4);
+      ctx.fillStyle = "#d99a3c"; ctx.beginPath(); ctx.ellipse(mx, my + 4, 9, 4, 0, 0, Math.PI); ctx.fill();
+    }
+    // 演説シャウト：口を大きく開ける
+    if (b.mode === "shoutwind" || b.shoutT > 0) {
+      ctx.fillStyle = "#5a1e1e"; ctx.beginPath(); ctx.ellipse(cx + 2, footY - 71 + bob, 4, 5.5, 0, 0, 7); ctx.fill();
+    }
     ctx.restore();
     ctx.restore();
+    // 吹き出し・演出（flip外＝ワールド座標）
+    if (b.mode === "shoutwind" || b.shoutT > 0) {
+      ctx.fillStyle = "#fff"; ctx.font = "bold 15px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.strokeStyle = "#e0323a"; ctx.lineWidth = 3;
+      ctx.strokeText("フェイクニュースだ！", cx, footY - 104 + bob);
+      ctx.fillText("フェイクニュースだ！", cx, footY - 104 + bob);
+    }
+    if (b.mode === "burgereat" && b.windup <= 22) {
+      ctx.fillStyle = "#3fae4a"; ctx.font = "bold 18px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("＋❤", cx + 26, footY - 96 - (24 - b.windup) * 0.6);
+    }
   }
 
   // ドランプのSP（護衛・黒服サングラス・拳銃）
@@ -3904,6 +3968,18 @@
         ctx.fillStyle = "rgba(255,210,74,0.4)"; ctx.beginPath(); ctx.moveTo(-cu.vx*1.4, 0); ctx.lineTo(0, -3); ctx.lineTo(0, 3); ctx.closePath(); ctx.fill();
         ctx.fillStyle = "#f4c542"; ctx.beginPath(); ctx.ellipse(0, 0, 4, 2.4, 0, 0, 7); ctx.fill();
         ctx.restore();
+        continue;
+      }
+      if (cu.kind === "shockwave") {   // 演説の衝撃波（地を這うドーム）
+        ctx.save();
+        for (let i = 0; i < 3; i++) {
+          ctx.globalAlpha = (0.7 - i * 0.22) * (0.7 + 0.3 * Math.sin(cu.t * 0.4));
+          ctx.strokeStyle = "#e8823c"; ctx.lineWidth = 4 - i;
+          ctx.beginPath(); ctx.arc(cu.x, BOSS_GROUND, 11 + i * 8, Math.PI * 1.04, Math.PI * 1.96); ctx.stroke();
+        }
+        ctx.globalAlpha = 0.5; ctx.fillStyle = "#c8a06a";
+        ctx.beginPath(); ctx.arc(cu.x - Math.sign(cu.vx) * 12, BOSS_GROUND - 3, 3, 0, 7); ctx.fill();
+        ctx.restore(); ctx.globalAlpha = 1;
         continue;
       }
       if (cu.kind === "golf") {   // ゴルフボール
