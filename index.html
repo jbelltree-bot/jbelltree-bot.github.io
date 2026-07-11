@@ -268,7 +268,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 7.6 (2026-07-11)";
+  const GAME_VERSION = "ver 7.7 (2026-07-11)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -2033,7 +2033,7 @@
   function chooseDrampAttack(b) {
     const p = player; b.face = (p.x + p.w/2 < b.x + b.w/2) ? -1 : 1;
     // ハンバーガーを食べて回復（HPが減っているときだけ・20秒に1回くらい＝クールダウン制）
-    if (b.burgerCd <= 0 && b.hp < b.maxHp) { b.mode = "burgereat"; b.windup = 46; return; }
+    if (b.burgerCd <= 0 && b.hp < b.maxHp) { b.mode = "burgereat"; b.windup = 64; return; }
     // 攻撃技：ゴルフ／演説シャウト（地を這う衝撃波）／戦闘機空爆／突進
     const r = Math.random();
     if (r < 0.34)      { b.mode = "golfwind";   b.windup = 22; }   // 振りかぶりを長めに＝スイングが分かる
@@ -2099,11 +2099,13 @@
       b.actCd--; if (b.actCd <= 0 && b.onGround) chooseDrampAttack(b);
     } else if (b.mode === "burgereat") {
       b.windup--;
-      if (b.windup === 22) {   // 食べた瞬間に1ライフ（ハート1個ぶん）回復
+      // かじるたびにパンくずが飛ぶ（マイクラの食事っぽく）
+      if (b.windup > 8 && b.windup % 10 === 0) { spawnParticles(b.x + b.w * (b.face > 0 ? 0.7 : 0.3), b.y + 16, "#d9a24a", 4); sfx.stomp && beep(300 + Math.random()*80, 0.04, "square", 0.05); }
+      if (b.windup === 26) {   // 食べ終わりに1ライフ（ハート1個ぶん）回復
         b.hp = Math.min(b.maxHp, b.hp + b.hpPerHeart);
         b.burgerCd = 100000;   // このボス戦ではもう食べない（20秒に1回くらい）
         beep(420, 0.09, "square", 0.09); beep(640, 0.09, "square", 0.07);
-        spawnParticles(b.x + b.w/2, b.y + 8, "#7ee07e", 14);
+        spawnParticles(b.x + b.w/2, b.y + 8, "#7ee07e", 16);
       }
       if (b.windup <= 0) { b.mode = "rec"; b.windup = 12; }
     } else if (b.mode === "golfwind") {
@@ -3770,13 +3772,33 @@
       // 手（クラブを握る）
       ctx.fillStyle = "#e8b98c"; ctx.beginPath(); ctx.arc(hx, hy, 4.5, 0, 7); ctx.fill();
     }
-    // ハンバーガーを口元へ（食べて回復）
+    // ハンバーガーを食べる（マイクラのパン食べ風：かじるモーション＋だんだん小さく＋口が開く）
     if (b.mode === "burgereat") {
-      const mx = cx + 9, my = footY - 74 + bob + (b.windup < 22 ? 1.5 : 0);
-      ctx.fillStyle = "#e0a94a"; ctx.beginPath(); ctx.ellipse(mx, my - 4, 9, 5, 0, Math.PI, 0); ctx.fill();
-      ctx.fillStyle = "#6cae3e"; ctx.fillRect(mx - 9, my - 1, 18, 1.6);
-      ctx.fillStyle = "#b5442f"; ctx.fillRect(mx - 8, my, 16, 2.4);
-      ctx.fillStyle = "#d99a3c"; ctx.beginPath(); ctx.ellipse(mx, my + 4, 9, 4, 0, 0, Math.PI); ctx.fill();
+      const prog = 1 - b.windup / 64;                          // 0→1（食べ進む）
+      const chew = Math.max(0, Math.sin(b.windup * 0.5));       // かじるリズム（0..1）
+      const sc = Math.max(0.28, 1 - 0.66 * prog);              // だんだん小さく
+      const mthX = cx + 3, mthY = footY - 70 + bob;            // 口の位置
+      const bxp = cx + 13 - chew * 9;                          // かじる瞬間に口へ引き寄せる
+      const byp = footY - 69 + bob;
+      // 口（かじる瞬間に大きく開く）
+      ctx.fillStyle = "#5a1e18"; ctx.beginPath(); ctx.ellipse(mthX, mthY, 2.6, 1.6 + chew * 3.4, 0, 0, 7); ctx.fill();
+      // バーガーを持つ前腕（体→バーガー）
+      ctx.strokeStyle = "#26374f"; ctx.lineWidth = 7; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(cx + 20, footY - 50); ctx.lineTo(bxp + 5, byp + 5); ctx.stroke();
+      ctx.fillStyle = "#e8b98c"; ctx.beginPath(); ctx.arc(bxp + 5, byp + 5, 4, 0, 7); ctx.fill();
+      // ハンバーガー本体（小さくなりながら・少し傾ける）
+      ctx.save(); ctx.translate(bxp, byp); ctx.scale(sc, sc); ctx.rotate(-0.12 - chew * 0.1);
+      ctx.fillStyle = "#e0a94a"; ctx.beginPath(); ctx.ellipse(0, -4, 9, 5, 0, Math.PI, 0); ctx.fill();       // 上バンズ
+      ctx.fillStyle = "#fff"; for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.arc(i * 3, -6, 0.8, 0, 7); ctx.fill(); }  // ごま
+      ctx.fillStyle = "#6cae3e"; ctx.fillRect(-9, -1, 18, 1.6);                                              // レタス
+      ctx.fillStyle = "#b5442f"; ctx.fillRect(-8, 0, 16, 2.4);                                               // パティ
+      ctx.fillStyle = "#f4c542"; ctx.fillRect(-8, 2, 16, 1.2);                                               // チーズ
+      ctx.fillStyle = "#d99a3c"; ctx.beginPath(); ctx.ellipse(0, 4, 9, 4, 0, 0, Math.PI); ctx.fill();        // 下バンズ
+      // かじり跡（口側を丸くえぐる）
+      if (prog > 0.12) { ctx.fillStyle = "#e8a86a"; for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.arc(-6 - i * 3, -1 + i * 3, 2.4 + prog * 3, 0, 7); ctx.fill(); } }
+      ctx.restore();
+      // ほおばりモグモグの効果線
+      ctx.fillStyle = "#c8935a"; ctx.beginPath(); ctx.arc(cx - 9, footY - 72 + bob + chew, 1.2, 0, 7); ctx.arc(cx + 12, footY - 74 + bob - chew, 1.2, 0, 7); ctx.fill();
     }
     // 演説シャウト：口を大きく開ける
     if (b.mode === "shoutwind" || b.shoutT > 0) {
