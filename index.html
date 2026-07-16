@@ -268,7 +268,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 7.9 (2026-07-11)";
+  const GAME_VERSION = "ver 7.10 (2026-07-11)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -1434,7 +1434,8 @@
         hp: 40, maxHp: 40, stompDmg: 8, seedDmg: 5, hpPerHeart: 8,
         invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
         throws: false, alive: true, dyingT: 0,
-        homeX: x, shotCd: 70, upperCd: 80, upperT: 0, nextLow: false, stepCd: 90 };
+        homeX: x, shotCd: 70, upperCd: 80, upperT: 0, nextLow: false, stepCd: 90,
+        shotT: 0, shotLow: false };   // 撃つときの腕を伸ばすポーズ（下段はしゃがむ）
     }
     if (kind === "sumo") {
       // こうよう（子供力士）：ぶちかまし突進＋塩まき＋四股（地響きスタン）。踏み5回orたね5発で撃破。
@@ -1506,7 +1507,13 @@
     const salt = b.kind === "sumo";
     const burger = b.kind === "dramp";
     const kind = water ? "water" : (salt ? "salt" : (burger ? "burger" : "cuke"));
-    cukes.push({ x: b.x + b.w/2, y: b.y + (salt ? 4 : 8), vx: dir * (water ? 2.6 + Math.random()*1.4 : 3.2 + Math.random()*1.6), vy: water ? -9.2 : (salt ? -8.4 : -7.6), t: 0, kind });
+    if (salt && b.raging) {
+      // 怒りモード：塩を3つまく（扇状に近・中・遠へ）
+      const specs = [[2.3, -9.0], [3.4, -8.2], [4.6, -7.2]];
+      for (const s of specs) cukes.push({ x: b.x + b.w/2, y: b.y + 4, vx: dir * s[0], vy: s[1], t: 0, kind: "salt" });
+    } else {
+      cukes.push({ x: b.x + b.w/2, y: b.y + (salt ? 4 : 8), vx: dir * (water ? 2.6 + Math.random()*1.4 : 3.2 + Math.random()*1.6), vy: water ? -9.2 : (salt ? -8.4 : -7.6), t: 0, kind });
+    }
     sfx.seed();
   }
 
@@ -2150,8 +2157,9 @@
     for (const s of solids) {
       if (rectHit(b, s) && b.vy > 0 && (b.y + b.h) - s.y < 46) { b.y = s.y - b.h; b.vy = 0; b.onGround = true; }
     }
-    // 前後に動く（まるりんの方を向いたまま間合いを詰めたり離れたり＝ムエタイの足さばき）
-    if (b.upperT <= 0 && b.onGround) {
+    if (b.shotT > 0) b.shotT--;
+    // 前後に動く（まるりんの方を向いたまま間合いを詰めたり離れたり＝ムエタイの足さばき）※撃つポーズ中は止まる
+    if (b.upperT <= 0 && b.shotT <= 0 && b.onGround) {
       if (b.approach === undefined) b.approach = true;
       b.stepCd--;
       if (b.stepCd <= 0) { b.approach = !b.approach; b.stepCd = 40 + Math.floor(Math.random() * 45); }
@@ -2190,6 +2198,7 @@
           x: bcx + dir * (b.w / 2 + 6), y: low ? TIGER_LOW_Y : TIGER_HIGH_Y,
           vx: dir * 4.0, t: 0 });
         sfx.seed(); b.squash = 0.82;
+        b.shotT = 20; b.shotLow = low;   // 腕を伸ばすポーズ（下段はしゃがみ）
         b.shotCd = 70 + Math.floor(Math.random() * 60);
       }
     }
@@ -5004,6 +5013,9 @@
     const sq = b.squash;
     ctx.scale(b.face, 1);                 // 向きに合わせて反転（内部は右向きで描く）
     ctx.scale(1 + (1 - sq) * 0.2, sq);
+    const shooting = b.shotT > 0;
+    const groundShot = shooting && b.shotLow;
+    if (groundShot) ctx.scale(1.08, 0.78);   // グランドタイガーショットは低くしゃがむ
     if (!b.alive) ctx.globalAlpha = Math.max(0, 1 - b.dyingT / 90);
     const flash = b.hurtFlash > 0 && Math.floor(b.hurtFlash / 4) % 2 === 0;
     const skin  = flash ? "#ffdcb4" : "#e2a064";   // 日焼けした肌
@@ -5077,6 +5089,18 @@
       // 突き上げのきらめき
       ctx.fillStyle = "#fff2b0"; ctx.beginPath(); ctx.arc(W2*0.27, -H2*1.38, 9, 0, 7); ctx.fill();
       ctx.fillStyle = "#ffd34d"; ctx.beginPath(); ctx.arc(W2*0.27, -H2*1.38, 4, 0, 7); ctx.fill();
+    } else if (shooting) {
+      // タイガーショット：前腕をまっすぐ前へ伸ばして撃つ（下段は低い位置＝しゃがみ）
+      const fy = b.shotLow ? -H2*0.34 : -H2*0.66;
+      // 後ろ腕（引き手・ガード）
+      ctx.beginPath(); ctx.moveTo(-W2*0.4, -H2*0.82); ctx.lineTo(-W2*0.3, -H2*0.58); ctx.lineTo(-W2*0.08, -H2*0.72); ctx.stroke();
+      // 前腕（肩→肘→こぶしを前方へまっすぐ）
+      ctx.beginPath(); ctx.moveTo(W2*0.26, -H2*0.8); ctx.lineTo(W2*0.5, fy - H2*0.03); ctx.lineTo(W2*0.76, fy); ctx.stroke();
+      fist(-W2*0.08, -H2*0.72);
+      fist(W2*0.76, fy);
+      // こぶしの先の火の玉グロー
+      ctx.fillStyle = "#ffd8a0"; ctx.beginPath(); ctx.arc(W2*0.94, fy, 8, 0, 7); ctx.fill();
+      ctx.fillStyle = "#ff9a3c"; ctx.beginPath(); ctx.arc(W2*0.94, fy, 4.5, 0, 7); ctx.fill();
     } else {
       // 構え：両腕を曲げて、こぶしを胸の前に上げるガード
       ctx.beginPath(); ctx.moveTo(-W2*0.4, -H2*0.82); ctx.lineTo(-W2*0.34, -H2*0.58); ctx.lineTo(-W2*0.06, -H2*0.72); ctx.stroke();
