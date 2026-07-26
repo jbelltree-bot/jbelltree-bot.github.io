@@ -301,7 +301,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "異世界編 ver 2.1 (2026-07-26)";
+  const GAME_VERSION = "異世界編 ver 1.13 (2026-07-26)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -786,8 +786,9 @@
   // ---------- ドラゴンモード（B長押しで発動・ゲージ制） ----------
   // 発動中はよりドラゴンっぽい姿に変身して、横スクロールシューティングのように自由に飛べる。
   // B=大火炎（前へ）／下＋B=斜め下へ大火炎。ゲージが切れると元に戻る。
-  const DRAGON_MAX = 600;          // 約10秒
+  const DRAGON_MAX = 600;          // ゲージの満タン（地上で回復しきるまで約10秒）
   const DRAGON_NEED = 180;         // 発動に必要な最低ゲージ
+  const DRAGON_DRAIN = 1.5;        // 飛んでいる間の減り方。満タンから約6.7秒（長すぎたので1.0→1.5）
   let dragonMode = false;
   let dragonGauge = DRAGON_MAX;
   let gaugeFlash = 0;              // ゲージ不足の点滅
@@ -1202,21 +1203,29 @@
     if (inBoss && BOSS_BGM[stageIndex]) return BOSS_BGM[stageIndex];  // ボス戦中はボスBGM
     return stageBgm();
   }
-  function startBGM() {
-    const want = currentBgm();
-    // 目的の曲以外はすべて止める（二重再生の防止）
-    ALL_BGM.forEach(a => { if (a !== want) { try { a.pause(); } catch (e) {} } });
-    bgm = want;
-    try { bgm.play().catch(() => {}); } catch (e) {}
+  // 「いま鳴っているべき曲」。スマホ（とくにiPhone）は再生をブロック／勝手に止めることが
+  // あるので、これを覚えておいて、止まっていたら鳴らし直す（下のBGM見張り番）。
+  let desiredBgm = null;
+  function playTrack(track) {
+    desiredBgm = track;
+    ALL_BGM.forEach(a => { if (a !== track) { try { a.pause(); } catch (e) {} } });
+    bgm = track;
+    try { const pr = track.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
   }
+  function startBGM() { playTrack(currentBgm()); }
   function stopBGM()  {
+    desiredBgm = null;
     ALL_BGM.forEach(a => { try { a.pause(); } catch (e) {} });
   }
   // タイトル画面の曲（メニューに戻ったときも鳴らす）
-  function startTitleBGM() {
-    ALL_BGM.forEach(a => { if (a !== TITLE_BGM) { try { a.pause(); } catch (e) {} } });
-    bgm = TITLE_BGM;
-    try { TITLE_BGM.play().catch(() => {}); } catch (e) {}
+  function startTitleBGM() { playTrack(TITLE_BGM); }
+  // BGM見張り番：鳴っているはずの曲が止まっていたら、そっと鳴らし直す
+  let bgmWatchT = 0;
+  function watchBGM() {
+    if (++bgmWatchT < 30) return;   // 0.5秒に1回だけ確認
+    bgmWatchT = 0;
+    if (!desiredBgm || !desiredBgm.paused) return;
+    try { const pr = desiredBgm.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
   }
 
   // iOS等で最初のタッチ/クリック時に音声を解禁しておく
@@ -1356,6 +1365,8 @@
   // ---------- 更新 ----------
   function update() {
     elapsed++;
+    watchBGM();     // 鳴っているはずの曲が止まっていたら鳴らし直す
+
     if (state === "play") updatePlay();
     else if (state === "boss") {
       if (pk) { updatePK(); }               // ポルトガル：PK戦
@@ -1419,7 +1430,7 @@
     if (dragonMode && !isDragonForm()) endDragonMode();
     // ドラゴンモードのゲージ：発動中は減る／地上にいると回復
     if (dragonMode) {
-      dragonGauge--;
+      dragonGauge -= DRAGON_DRAIN;
       if (dragonGauge <= 0) { dragonGauge = 0; endDragonMode(); }
     } else if (p.onGround && dragonGauge < DRAGON_MAX) {
       dragonGauge = Math.min(DRAGON_MAX, dragonGauge + 1);   // 地上でゆっくり回復（連発できないように）
@@ -3555,7 +3566,8 @@
     const def0 = STORIES[key];
     const track = def0.audio || BGM[Math.min(def0.bgm ?? 0, BGM.length - 1)];
     stopBGM();
-    try { bgm = track; track.currentTime = 0; track.play().catch(() => {}); } catch (e) {}
+    try { track.currentTime = 0; } catch (e) {}
+    playTrack(track);
     document.body.classList.add("storymode");
     state = "story";
   }
@@ -3595,7 +3607,8 @@
     particles = []; cukes = []; sps = []; jets = []; bigBoom = 0; bosses = []; inBoss = false;
     cutsceneActive = true;
     stopBGM();
-    try { bgm = ENDING_BGM; ENDING_BGM.currentTime = 0; ENDING_BGM.play().catch(() => {}); } catch (e) {}
+    try { ENDING_BGM.currentTime = 0; } catch (e) {}
+    playTrack(ENDING_BGM);
     document.body.classList.add("storymode");
     state = "story";
   }
@@ -3613,13 +3626,14 @@
     particles = particles.filter(pt => pt.life > 0);
   }
 
-  function resetGameAt(startIndex) {
+  function resetGameAt(startIndex, skipName) {
     lives = 3; score = 0; coinsGot = 0; hp = maxHp;
     inBoss = false; bosses = []; cukes = []; pk = null;
     loadStage(startIndex || 0);
     saveProgress(stageIndex);       // 今いるステージを記録
     buildLevel();
     stageBgm().currentTime = 0;
+    if (skipName) { stopBGM(); return; }   // このあと紙芝居が始まる（ジングルは鳴らさない）
     showStageName();     // 曲は startStagePlay で鳴らす（ジングルとぶつからないように）
   }
   function resetGame() { resetGameAt(0); }
@@ -8092,12 +8106,14 @@
     ctx.fillText("🐹 x " + lives, 14, 18);
 
     // ハート（ライフ）：被弾で1つ減り、0でミス
-    ctx.font = "15px 'Segoe UI', sans-serif";
+    // ※絵文字は機種ごとに幅がちがって並びがずれるので、ハートは自分で描く
     for (let i = 0; i < maxHp; i++) {
-      ctx.globalAlpha = i < hp ? 1 : 0.35;
-      ctx.fillText(i < hp ? "❤️" : "🖤", 92 + i * 20, 18);
+      const hx = 100 + i * 18, hy = 17, alive = i < hp;
+      drawHeartPath(hx, hy, 7.2);
+      ctx.fillStyle = alive ? "#e8446b" : "rgba(255,255,255,0.22)"; ctx.fill();
+      if (alive) { drawHeartPath(hx, hy - 0.8, 5.6); ctx.fillStyle = "#ff6b81"; ctx.fill(); }
     }
-    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#fff";
     ctx.font = "bold 16px 'Segoe UI', sans-serif";
 
     // コイン
@@ -8247,18 +8263,31 @@
 
     // ハートのうつわを取ったときのお知らせ
     if (vesselFx > 0) {
+      // 絵文字は機種ごとに幅が違って文字がずれるので、ハートは自分で描く
       ctx.save();
       ctx.globalAlpha = Math.min(1, vesselFx / 24);
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      const msg = "さいだいハートが ふえた！  ❤️ x " + maxHp;
+      const msg = "さいだいハートが ふえた！";
       ctx.font = "bold 20px 'Segoe UI', sans-serif";
-      const bw = Math.max(320, ctx.measureText(msg).width + 60);
+      const hs = 11, gap = 27;                      // ハートの大きさと間かく
+      const heartsW = maxHp * gap;
+      const bw = Math.max(320, ctx.measureText(msg).width + 60, heartsW + 60);
+      const bh = 78, by = H/2 - 96;
       ctx.fillStyle = "rgba(120,20,50,0.55)";
-      ctx.fillRect(W/2 - bw/2, H/2 - 74, bw, 48);
+      ctx.fillRect(W/2 - bw/2, by, bw, bh);
       ctx.strokeStyle = "#ffd34d"; ctx.lineWidth = 2;
-      ctx.strokeRect(W/2 - bw/2, H/2 - 74, bw, 48);
+      ctx.strokeRect(W/2 - bw/2, by, bw, bh);
       ctx.fillStyle = "#ffe0e8";
-      ctx.fillText(msg, W/2, H/2 - 50);
+      ctx.fillText(msg, W/2, by + 24);
+      // 増えたあとのハートを並べて描く（いちばん右が今ふえたぶん＝金色にする）
+      for (let i = 0; i < maxHp; i++) {
+        const hx = W/2 - heartsW/2 + gap/2 + i * gap, hy = by + 54;
+        const isNew = (i === maxHp - 1);
+        drawHeartPath(hx, hy, hs);
+        ctx.fillStyle = isNew ? "#ffd34d" : "#e8446b"; ctx.fill();
+        drawHeartPath(hx, hy - 1, hs * 0.78);
+        ctx.fillStyle = isNew ? "#ffe9a8" : "#ff6b81"; ctx.fill();
+      }
       ctx.restore();
     }
 
@@ -9474,7 +9503,8 @@
     overlay.classList.add("hidden");
     document.body.classList.add("playing");
     if (withOpening) resetAbilities();   // はじめから＝スキルもリセット（またステージ1で手に入れる）
-    resetGameAt(startIndex);
+    // オープニングを見せるときは、ステージ名の画面（＋ジングル）をとばして紙芝居から始める
+    resetGameAt(startIndex, withOpening);
     if (withOpening) startStory("opening");   // ステージ1のまえにオープニング
   }
 
@@ -9510,19 +9540,16 @@
 
   // タイトル画面の曲は「最初のタップ／キー操作」で鳴らしはじめる。
   // （ブラウザはユーザー操作の前に音を鳴らせないので、読み込み直後には流せない）
+  // iPhoneは「タップした関数の中で」play()を呼ばないとブロックされる（setTimeoutで待つと鳴らない）。
+  // また1回で成功するとは限らないので、タイトル画面のあいだは毎回そっと試す。
   {
-    let kicked = false;
     const kickTitleBGM = () => {
-      if (kicked) return;
-      kicked = true;
       ac();
-      // ボタンを押した場合はゲームが始まるので、少し待ってからメニューのままか確かめる
-      setTimeout(() => { if (state === "menu") startTitleBGM(); }, 60);
-      window.removeEventListener("pointerdown", kickTitleBGM, true);
-      window.removeEventListener("keydown", kickTitleBGM, true);
+      if (state === "menu" && TITLE_BGM.paused) startTitleBGM();   // この場で即再生
     };
     window.addEventListener("pointerdown", kickTitleBGM, true);
     window.addEventListener("keydown", kickTitleBGM, true);
+    window.addEventListener("touchstart", kickTitleBGM, true);
   }
 
   // 初期化
