@@ -301,7 +301,8 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "異世界編 ver 1.13 (2026-07-26)";
+  // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
+  const GAME_VERSION = "異世界編 ver 2.5 (2026-08-01)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -318,6 +319,8 @@
   // N=ナッツ(ハート回復)  U=1UP(フランスパン)  A=あわバリア
   // S=スキル取得の台（STAGES[i].skill のスキルをおぼえる）
   // q=スライム(地上・ぴょこぴょこ)  d=こうもり(飛ぶ)  ※世界編の敵記号もそのまま使える
+  // q=スライム  d=こうもり  Q=デカスライム  T=トゲトゲ(倒せない)  W=おにび(追う・踏めないが技で倒せる)  K=キノコン(動かない・ほうし)
+  // M=テレキネシスで動かせる石  C=かじってこわすヒビ壁  L=ローリングでだけ通れる穴  V=ハートのうつわ
   // P=プレイヤー開始(左端のワープから登場)  G=ゴール  -=空
   // 行数は自由（16行なら縦スクロールになる）。列数も自由（ステージ1は300列=世界編の2倍）
   const STAGES = [
@@ -333,16 +336,76 @@
         "----------------------------------------------------------------------------------------------------------------------------------------------------RRRRRRRRRRR----o-o-o-o----RRRRRRRRR----o-o-o-o--d-------------------------------------------------------------------------------------------------------",
         "------------------------------------------------------------------------------------------------------------------------------------------RRRR--------------------RRRRRRRRR---------------RRRRRRRRR---------------------------------------------------------------------------------------------------------",
         "-------------------------------------------------------------------------------------------------------------------------------------------------o------d---------------------------------------------RRRRRRR-----------------------------------------------------------------------------------------------",
-        "------------------------------------------------------------------------------------------------------------------------------------------------RRRR--------------------------------------------------------------------------------------------------------------------------------------------------------",
-        "----------------------------------------------------------------------------o-o-o-------d-------------------------------------------------o-----------------------------------------------------------------------------------------------------------------------------------------------d-----------------",
-        "----------------------------------------------------------------------------RRRRR-----------?---------------d----------------------------RRRR-----------------------------------------------------------------------------------------------d-----------------------------------------------------------G---",
-        "-----------------------------------------------------------------------------------------------------------o-o-o--------------------------------o-----------------------------------------------------------------------------------------------------d-----------------o-----------------------------------",
+        "------------------------------------------------------------------------------------------------------------------------------------------------RRRR------------------------------------------------------------------------------------------------------------------d-------------------------------------",
+        "----------------------------------------------------------------------------o-o-o-------d-------------------------------------------------o------------------------------------------------------------------d----------------------------------------------------------------------------d-----------------",
+        "----------------------------------------------------------------------------RRRRR-----------?---------------d-------------------d--------RRRR-----------------------------------------------------------------------------------------------d-----------------------------------------------------------G---",
+        "----------------------------------------d------------------------------------------------------------------o-o-o--------------------------------o-----------------------------------------------------------------------------------------------------d-----------------o-----------------------------------",
         "--------------------o-o-------------------N------------------------o-o--------------ooo-------------------RRRRRRR------------------------------RRRR------------------------------------------------------------------------o-o----------------------N------------------RRR----------------------------------",
         "--------------------RRRR------?-?-------RRRR--------------U-------RRRRR-------------###---RRRRR-----o-RRR-RRRRRRR------------------------o--------------------------------------------------------------------------------RRRR?-----------?------------------------o---------o---###o-o---------?-----------",
         "--P------------------------------------------------------------------------------------------------RRR----RRRRRRR-N---------------------RRRR------------------------------------------------------------------------ooo-----------RRRRRR--------------------------RRR-------RRR-----------------------------",
-        "-------S----o-o-o---------q---#--------------q----Q----q------------------q-----------q-------------o-o-o-LLoBoLLoo---q---T--------------------------------q------------q----------------q------------q---------------------------C-BVNRq-------q---Q---T------------------q---------T--------q-----Q-------",
+        "-------S----o-o-o---------q---#--------------K----Q----q------------------K-----------q-------------o-o-o-LLoBoLLoo---K------------------------------------q------------T----------------Q------------q-----------K---------------C-BVNRT-------q---Q----------------------K---------T--------q-----Q-------",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX----XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX----XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      ]
+    },
+    {
+      // 縦にのぼるステージ。ひかりのたま（上の敵を追う）・まほうじん（上下いっぱいに止める）
+      // ふわふわ・ほうきダッシュ が生きるように作ってある。ボス＝大まどうし ゲドルフ。
+      name: "ステージ2 まほうの塔",
+      theme: "tower",
+      boss: "wizard",
+      skill: "magic",
+      level: [
+        "------------------------R--------------------------------RRR",
+        "------------------------R--------------------------------RRR",
+        "------------------------R---------Noo-W------------------RRR",
+        "------------------------R--G-----RRRR--------------------RRR",
+        "------------------------R---------------d----------------RRR",
+        "------------------------R-----oo----------oooA-----------RRR",
+        "------------------------RRRRRRRRRRRRRRRRRRRRRRRR---------RRR",
+        "------------------------R------------------oNo-----------RRR",
+        "------------------------R------------------RRR-----------RRR",
+        "------------------------R-------------W---------RRWRR----RRR",
+        "------------------------R-----------------d----d---------RRR",
+        "------------------------R---------ooo---T------------K---RRR",
+        "------------------------R-------RRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+        "------------------------R--------------------------------RRR",
+        "------------------------R---------o-o-o-o---W------------RRR",
+        "------------------------R--RRRRR-RRRRRRRR----d-----------RRR",
+        "------------------------R--------RRRRRRRR----------------RRR",
+        "------------------------R--------LLoLBLoL-N--K-----------RRR",
+        "------------------------RRRRRRRRRRRRRRRRRRRRRRRRRR-------RRR",
+        "------------------------R--------------------------------RRR",
+        "------------------------R----------------W---------------RRR",
+        "------------------------R---------?-d---------d---RRRRR--RRR",
+        "------------------------R----------------------------RRRRRRR",
+        "------------------------R-------------ooo---K--------C-VBRRR",
+        "------------------------R-------RRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+        "------------------------R--------------------------------RRR",
+        "------------------------R--------W-----------------------RRR",
+        "------------------------R--RRRRR------------d--?---------RRR",
+        "------------------------R------------ooooo---------------RRR",
+        "------------------------R---------N----------T-----------RRR",
+        "------------------------RRRRRRRRRRRRR-----RRRRRRRR-------RRR",
+        "------------------------R--------------------------------RRR",
+        "------------------------R--------------------------------RRR",
+        "------------------------R-----------N--------d----RRRRR--RRR",
+        "------------------------R---------------oooo-------d-----RRR",
+        "------------------------R-------------MM------K----------RRR",
+        "------------------------R-------RRRRRRRR----RRRRRRRRRRRRRRRR",
+        "------------------------R--------------------------------RRR",
+        "------------------------R---o-o-------------W------------RRR",
+        "------------------------R--RRRRR-------------?-----------RRR",
+        "------------------------R-----------d--------------------RRR",
+        "------------------------R-----------ooo-K----------------RRR",
+        "------------------------RRRRRRRRRRRRRRRRRRRRRRRRRR-------RRR",
+        "------------------------R--------------------------------RRR",
+        "------------d-----------R------------------d---W---o-o---RRR",
+        "-----------------?---N--R-------------d-----------RRRRR--RRR",
+        "--P---------ooo------------------------------------------RRR",
+        "--------S----------K----------K--ooo---------------------RRR",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
       ]
     }
   ];
@@ -441,6 +504,7 @@
     pedestals = [];
     flames = [];
     goos = [];
+    circles = []; thrown = [];
     vessels = [];
     balls = [];
     questionBlocks = [];
@@ -456,6 +520,7 @@
         else if (ch === "R") solids.push({ x, y, w: TILE, h: TILE, type: "stone" });     // こわせない石ブロック（足場用）
         else if (ch === "L") solids.push({ x, y, w: TILE, h: TILE, type: "lowgate" });   // ローリングでだけ通れる穴
         else if (ch === "C") solids.push({ x, y, w: TILE, h: TILE, type: "crack" });     // かじってこわすヒビ割れた壁
+        else if (ch === "M") solids.push({ x, y, w: TILE, h: TILE, type: "crate" });     // テレキネシスで動かせる石
         else if (ch === "?") {
           const b = { x, y, w: TILE, h: TILE, type: "question", used: false };
           solids.push(b); questionBlocks.push(b);
@@ -498,12 +563,17 @@
         else if (ch === "d") { enemySpawns.push({ x, y, kind: "bat" }); enemies.push(makeEnemy(x, y, { kind: "bat" })); }
         else if (ch === "Q") { enemySpawns.push({ x, y, kind: "bigslime" }); enemies.push(makeEnemy(x, y, { kind: "bigslime" })); }
         else if (ch === "T") { enemySpawns.push({ x, y, kind: "spiky" }); enemies.push(makeEnemy(x, y, { kind: "spiky" })); }
+        else if (ch === "W") { enemySpawns.push({ x, y, kind: "wisp" }); enemies.push(makeEnemy(x, y, { kind: "wisp" })); }
+        else if (ch === "K") { enemySpawns.push({ x, y, kind: "shroom" }); enemies.push(makeEnemy(x, y, { kind: "shroom" })); }
         else if (ch === "P") start = { x, y };
         else if (ch === "G") goal = { x: x + TILE / 2, y: y, top: y };
       }
     }
     // ゴールが無ければ最後に置く
     if (!goal) goal = { x: LEVEL_W - 60, y: 3 * TILE, top: 3 * TILE };
+    // ゴールに「とどく」と見なす たての範囲。塔のような背の高いステージでは、
+    // 下のフロアでジャンプしただけでクリアにならないよう せまくする。
+    goal.reachH = (LEVEL_H > H * 1.6) ? TILE * 3 : TILE * 7;
 
     player = {
       x: start.x, y: start.y, w: 36, h: 40,   // 異世界編は常にたねまるりんサイズ
@@ -514,7 +584,9 @@
       shield: false, shieldT: 0, stun: 0,
       warpIn: 55, fireCool: 0,
       spin: 0, spinCd: 0, tackle: 0, tackleCd: 0, flaps: 0, flapT: 0, mouthOpen: 0,
-      roll: 0, rollCd: 0, gnaw: 0, gnawTarget: null, burrow: 0, burrowCd: 0, slow: 0
+      roll: 0, rollCd: 0, gnaw: 0, gnawTarget: null, gnawBoss: null, burrow: 0, burrowCd: 0, slow: 0,
+      orbCool: 0, circleCd: 0, carry: null, carryCd: 0, broom: 0, broomCd: 0,
+      floating: 0, tkFx: 0, tkMiss: 0
     };
     // ステージ開始＝ワープから登場（演出）
     warpFx = { x: player.x + player.w/2, y: player.y + player.h/2 + 4, t: 100 };
@@ -622,6 +694,36 @@
       const baseY = y + 2;
       return { kind, x: x + 3, y: baseY, w: 34, h: 22, vx: opts.slow ? -1.0 : -1.6,
                alive: true, t: Math.random()*6, squash: 1, fly: true, baseY, homeX: x + 3, range: 120 };
+    }
+    if (kind === "wisp") {
+      // おにび：ふわふわ浮いて、近づくと まるりんを ゆっくり おいかけてくる。
+      // 火なので上から踏めない（noStomp）が、技（火の玉・ひかりのたま・スピン・タックル・
+      // ローリング・たね など）ならちゃんと倒せる。まほうじんで止めれば足場になる。
+      // ※ spiky:true にすると damageEnemy が全部はじく＝どうやっても倒せなくなるので使わない。
+      return { kind, x: x + 5, y: y + 5, w: 30, h: 30, vx: 0, vy: 0,
+               alive: true, t: Math.random()*6, squash: 1, fly: true, chase: true, noStomp: true,
+               baseY: y + 5, homeX: x + 5, spd: opts.slow ? 0.7 : 1.0 };
+    }
+    if (kind === "crystal") {
+      // まほうのクリスタル（ゲドルフが出す）：しばらく浮いてから まるりんへ とんでくる。
+      // ★テレキネシス（↓＋B）で つかんで、ゲドルフに 投げ返すと まほうバリアが割れる。
+      return { kind, x, y, w: 30, h: 30, vx: 0, vy: 0,
+               alive: true, t: Math.random()*6, squash: 1, fly: true, crystal: true,
+               hover: 130, baseY: y, homeX: x };
+    }
+    if (kind === "hat") {
+      // ゲドルフのぼうし（第2段階）：ひとりでに飛びまわって まるりんを おいかける。
+      // 踏めないが、技で2回あてると こわせる（倒すと もう出てこない＝ごほうび）。
+      return { kind, x, y, w: 46, h: 34, vx: 0, vy: 0,
+               alive: true, t: Math.random()*6, squash: 1, fly: true, chase: true, noStomp: true,
+               hp: 2, baseY: y, homeX: x, spd: 1.7 };
+    }
+    if (kind === "shroom") {
+      // キノコン：その場に生えている。近づくと ほうしだま を まっすぐ飛ばしてくる。
+      // 動かないので道はふさがない（＝スライムのように「動きづらく」ならない敵）。踏める。
+      return { kind, x: x + 4, y: y + TILE - 34, w: 32, h: 34, vx: 0,
+               alive: true, t: Math.random()*6, squash: 1, root: true, face: -1,
+               shootCd: 60 + Math.floor(Math.random()*90) };
     }
     if (kind === "gator") {
       // ワニ：長い体で地面を低くゆっくり歩く（アメリカ・沼地）。口をパクパク。踏める。
@@ -754,7 +856,7 @@
       // ポーズ画面に出す技の説明 [操作, 技の名前, せつめい]
       moves: [
         ["B", "たねスピット", "口から タネを とばす"],
-        ["B ながおし", "かじる", "めのまえの ブロックを こわす（ヒビ割れた壁も）"],
+        ["B ながおし", "かじる", "めのまえの ブロックを こわす（ヒビ割れた壁も／ボスのバリアも）"],
         ["↓ ＋ B", "もぐる", "土にもぐって むてき。もう一度おすと とび出す"],
         ["ダッシュ中に B", "ごろごろローリング", "まるまって つっこむ。せまい穴も通れる"]
       ],
@@ -778,7 +880,26 @@
       downAtk(p) { startTailSpin(p); },        // 下＋B：しっぽスピン（左右の敵をまとめて吹き飛ばす）
       dashAtk(p) { startTackle(p); },          // ダッシュ中B：ドラゴンタックル（炎をまとって突進）
     },
+    // ステージ2「まほうの国」：とんがり帽子のまほうまるりん。
+    // 「こわす」でも「飛ぶ」でもなく、"止める・動かす" が得意なスキル。
+    magic: {
+      name: "まほう", icon: "🔮", form: "magic", chargeFrames: 36, float: 96,
+      moves: [
+        ["B", "ひかりのたま", "てきを おいかける 光の たまを とばす"],
+        ["B ながおし", "まほうじん", "足元から 光の玉が ふくらむ。中の てきを 3びょう とめる。とまったてきは 足場になる"],
+        ["↓ ＋ B", "テレキネシス", "石や てきを うかせて はこぶ。もう一度おすと なげる"],
+        ["ダッシュ中に B", "ほうきダッシュ", "ほうきで まっすぐ とぶ。谷も こえられる"],
+        ["空中で A おしっぱなし", "ふわふわ", "おちるのが おそくなる。遠くまで とどく"]
+      ],
+      tap(p) { castOrb(p); },
+      hold(p) { castMagicCircle(p); },
+      downAtk(p) { toggleTelekinesis(p); },
+      dashAtk(p) { startBroom(p); },
+    },
   };
+  function isMagicForm() { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return !!(ab && ab.form === "magic"); }
+  // 空中でAを押したときに「ゆっくり落ちる」フレーム数（まほうスキルだけ）
+  function floatFrames() { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return (ab && ab.float) || 0; }
   function isDragonForm() { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return !!(ab && ab.form === "dragon"); }
   // いま選んでいるスキルで、空中に何回はばたけるか（スキルが無ければ0＝ふつうのジャンプだけ）
   function flapMax() { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return (ab && ab.flap) || 0; }
@@ -810,8 +931,8 @@
   // ===== ノーマルスキルの技（でかまるりんのまま戦う） =====
   // ① たねスピット：口からひまわりのタネを飛ばす（連射がきく基本技）
   function spitSeed(p) {
-    if (p.seedCool > 0 || seeds.length >= 4) return;
-    p.seedCool = 14;
+    if (p.seedCool > 0 || seeds.length >= 5) return;
+    p.seedCool = 9;      // 連射をはやく（14→9）
     p.mouthOpen = 10;
     const m = mouthPos(p);
     seeds.push({ x: m.x, y: m.y, vx: p.face * 7.4, life: 52, t: 0 });
@@ -855,17 +976,31 @@
     // 目の前のブロックをさがす
     const tx = p.face > 0 ? p.x + p.w + 2 : p.x - TILE - 2;
     const box = { x: tx, y: p.y + 10, w: TILE, h: p.h - 20 };
-    p.gnawTarget = null;
+    p.gnawTarget = null; p.gnawBoss = null;
     for (const s of solids) {
       if (s.dead) continue;
       if (s.type !== "brick" && s.type !== "question" && s.type !== "crack" && s.type !== "stone") continue;
       if (rectHit(box, s)) { p.gnawTarget = s; break; }
     }
+    // ブロックが無ければ、目の前の「まほうバリア」をかじる（ノーマルまるりんの前歯でも割れる）
+    if (!p.gnawTarget) {
+      for (const b of bosses) {
+        if (!b.alive || !b.guard || b.hidden || b.shieldT > 0) continue;
+        if (rectHit(box, b)) { p.gnawBoss = b; break; }
+      }
+    }
     sfx.block();
   }
   function finishGnaw(p) {
-    const t = p.gnawTarget;
-    p.gnaw = 0; p.gnawTarget = null;
+    const t = p.gnawTarget, gb = p.gnawBoss;
+    p.gnaw = 0; p.gnawTarget = null; p.gnawBoss = null;
+    // まほうバリアを かじり割る（クリスタルを投げ返すのと同じ効果）
+    if (gb && gb.alive && gb.guard && !gb.hidden && gb.shieldT <= 0) {
+      breakBossGuard(gb);
+      score += 300;
+      spawnParticles(p.x + p.w/2 + p.face * 26, p.y + p.h/2, "#ffffff", 12);
+      return;
+    }
     if (!t || t.dead) return;
     if (t.type === "question" && !t.used) { hitQuestion(t); return; }
     if (t.type === "stone") { sfx.block(); spawnParticles(t.x + TILE/2, t.y + TILE/2, "#c7ccd6", 6); return; }   // 石はかじってもムダ
@@ -900,19 +1035,22 @@
     sfx.jump(); screenShake = Math.max(screenShake, 5);
     spawnParticles(p.x + p.w/2, p.y + p.h, "#8a6d5a", 16);
     spawnParticles(p.x + p.w/2, p.y + p.h, "#c9a97e", 10);
-    // まわりの敵を跳ね上げる
-    for (const e of enemies) {
-      if (!e.alive) continue;
-      if (Math.abs(e.x + e.w/2 - (p.x + p.w/2)) < 84 && Math.abs((e.y + e.h) - (p.y + p.h)) < 60) {
-        damageEnemy(e, "#c9a97e");
-      }
-    }
+    // ※飛び出しに攻撃判定は無し（無敵で近づいて敵をまとめて倒せてしまい強すぎたため）。
+    //   土けむりだけ出して、まわりの敵はそのまま。
   }
 
   // ---------- 敵へのダメージ ----------
   // 倒せたら true。hpが残っている敵（デカスライムなど）は1回では倒れない。
   function damageEnemy(e, color) {
     if (!e.alive) return false;
+    if (e.crystal && e.hover > 0) {
+      // 止まっているクリスタルは こわせない（テレキネシスで つかんで 投げ返すための的なので、
+      // ひかりのたま や たねが 当たって 消えてしまわないようにする）
+      e.squash = 0.88;
+      sfx.block();
+      spawnParticles(e.x + e.w/2, e.y + e.h/2, "#bfe9ff", 4);
+      return false;
+    }
     if (e.spiky) {
       // トゲトゲは倒せない（じゃまなだけの相手）。当てても はじかれる
       e.hurtT = 12; e.squash = 0.85;
@@ -949,10 +1087,195 @@
   }
 
   // スキルを切り替えたり やられたりしたら、技の状態を全部もどす
+
+  // ===== まほうスキルの技 =====
+  // ① ひかりのたま：ふわっと飛んで、いちばん近い敵のほうへ曲がっていく。
+  //    たね（まっすぐ）や火の玉（速い）と違って「下手でも当たる」のがまほうの持ち味。
+  function castOrb(p) {
+    if (p.orbCool > 0 || seeds.filter(sd => sd.magic).length >= 2) return;
+    p.orbCool = 34;      // 連射がきつすぎたので ゆっくりに
+    p.mouthOpen = 8;
+    const m = mouthPos(p);
+    seeds.push({ x: m.x, y: m.y - 4, vx: p.face * 4.6, vy: -0.6, life: 110, t: 0, magic: true });
+    sfx.seed(); beep(1180, 0.06, "sine", 0.05);
+    p.squash = 0.88;
+    spawnParticles(m.x, m.y, "#cfe4ff", 4);
+  }
+  // 光の玉のホーミング：近くの敵へ、じわっと向きを変える（急に曲がると当てにくい）
+  function steerOrb(sd) {
+    let best = null, bd = 260 * 260;
+    for (const e of enemies) {
+      if (!e.alive) continue;
+      if (e.crystal && e.hover > 0) continue;   // 止まっているクリスタルは ねらわない（つかむための的）
+      const dx = (e.x + e.w/2) - sd.x, dy = (e.y + e.h/2) - sd.y;
+      const d = dx*dx + dy*dy;
+      if (d < bd) { bd = d; best = e; }
+    }
+    if (!best) { sd.vy = (sd.vy || 0) + 0.02; return; }   // 敵がいなければゆるく落ちる
+    const dx = (best.x + best.w/2) - sd.x, dy = (best.y + best.h/2) - sd.y;
+    const d = Math.max(20, Math.sqrt(dx*dx + dy*dy));
+    const sp = 5.2;
+    sd.vx += ((dx / d) * sp - sd.vx) * 0.09;
+    sd.vy += ((dy / d) * sp - (sd.vy || 0)) * 0.09;
+  }
+
+  // ② まほうじん：足元に魔法陣。範囲に入った敵が しばらく止まる。
+  //    止まった敵はぶつかっても痛くないし、上に乗って足場にできる。
+  // 足元の魔法陣から「光の球」がふくらむ。CIRCLE_R = その球の半径（たて・よこ同じ）。
+  const CIRCLE_LIFE = 150, CIRCLE_R = 190, CIRCLE_GROW = 14, CIRCLE_CD = 330, FREEZE_TIME = 180;   // 連発できないよう長めのクールダウン
+  let circles = [];
+  function castMagicCircle(p) {
+    if (p.circleCd > 0) { sfx.block(); return; }
+    p.circleCd = CIRCLE_CD;
+    circles.push({ x: p.x + p.w/2, y: p.y + p.h - 4, t: 0, life: CIRCLE_LIFE });
+    sfx.power();
+    p.squash = 0.8;
+    spawnParticles(p.x + p.w/2, p.y + p.h, "#bba6ff", 16);
+  }
+  function updateCircles() {
+    for (const c of circles) {
+      c.t++; c.life--;
+      const r = CIRCLE_R * Math.min(1, c.t / CIRCLE_GROW);
+      for (const e of enemies) {
+        if (!e.alive) continue;
+        // 光の球（見た目とおなじ半径）の中に入った敵を止める。上も下も同じだけとどく。
+        const dx = (e.x + e.w/2) - c.x, dy = (e.y + e.h/2) - c.y;
+        if (dx*dx + dy*dy > r*r) continue;
+        if (!e.frozen) spawnParticles(e.x + e.w/2, e.y, "#bba6ff", 6);
+        e.frozen = FREEZE_TIME;
+      }
+    }
+    circles = circles.filter(c => c.life > 0);
+  }
+
+  // ③ テレキネシス：目の前の「動かせる石」か敵をうかせて頭の上へ。もう一度おすと投げる。
+  const LIFT_REACH = 54;
+  function toggleTelekinesis(p) {
+    if (p.carry) { throwCarried(p); return; }
+    if (p.carryCd > 0) { sfx.block(); return; }
+    p.tkFx = 22;                     // 「つかもうとした」しるし（空ぶりでも見える）
+    beep(760, 0.06, "sine", 0.05);
+    // まず「動かせる石」をさがす（目の前・足元まわり）
+    const box = { x: p.x + (p.face > 0 ? p.w - 6 : -LIFT_REACH + 6), y: p.y - 6, w: LIFT_REACH, h: p.h + 12 };
+    let target = null;
+    for (const s2 of solids) {
+      if (s2.dead || s2.type !== "crate") continue;
+      if (rectHit(box, s2)) { target = s2; break; }
+    }
+    if (target) {
+      target.dead = true;                       // いったん地形から外す
+      p.carry = { kind: "crate", w: TILE, h: TILE };
+      sfx.power(); p.squash = 0.85;
+      spawnParticles(target.x + TILE/2, target.y + TILE/2, "#bba6ff", 12);
+      return;
+    }
+    // 石がなければ、目の前の敵をうかせる（トゲトゲは持てない）
+    for (const e of enemies) {
+      if (!e.alive || e.spiky || !rectHit(box, e)) continue;
+      e.alive = false; e.lifted = true;         // 敵は「手の中」に移る（ベトベトは残さない）
+      p.carry = { kind: "enemy", w: e.w, h: e.h, ekind: e.kind };
+      sfx.power(); p.squash = 0.85;
+      spawnParticles(e.x + e.w/2, e.y + e.h/2, "#bba6ff", 12);
+      return;
+    }
+    // 何もつかめなかった：手ごたえのない音＋消えていく光のわ
+    sfx.block();
+    p.tkMiss = 22;
+  }
+  function throwCarried(p) {
+    const c = p.carry;
+    if (!c) return;
+    p.carry = null; p.carryCd = 18;
+    const cx = p.x + p.w/2 - c.w/2, cy = p.y - c.h - 6;
+    thrown.push({ kind: c.kind, ekind: c.ekind, x: cx, y: cy, w: c.w, h: c.h,
+                  vx: p.face * 8.6, vy: -3.2, t: 0 });
+    sfx.stomp(); p.squash = 0.85;
+    spawnParticles(cx + c.w/2, cy + c.h/2, "#bba6ff", 10);
+  }
+  let thrown = [];
+  function updateThrown() {
+    const p = player;
+    for (const th of thrown) {
+      th.t++;
+      // クリスタルだけは まほうの力で まっすぐ飛ぶ（落ちない）。
+      // 落ちると 手前で地面に刺さって ゲドルフまで とどかないため。
+      if (th.ekind === "crystal") { th.vy = 0; th.vx = (th.vx > 0 ? 1 : -1) * 10.5; }
+      else { th.vy += GRAVITY * 0.8; if (th.vy > 16) th.vy = 16; }
+      th.x += th.vx; th.y += th.vy;
+      // 敵に当たったら たおす
+      for (const e of enemies) {
+        if (!e.alive || !rectHit(th, e)) continue;
+        damageEnemy(e, "#bba6ff");
+        th.hitT = 1;
+      }
+      // ★投げ返したクリスタルは まほうバリアを割る（ゲドルフ戦のカギ）
+      if (th.ekind === "crystal") {
+        for (const b of bosses) {
+          if (!b.alive || !b.guard || b.hidden || !rectHit(th, b)) continue;
+          breakBossGuard(b);
+          th.hitT = 1;
+        }
+      }
+      hitBossesWith(th, 2);   // ボスにも当たる
+      // レンガを こわす
+      for (const s2 of solids) {
+        if (s2.dead || !rectHit(th, s2)) continue;
+        if (s2.type === "brick") { breakBrick(s2); continue; }
+        // 地面・石にぶつかったら止まる
+        th.land = true;
+        break;
+      }
+      if (th.land || th.y > LEVEL_H + 60) {
+        th.dead = true;
+        if (th.kind === "crate" && th.y < LEVEL_H + 40) placeCrate(th);   // 石はその場に置きなおす
+        else spawnParticles(th.x + th.w/2, th.y + th.h/2, "#bba6ff", 10);
+      }
+      if (th.x < -80 || th.x > LEVEL_W + 80) th.dead = true;
+    }
+    thrown = thrown.filter(th => !th.dead);
+  }
+  // 投げた石を、いちばん近いマスにそろえて置きなおす（足場やスイッチに使える）
+  function placeCrate(th) {
+    const gx = Math.round(th.x / TILE) * TILE;
+    let gy = Math.round(th.y / TILE) * TILE;
+    const box = { x: gx, y: gy, w: TILE, h: TILE };
+    // すでに何かある場所なら1マス上へずらす
+    for (let guard = 0; guard < 6; guard++) {
+      let clash = false;
+      for (const s2 of solids) { if (!s2.dead && rectHit(box, s2)) { clash = true; break; } }
+      if (!clash) break;
+      gy -= TILE; box.y = gy;
+    }
+    solids.push({ x: gx, y: gy, w: TILE, h: TILE, type: "crate" });
+    sfx.stomp(); screenShake = Math.max(screenShake, 6);
+    spawnParticles(gx + TILE/2, gy + TILE/2, "#b0a898", 12);
+  }
+
+  // ④ ほうきダッシュ：ほうきにまたがって、まっすぐ水平に飛ぶ。谷をひとっ飛びできる。
+  const BROOM_TIME = 46, BROOM_SPD = 9.2, BROOM_CD = 46;
+  const FLOAT_FALL = 2.4;   // ふわふわ中の落ちる速さ（ふつうは最大14くらい）
+  function startBroom(p) {
+    if (p.broom > 0 || p.broomCd > 0) return;
+    p.broom = BROOM_TIME; p.broomCd = BROOM_TIME + BROOM_CD;
+    p.vx = p.face * BROOM_SPD; p.vy = 0;
+    p.gliding = false;
+    sfx.jump(); p.squash = 0.86;
+    spawnParticles(p.x + p.w/2, p.y + p.h, "#dcd0ff", 8);
+  }
+
   function resetTechs(p) {
     if (!p) return;
     if (p.roll > 0) { p.roll = 0; setLowProfile(p, false); }
-    p.spin = 0; p.tackle = 0; p.gnaw = 0; p.gnawTarget = null; p.burrow = 0; p.mouthOpen = 0;
+    p.spin = 0; p.tackle = 0; p.gnaw = 0; p.gnawTarget = null; p.gnawBoss = null; p.burrow = 0; p.mouthOpen = 0;
+    p.broom = 0;
+    if (p.carry) { dropCarried(p); }        // 持っていた石は落とす
+  }
+  // 持っていたものを、その場にそっと落とす（被弾・スキル切替のとき）
+  function dropCarried(p) {
+    const c = p.carry; if (!c) return;
+    p.carry = null; p.carryCd = 18;
+    thrown.push({ kind: c.kind, ekind: c.ekind, x: p.x + p.w/2 - c.w/2, y: p.y - c.h - 4,
+                  w: c.w, h: c.h, vx: 0, vy: -1, t: 0 });
   }
 
   // しっぽスピン：地上で下＋B。しっぽを振り回して左右どちらの敵も吹き飛ばす（囲まれたとき用）
@@ -992,10 +1315,10 @@
     const m = mouthPos(p);
     flames.push({ x: m.x, y: diag ? m.y : m.y,
       vx: p.face * (big ? 8 : 6.6), vy: diag ? 8 : 0,   // 斜め下は45度
-      r: big ? 15 : 8, life: big ? 70 : 44, big: !!big, t: 0 });
+      r: big ? 22 : 8, life: big ? 78 : 44, big: !!big, t: 0 });   // 大火炎は大きめ（15→22）
     sfx.seed();
     p.squash = 0.82;
-    spawnParticles(m.x, m.y, big ? "#ffb545" : "#ff8a3a", big ? 8 : 4);
+    spawnParticles(m.x, m.y, big ? "#ffb545" : "#ff8a3a", big ? 14 : 4);
   }
   let abilities = [];      // おぼえた能力のid（習得順）
   let abilityIndex = 0;    // いま選んでいる能力
@@ -1174,17 +1497,21 @@
 
   // 異世界編のBGM（甘茶の音楽工房）。ステージが増えたらBGMの配列に足していく。
   const BGM = [
-    new Audio("audio/bgm_isekai1.mp3")     // ステージ1 はじまりのそうげん（楽しい冒険）
+    new Audio("audio/bgm_isekai1.mp3"),    // ステージ1 はじまりのそうげん（楽しい冒険）
+    new Audio("audio/bgm_isekai2.mp3")     // ステージ2 まほうの塔（The sacred place）
   ];
   BGM.forEach(a => { a.loop = true; a.volume = 0.15; });  // 小さめ・ループ
   // ボス戦BGM（ステージ別。無いステージはnull＝通常BGMのまま）
   const BOSS_BGM = [
-    new Audio("audio/bgm_isekai_boss1.mp3")   // ステージ1ボス キングスライム（騎兵戦）
+    new Audio("audio/bgm_isekai_boss1.mp3"),  // ステージ1ボス キングスライム（騎兵戦）
+    new Audio("audio/bgm_isekai_boss2.mp3")   // ステージ2ボス 大まどうし ゲドルフ（Lost Emotion）
   ];
   BOSS_BGM.forEach(a => { if (a) { a.loop = true; a.volume = 0.2; } });
-  const TITLE_BGM = new Audio("audio/bgm_isekai_title.mp3");      // タイトル画面（ソラリスの雨）
+  // ステージ2の曲は ステージ1をクリアするまで使わないので、最初の読み込みを軽くする
+  BGM[1].preload = "none"; BOSS_BGM[1].preload = "none";
+  const TITLE_BGM = new Audio("audio/bgm_isekai_title.mp3");      // タイトル画面（世界の最果てで、自由を謳う）
   TITLE_BGM.loop = true; TITLE_BGM.volume = 0.18;
-  const OPENING_BGM = new Audio("audio/bgm_isekai_opening.mp3");  // オープニング紙芝居（フィヨルドの澄んだ風）
+  const OPENING_BGM = new Audio("audio/bgm_isekai_opening.mp3");  // オープニング紙芝居（Prologue）
   OPENING_BGM.loop = true; OPENING_BGM.volume = 0.18;
   const ENDING_BGM = new Audio("audio/bgm_ending.mp3");   // 世界編フィナーレ用（異世界編ではまだ使わない）
   ENDING_BGM.loop = true; ENDING_BGM.volume = 0.2;
@@ -1196,7 +1523,9 @@
     try { STAGE_JINGLE.currentTime = 0; STAGE_JINGLE.play().catch(() => {}); } catch (e) {}
   }
   // 曲の二重再生を防ぐために「全部の曲」をまとめて持っておく
-  const ALL_BGM = BGM.concat(BOSS_BGM.filter(Boolean), [TITLE_BGM, OPENING_BGM, ENDING_BGM]);
+  // 同じ曲を2つのステージで使い回すことがあるので、重複を取りのぞいておく
+  const ALL_BGM = BGM.concat(BOSS_BGM.filter(Boolean), [TITLE_BGM, OPENING_BGM, ENDING_BGM])
+                     .filter((a, i, arr) => arr.indexOf(a) === i);
   let bgm = BGM[0];                           // 今鳴らしているBGM
   function stageBgm() { return BGM[Math.min(stageIndex, BGM.length - 1)]; }
   function currentBgm() {
@@ -1291,7 +1620,14 @@
       else if (downKey()) p.vy += 0.85;
       else p.vy *= 0.82;
       p.vy = Math.max(-4.2, Math.min(4.2, p.vy));
-    } else if (!p.gliding) p.vy += GRAVITY;
+    } else if (!p.gliding && p.broom <= 0) {
+      p.vy += GRAVITY;
+      // まほうの「ふわふわ」：落ちているあいだ A を押しっぱなしにすると、ゆっくり落ちる
+      if (floatFrames() > 0 && !p.onGround && p.vy > FLOAT_FALL && jumpKey()) {
+        p.vy = FLOAT_FALL;
+        p.floating = 3;
+      }
+    }
     if (p.vy > 18) p.vy = 18;
     p.y += p.vy;
     p.onGround = false;
@@ -1446,6 +1782,16 @@
     if (p.mouthOpen > 0) p.mouthOpen--;
     if (p.rollCd > 0) p.rollCd--;
     if (p.burrowCd > 0) p.burrowCd--;
+    if (p.orbCool > 0) p.orbCool--;
+    if (p.circleCd > 0) p.circleCd--;
+    if (p.carryCd > 0) p.carryCd--;
+    if (p.broomCd > 0) p.broomCd--;
+    if (p.tkFx > 0) p.tkFx--;
+    if (p.tkMiss > 0) p.tkMiss--;
+    if (p.floating > 0) {
+      p.floating--;
+      if (p.animT % 4 === 0) particles.push({ x: p.x + p.w/2 + (Math.random()-0.5) * 26, y: p.y + p.h - 4, vx: (Math.random()-0.5)*0.6, vy: 1.2, life: 20, color: "#cfc2ff" });
+    }
     // かじる：その場でガリガリ。終わるとブロックが壊れる
     if (p.gnaw > 0) {
       p.gnaw--;
@@ -1631,7 +1977,9 @@
     // 種の飛び道具の更新
     for (const sd of seeds) {
       sd.t++;
+      if (sd.magic) steerOrb(sd);        // 光の玉は敵を追いかける
       sd.x += sd.vx;
+      sd.y += (sd.vy || 0);
       sd.life--;
       const box = { x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 };
       // 壁・ブロックに当たったら消える
@@ -1711,6 +2059,22 @@
       if (p.spin % 4 === 0) spawnParticles(p.x + p.w/2 + (Math.random()-0.5)*76, p.y + p.h*0.55, "#dff0e2", 2);
     }
 
+    // ほうきダッシュ：ほうきにまたがって水平にまっすぐ飛ぶ（谷を越えられる）
+    if (p.broom > 0) {
+      p.broom--;
+      p.vy = 0; p.gliding = false;
+      p.vx = p.face * BROOM_SPD;
+      const bbox = { x: p.x - 4, y: p.y, w: p.w + 8, h: p.h };
+      for (const e of enemies) {
+        if (!e.alive || !rectHit(bbox, e)) continue;
+        if (damageEnemy(e, "#dcd0ff")) spawnParticles(e.x + e.w/2, e.y + e.h/2, "#dcd0ff", 5);
+      }
+      hitBossesWith(bbox, 2);
+      if (p.broom % 3 === 0) spawnParticles(p.x + p.w/2 - p.face * 12, p.y + p.h * 0.7, "#dcd0ff", 2);
+      // 壁にぶつかったら終わり
+      if (Math.abs(p.vx) < 1.5 && p.broom < BROOM_TIME - 2) p.broom = 0;
+    }
+
     // ごろごろローリング：転がって敵をはね飛ばす（背が低いので低いすき間も通れる）
     if (p.roll > 0) {
       p.roll--;
@@ -1756,7 +2120,75 @@
     for (const e of enemies) {
       if (!e.alive) continue;
       e.t++;
-      if (e.fly) {
+      // まほうじんで止められている間は、動かず・攻撃せず・足場になる
+      if (e.frozen > 0) {
+        e.frozen--;
+        if (e.frozen === 0) spawnParticles(e.x + e.w/2, e.y + e.h/2, "#bba6ff", 5);
+        e.squash += (1 - e.squash) * 0.2;
+        if (e.hurtT > 0) e.hurtT--;
+        if (p.burrow <= 0 && rectHit(p, e)) {
+          if (p.spin > 0 || p.tackle > 0 || p.roll > 0 || p.broom > 0) {
+            damageEnemy(e, "#bba6ff");
+          } else if (p.vy > 0 && (p.y + p.h) - e.y < 22) {
+            p.y = e.y - p.h; p.vy = 0; p.onGround = true; p.coyote = COYOTE;   // 止まった敵の上に立てる
+          }
+        }
+        continue;
+      }
+      if (e.crystal) {
+        // クリスタル：しばらく その場で浮いてから、まるりんめがけて まっすぐ とんでいく
+        if (e.hover > 0) {
+          e.hover--;
+          e.y = e.baseY + Math.sin(e.t * 0.08) * 6;
+          if (e.hover === 0) {
+            const dx = (p.x + p.w/2) - (e.x + e.w/2), dy = (p.y + p.h/2) - (e.y + e.h/2);
+            const d = Math.sqrt(dx*dx + dy*dy) || 1;
+            e.vx = dx / d * 3.4; e.vy = dy / d * 3.4;
+            beep(700, 0.05, "sine", 0.05);
+          }
+        } else {
+          e.x += e.vx; e.y += e.vy;
+          // 闘技場の外に出たら消える
+          if (e.x < -60 || e.x > W + 60 || e.y > BOSS_GROUND + 20 || e.y < -80) { e.alive = false; e.lifted = true; }
+        }
+      } else if (e.chase) {
+        // おにび：まるりんが近いと ゆっくり寄ってくる。遠ざかると もとの場所へ もどる
+        const cx = e.x + e.w/2, cy = e.y + e.h/2;
+        const px = p.x + p.w/2, py = p.y + p.h/2;
+        const near = Math.abs(px - cx) < 430 && Math.abs(py - cy) < 330;
+        const tx = near ? px : e.homeX + e.w/2, ty = near ? py : e.baseY + e.h/2;
+        const dx = tx - cx, dy = ty - cy;
+        const d = Math.sqrt(dx*dx + dy*dy) || 1;
+        e.vx += (dx / d * e.spd - e.vx) * 0.045;
+        e.vy += (dy / d * e.spd - e.vy) * 0.045;
+        e.x += e.vx;
+        e.y += e.vy + Math.sin(e.t * 0.09) * 0.5;
+        e.face = e.vx < 0 ? -1 : 1;
+        // ゲドルフのぼうし：飛びながら ときどき まほうだんを落とす
+        if (e.kind === "hat") {
+          e.shootCd = (e.shootCd || 90) - 1;
+          if (e.shootCd <= 0 && near) {
+            e.shootCd = 110 + Math.floor(Math.random() * 60);
+            cukes.push({ kind: "wbolt", x: cx, y: e.y + e.h, vx: 0, vy: 3.4, t: 0 });
+            beep(440, 0.06, "square", 0.05);
+          }
+        }
+      } else if (e.root) {
+        // キノコン：動かない。近づいたら ほうしだま を撃つ
+        e.shootCd--;
+        const cx = e.x + e.w/2, cy = e.y + e.h/2;
+        const px = p.x + p.w/2, py = p.y + p.h/2;
+        if (Math.abs(px - cx) < 400 && Math.abs(py - cy) < 150) {
+          e.face = px < cx ? -1 : 1;
+          if (e.shootCd <= 0) {
+            e.shootCd = 105 + Math.floor(Math.random() * 60);
+            e.squash = 0.72;
+            hazards.push({ kind: "spore", x: cx + e.face * 16, y: e.y + 9, vx: e.face * 2.7, t: 0 });
+            spawnParticles(cx + e.face * 16, e.y + 9, "#c8a2e8", 4);
+            sfx.seed();
+          }
+        }
+      } else if (e.fly) {
         // カラス：空を左右に往復＋上下にフワフワ
         e.x += e.vx;
         if (e.x < e.homeX - e.range) { e.x = e.homeX - e.range; e.vx *= -1; }
@@ -1793,6 +2225,7 @@
 
       // プレイヤーとの衝突
       if (p.burrow > 0) continue;   // もぐっている間は敵に当たらない
+      if (e.crystal && e.hover > 0) continue;   // 浮いているクリスタルは無害（つかむための的）
       if (rectHit(p, e)) {
         if (p.spin > 0 || p.tackle > 0 || p.roll > 0) {
           // しっぽスピン／タックル／ローリング中：ふれた敵にダメージ（まるりんはノーダメージ）
@@ -1800,8 +2233,8 @@
           continue;
         }
         const fromAbove = p.vy > 0 && (p.y + p.h) - e.y < 20;
-        if (fromAbove && e.spiky) {
-          // トゲトゲは踏めない：はね返されてダメージ
+        if (fromAbove && (e.spiky || e.noStomp)) {
+          // トゲトゲ・おにびは踏めない：はね返されてダメージ
           p.vy = -8; p.vx = -p.face * 3;
           spawnParticles(e.x + e.w/2, e.y - 4, "#ffffff", 6);
           if (p.invuln <= 0) hurtPlayer();
@@ -1825,13 +2258,15 @@
     // 倒した敵は画面から消す（つぶれた死がいを残さない）。スライムだけ ベトベト を残す
     if (enemies.some(e => !e.alive)) {
       for (const e of enemies) {
-        if (!e.alive && (e.kind === "slime" || e.kind === "bigslime")) spawnGoo(e);
+        if (!e.alive && !e.lifted && (e.kind === "slime" || e.kind === "bigslime")) spawnGoo(e);
       }
       enemies = enemies.filter(e => e.alive);
     }
 
     // スライムのベトベト：ふむと しばらくスピードが落ちる
     if (p.slow > 0) p.slow--;
+    updateCircles();     // まほうじん（敵を止める）
+    updateThrown();      // テレキネシスで投げたもの
     for (const go of goos) {
       go.t++; go.life--;
       if (go.life > 0 && p.onGround && p.burrow <= 0 &&
@@ -1855,7 +2290,7 @@
     updateBarrels();
 
     // ゴール
-    if (goal && p.x + p.w > goal.x - 10 && p.x < goal.x + 20 && p.y < goal.top + TILE*7) {
+    if (goal && p.x + p.w > goal.x - 10 && p.x < goal.x + 20 && p.y < goal.top + (goal.reachH || TILE*7)) {
       if (p.x + p.w/2 > goal.x - 6) { winGame(); }
     }
 
@@ -1975,7 +2410,7 @@
   // ボス登場時に出す名前
   function bossTitle() {
     const k = STAGES[stageIndex].boss;
-    return k === "kingslime" ? "キングスライム" : k === "penguins" ? "ペギ＆ニセペギ" : k === "sumo" ? "こうよう" : k === "mega" ? "メガロドン" : k === "zagat" ? "ザガット" : k === "clovis" ? "クリウド" : k === "dramp" ? "ドランプ大統領" : "くりだいおう";
+    return k === "kingslime" ? "キングスライム" : k === "wizard" ? "大まどうし ゲドルフ" : k === "penguins" ? "ペギ＆ニセペギ" : k === "sumo" ? "こうよう" : k === "mega" ? "メガロドン" : k === "zagat" ? "ザガット" : k === "clovis" ? "クリウド" : k === "dramp" ? "ドランプ大統領" : "くりだいおう";
   }
 
   function startBoss() {
@@ -1994,6 +2429,7 @@
     enemies = []; questionBlocks = []; seeds = []; goal = null; particles = []; cukes = []; hazards = [];
     sps = []; jets = []; bigBoom = 0;
     pedestals = []; vessels = []; goos = []; flames = [];   // ステージの光の柱やベトベトを闘技場に持ちこまない
+    circles = []; thrown = [];
     const megaArena = STAGES[stageIndex].boss === "mega";
     for (let x = 0; x < W; x += TILE) {
       if (megaArena && !((x >= LDECK_L && x < LDECK_R) || (x >= RDECK_L && x < RDECK_R))) continue;   // デッキ以外は海（床なし）
@@ -2004,6 +2440,7 @@
     // メガロドン戦は中央が割れ目（海）なので左のデッキに立たせる
     p.x = (STAGES[stageIndex].boss === "mega") ? 150
         : (STAGES[stageIndex].boss === "kingslime") ? 60      // キングスライムは右はしなので左はしから
+        : (STAGES[stageIndex].boss === "wizard") ? 60         // ゲドルフも右はしなので左はしから
         : (W/2 - p.w/2);
     p.y = BOSS_GROUND - p.h; p.vx = 0; p.vy = 0;
     p.onGround = false; p.face = 1; p.invuln = 50;
@@ -2013,6 +2450,9 @@
     if (type === "kingslime") {
       // キングスライム（ステージ1）：画面の右はしに どすんと構える（まるりんは左はし＝いきなり当たらない）
       bosses = [ makeBoss("kingslime", W - 190) ];
+    } else if (type === "wizard") {
+      // 大まどうし ゲドルフ（ステージ2）：右はしに立って まほうを撃ってくる
+      bosses = [ makeBoss("wizard", W - 170) ];
     } else if (type === "penguins") {
       // にせぺぎ（左・投げ役）＋ ペギ（右・すばやい体当たり役）で挟み撃ち
       bosses = [ makeBoss("nisepegi", 120), makeBoss("pegi", W - 170) ];
@@ -2142,6 +2582,21 @@
         mode: "idle", next: "", windup: 0, actCd: 130, chargeT: 0, hopVx: 0,
         aaCd: 150, jelly: 0, hidden: false, splitDone: false, jumpCd: 1e9 };
     }
+    if (kind === "wizard") {
+      // 大まどうし ゲドルフ（異世界編ステージ2）＝まほうの塔のぬし。
+      // ふだんは まほうバリアに守られていて、どんな攻撃も はじく。
+      // 出してくる「クリスタル」を テレキネシスで つかんで 投げ返すと バリアが割れる。
+      // 大まほう（ひかりの柱）のあとも すこしのあいだ バリアが消える＝まほう以外でも勝てる。
+      return { kind, name: "大まどうし ゲドルフ", x, y: BOSS_GROUND - 108, w: 74, h: 108,
+        vx: 0, vy: 0, onGround: false, face: -1,
+        hp: 14, maxHp: 14, stompDmg: 2, seedDmg: 1, hpPerHeart: 2,   // ハート7個
+        invuln: 0, hurtFlash: 0, t: Math.random()*40, squash: 1,
+        throws: false, alive: true, dyingT: 0,
+        techHit: true,
+        guard: true, shieldT: 0, guardHit: 0,   // guard=バリアを持つ／shieldT>0=割れている残り時間
+        mode: "idle", next: "", windup: 0, actCd: 150,
+        warpT: 0, castT: 0, hatOut: false, markX: 0, markT: 0, pillarT: 0, floatT: 0 };
+    }
     // クリだいおう（ステージ1）
     return { kind, name: "クリだいおう", x, y: BOSS_GROUND - 90, w: 96, h: 90,
       vx: -1.4, vy: 0, onGround: false, face: -1,
@@ -2239,6 +2694,168 @@
         if (rectHit({ x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 }, b)) { damageBoss(b, true); sd.life = 0; break; }
       }
     }
+  }
+
+  // ===== 大まどうし ゲドルフ（異世界編ステージ2のボス）=====
+  // まほうバリアに守られている。出してくるクリスタルを テレキネシス（↓＋B）でつかんで
+  // 投げ返すと バリアが割れる → そのあいだは どんな攻撃でもダメージが入る。
+  // 「ひかりの柱」を撃ったあとも すこしバリアが消えるので、まほう以外のスキルでも勝てる。
+  function updateWizard(b) {
+    const p = player;
+    const pcx = p.x + p.w/2, bcx = b.x + b.w/2;
+    const phase2 = b.hp <= Math.ceil(b.maxHp / 2);
+    if (b.shieldT > 0) b.shieldT--;
+    if (b.guardHit > 0) b.guardHit--;
+    if (b.castT > 0) b.castT--;
+    b.floatT++;
+
+    // HP半分になったら1度だけ「ぼうしを ぬぐ」＝ぼうしが飛びまわる（第2段階）
+    if (!b.hatOut && phase2) {
+      b.hatOut = true;
+      const e = makeEnemy(bcx - 22, b.y - 30, { kind: "hat" });
+      e.x = bcx - 22; e.y = b.y - 30; enemies.push(e);
+      sfx.power(); screenShake = Math.max(screenShake, 10);
+      spawnParticles(bcx, b.y, "#6b4fa8", 16);
+    }
+
+    // ワープ中：消えている あいだは 攻撃も当たらない
+    if (b.warpT > 0) {
+      b.warpT--;
+      if (b.warpT === 0) {
+        // まるりんから はなれた側に あらわれる
+        b.x = (pcx < W/2) ? W - 120 - b.w : 120;
+        spawnParticles(b.x + b.w/2, b.y + b.h/2, "#c9b6ff", 16);
+        sfx.power();
+      }
+      b.hidden = true;
+    } else {
+      b.hidden = false;
+    }
+
+    // ひかりの柱：ねらいのしるし → 落ちてくる
+    if (b.markT > 0) {
+      b.markT--;
+      if (b.markT === 0) { b.pillarT = 26; firePillar(b); }
+    }
+    if (b.pillarT > 0) b.pillarT--;
+
+    if (!b.hidden) {
+      if (b.windup > 0) {
+        b.windup--;
+        b.squash = 0.94 + Math.sin(b.windup * 0.5) * 0.04;
+        if (b.windup === 0) startWizardAction(b);
+      } else {
+        b.face = pcx < bcx ? -1 : 1;
+        b.actCd--;
+        if (b.actCd <= 0) {
+          // つぎの まほうを えらぶ。クリスタルが1つも無いときは 出しやすくする
+          // （バリアを割る手だんが 画面から消えたままにならないように）
+          const noCrystal = !enemies.some(e => e.alive && e.crystal);
+          // まほうだんが いちばん基本の攻撃。クリスタルが画面に無いときだけ クリスタルを優先する。
+          const pool = noCrystal
+            ? ["crystal", "crystal", "crystal", "bolt", "bolt", "pillar", "warp", "wisp"]
+            : ["bolt", "bolt", "bolt", "pillar", "pillar", "warp", "wisp", "crystal"];
+          b.next = pool[Math.floor(Math.random() * pool.length)];
+          b.windup = b.next === "pillar" ? 34 : 24;
+          b.castT = b.windup + 16;
+        }
+      }
+    }
+
+    // 空中に すこし浮いている（歩かない・ふわふわ上下する）
+    b.y = (BOSS_GROUND - b.h - 16) + Math.sin(b.floatT * 0.045) * 7;
+    b.onGround = false;
+    if (b.x < 12) b.x = 12;
+    if (b.x + b.w > W - 12) b.x = W - 12 - b.w;
+
+    if (b.hidden) return;
+
+    // --- まるりんとの当たり ---
+    if (rectHit(p, b)) {
+      const fromAbove = p.vy > 0 && (p.y + p.h) - b.y < b.h * 0.5 + Math.max(0, p.vy);
+      if (p.spin > 0 || p.tackle > 0 || p.roll > 0 || p.broom > 0) {
+        // 技は hitBossesWith 側であつかう（ここでは被弾させない）
+      } else if (fromAbove) {
+        if (b.invuln <= 0) damageBoss(b, false);   // バリア中は はじかれる（damageBossが判定）
+        const timed = jumpKey() || jumpBuffer > 0;
+        p.vy = timed ? -15 : -10; p.bounceLock = 12; jumpBuffer = 0; p.squash = 0.7;
+        p.invuln = Math.max(p.invuln, 10);
+      } else if (p.invuln <= 0) {
+        hurtPlayer(1);
+      }
+    }
+
+    // たね・ひかりのたま vs ボス
+    if (b.invuln <= 0) {
+      for (const sd of seeds) {
+        if (rectHit({ x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 }, b)) { damageBoss(b, true); sd.life = 0; break; }
+      }
+    }
+  }
+
+  function startWizardAction(b) {
+    const p = player, pcx = p.x + p.w/2, bcx = b.x + b.w/2;
+    const phase2 = b.hp <= Math.ceil(b.maxHp / 2);
+    const rest = phase2 ? 70 : 105;
+    if (b.next === "bolt") {
+      // まほうだん：まるりんへ 3発（少しずつ角度をずらす）
+      const dx = pcx - bcx, dy = (p.y + p.h/2) - (b.y + b.h*0.45);
+      const d = Math.sqrt(dx*dx + dy*dy) || 1, sp = phase2 ? 4.6 : 3.9;
+      for (const off of [-0.22, 0, 0.22]) {
+        const a = Math.atan2(dy, dx) + off;
+        cukes.push({ kind: "wbolt", x: bcx + Math.cos(a) * 26, y: b.y + b.h*0.45 + Math.sin(a) * 26,
+                     vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0 });
+      }
+      sfx.seed();
+      b.actCd = rest;
+    } else if (b.next === "crystal") {
+      // クリスタルを2つ出す（テレキネシスで つかんで 投げ返すと バリアが割れる）。
+      // ★つかめる高さ（立ったまま ↓＋B がとどく胸のあたり）に、まるりん側の広場へ出す。
+      //   浮いているあいだは さわっても痛くない＝ゆっくり近づいて つかめる。
+      for (const cx of [170, 380]) {
+        const cy = BOSS_GROUND - 66;
+        const e = makeEnemy(cx, cy, { kind: "crystal" });
+        e.x = cx; e.y = cy; e.baseY = cy; e.homeX = cx;
+        enemies.push(e);
+        spawnParticles(cx + 15, cy + 15, "#bfe9ff", 10);
+      }
+      sfx.power();
+      b.actCd = rest + 40;
+    } else if (b.next === "pillar") {
+      // ひかりの柱：まるりんの足元に しるしを出してから 落とす
+      b.markX = pcx; b.markT = 46;
+      beep(520, 0.12, "sine", 0.06);
+      b.actCd = rest + 30;
+    } else if (b.next === "warp") {
+      b.warpT = 34;
+      spawnParticles(bcx, b.y + b.h/2, "#c9b6ff", 18);
+      sfx.block();
+      b.actCd = rest;
+    } else {
+      // おにびを2匹よぶ
+      for (const s of [-1, 1]) {
+        const cx = Math.max(70, Math.min(W - 100, bcx + s * 150));
+        const e = makeEnemy(cx, BOSS_GROUND - 150, { kind: "wisp" });
+        e.x = cx; e.y = BOSS_GROUND - 150; e.baseY = e.y; e.homeX = e.x;
+        enemies.push(e);
+        spawnParticles(cx + 15, e.y + 15, "#7d8cf0", 10);
+      }
+      sfx.power();
+      b.actCd = rest + 20;
+    }
+    b.mode = "idle";
+  }
+
+  // ひかりの柱が落ちる（地面をゆらす＝もぐっていても当たる）。
+  // 大まほうのあとは すきだらけ＝バリアが すこしのあいだ消える。
+  function firePillar(b) {
+    const p = player;
+    cukes.push({ kind: "wpillar", x: b.markX, y: 0, t: 0 });
+    screenShake = Math.max(screenShake, 12);
+    sfx.stomp();
+    if (Math.abs((p.x + p.w/2) - b.markX) < 40 && p.invuln <= 0) hurtPlayer(1, true);
+    spawnParticles(b.markX, BOSS_GROUND, "#fff2c0", 18);
+    if (b.shieldT <= 0) { b.shieldT = 110; spawnParticles(b.x + b.w/2, b.y + b.h/2, "#cfe4ff", 10); }
   }
 
   // ためが終わって攻撃を出す
@@ -2343,13 +2960,32 @@
     return hit;
   }
 
+  // まほうバリアを持っているボスは、割れている（shieldT>0）あいだしか ダメージが入らない
+  function bossGuarded(b) { return !!b.guard && b.shieldT <= 0; }
+  // クリスタルを投げ返して バリアを割る
+  function breakBossGuard(b) {
+    if (!b.guard || b.shieldT > 0) return;
+    b.shieldT = 260;                 // 約4.3秒だけ 何でも当たるようになる
+    b.invuln = 0; b.guardHit = 0;
+    sfx.win(); screenShake = Math.max(screenShake, 14);
+    spawnParticles(b.x + b.w/2, b.y + b.h/2, "#bfe9ff", 22);
+    spawnParticles(b.x + b.w/2, b.y + b.h/2, "#e8dcff", 16);
+  }
+
   function damageBoss(b, seed, amount) {
+    if (bossGuarded(b)) {
+      // バリアにはじかれる（ダメージにならない）
+      b.guardHit = 14; b.invuln = Math.max(b.invuln, 18);
+      sfx.block();
+      spawnParticles(b.x + b.w/2, b.y + b.h/2, "#cfe4ff", 6);
+      return;
+    }
     b.hp -= (amount !== undefined ? amount : (seed ? b.seedDmg : b.stompDmg));
     b.invuln = seed ? 30 : 55;
     b.hurtFlash = b.invuln;
     b.squash = seed ? 0.8 : 0.6;
     sfx.stomp();
-    const col = b.kind === "kingslime" ? "#7fc4ea" : seed ? "#ffd34d" : (b.kind === "pegi" ? "#aed4e7" : (b.kind === "nisepegi" ? "#c8d27c" : (b.kind === "sumo" ? "#f6cfa4" : (b.kind === "mega" ? "#bfe1f0" : (b.kind === "zagat" ? "#ffb020" : "#a56b3e")))));
+    const col = b.kind === "kingslime" ? "#7fc4ea" : b.kind === "wizard" ? "#c9b6ff" : seed ? "#ffd34d" : (b.kind === "pegi" ? "#aed4e7" : (b.kind === "nisepegi" ? "#c8d27c" : (b.kind === "sumo" ? "#f6cfa4" : (b.kind === "mega" ? "#bfe1f0" : (b.kind === "zagat" ? "#ffb020" : "#a56b3e")))));
     spawnParticles(b.x + b.w/2, b.y + b.h*0.3, col, seed ? 6 : 10);
     if (b.hp <= 0) {
       b.hp = 0; b.alive = false; b.dyingT = 0; b.vx = 0;
@@ -2419,6 +3055,20 @@
         const onFloor = p.onGround || p.burrow > 0;
         if (onFloor && rectHit(p, box) && p.invuln <= 0) { hurtPlayer(1, true); cu.dead = true; }
         if (cu.t > 100 || cu.x < -70 || cu.x > W + 70) cu.dead = true;
+        continue;
+      }
+      if (cu.kind === "wbolt") {   // ゲドルフのまほうだん（まっすぐ飛ぶ。たねで消せる）
+        cu.x += cu.vx; cu.y += cu.vy;
+        const box = { x: cu.x - 10, y: cu.y - 10, w: 20, h: 20 };
+        if (rectHit(p, box) && p.invuln <= 0 && p.burrow <= 0) { cu.dead = true; hurtPlayer(1); spawnParticles(cu.x, cu.y, "#c9b6ff", 8); }
+        else for (const sd of seeds) {
+          if (rectHit({ x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 }, box)) { cu.dead = true; sd.life = 0; score += 50; sfx.stomp(); spawnParticles(cu.x, cu.y, "#c9b6ff", 6); break; }
+        }
+        if (!cu.dead && (cu.t > 200 || cu.x < -40 || cu.x > W + 40 || cu.y > BOSS_GROUND + 10 || cu.y < -40)) cu.dead = true;
+        continue;
+      }
+      if (cu.kind === "wpillar") {   // ひかりの柱（落ちきったあとに 少しのこる。当たり判定は落ちた瞬間だけ）
+        if (cu.t > 34) cu.dead = true;
         continue;
       }
       if (cu.kind === "gel") {   // 対空のゲル（空にいるまるりんを追ってくる。たねで撃ち落とせる）
@@ -2512,10 +3162,30 @@
     hazards.push({ kind: high ? "tiger" : "gtiger", x: camX + W + 30,
                    y: high ? TIGER_HIGH_Y : TIGER_LOW_Y, vx: -3.4, t: 0 });
   }
+  // キノコンの「ほうしだま」：まっすぐ飛ぶ。かべに当たる／たね・ひかりのたま に当たると消える
+  function stepSpore(sp, p) {
+    sp.x += sp.vx;
+    const box = { x: sp.x - 10, y: sp.y - 10, w: 20, h: 20 };
+    for (const s of solids) {
+      if (s.dead) continue;
+      if (rectHit(box, s)) { sp.dead = true; spawnParticles(sp.x, sp.y, "#c8a2e8", 6); return; }
+    }
+    for (const sd of seeds) {
+      if (sd.life <= 0) continue;
+      if (rectHit(box, { x: sd.x - 6, y: sd.y - 6, w: 12, h: 12 })) {
+        sp.dead = true; sd.life = 0; score += 30; sfx.stomp();
+        spawnParticles(sp.x, sp.y, "#c8a2e8", 8); return;
+      }
+    }
+    if (p.burrow <= 0 && p.invuln <= 0 && rectHit(p, box)) {
+      sp.dead = true; hurtPlayer(); spawnParticles(sp.x, sp.y, "#c8a2e8", 8); return;
+    }
+    if (sp.t > 240 || sp.x < camX - 140 || sp.x > camX + W + 140) sp.dead = true;
+  }
   function updateHazards() {
     if (!hazards.length) return;
     const p = player;
-    for (const h of hazards) { h.t++; stepTigerShot(h, p); }
+    for (const h of hazards) { h.t++; if (h.kind === "spore") stepSpore(h, p); else stepTigerShot(h, p); }
     hazards = hazards.filter(h => !h.dead);
   }
 
@@ -2644,6 +3314,7 @@
 
       b.squash += (1 - b.squash) * 0.2;
       if (b.kind === "kingslime") { updateKingSlime(b); continue; }
+      if (b.kind === "wizard") { updateWizard(b); continue; }
       if (b.kind === "mega") { updateMega(b); continue; }
       if (b.kind === "zagat") { updateZagat(b); continue; }
       if (b.kind === "clovis") { updateClovis(b); continue; }
@@ -3510,23 +4181,17 @@
         { dur: 260, act: sceneOpArrive, lines: ["まるりんは はじまりの そうげんに おりたちました。", "おうちに かえるため、ぼうけんの はじまり です！"] }
       ]
     },
-    1: {   // ステージ2「南流山」の前
+    // ※ もとあった 1:（南流山の前）と 3:（ハワイの前）は 世界編の紙芝居なので削除ずみ。
+    1: {   // ステージ2「まほうの塔」の前
+      // ★異世界編は「1ステージ＝ひとつの異世界」。つぎの世界へは かならず異次元のとびらをくぐる。
       bgm: 0,   // ステージ1のBGM
       scenes: [
-        { dur: 220, act: sceneReturn,  lines: ["くさはらの おさんぽから、", "まるりんが おうちに かえって きました。"] },
-        { dur: 240, act: sceneEmpty,   lines: ["あれ？ だいすきな そーちゃんと", "しーちゃんが いません……。"] },
-        { dur: 210, act: sceneSetOut,  lines: ["ふたりを さがして、まるりんは", "ぼうけんに でることに しました。"] },
-        { dur: 260, act: sceneRampage, lines: ["でも どうしてか、まちの みんなが", "きょうぼうに なって おそって きます！"] },
-        { dur: 230, act: sceneCliff,   lines: ["まるりんは ぶじに ふたりに", "あえるのでしょうか——？"] }
-      ]
-    },
-    3: {   // ステージ4「ハワイ」の前（成田空港から世界へ飛び立つ）
-      bgm: 2,   // 成田（ステージ3）のBGM
-      scenes: [
-        { dur: 210, act: sceneAirport, lines: ["にほんじゅうを さがしても、", "そーちゃんと しーちゃんは みつかりません。"] },
-        { dur: 220, act: sceneDecide,  lines: ["ふたりは にほんに いないのかも。", "せかいへ さがしに いこう！"] },
-        { dur: 210, act: sceneTakeoff, lines: ["まるりんは ひこうきに のって、", "せかいへ とびたちました！"] },
-        { dur: 240, act: sceneOcean,   lines: ["うみを こえて、", "あたらしい くにへ——！"] }
+        { dur: 230, act: sceneTowerWin,   lines: ["キングスライムを たおして、", "はじまりの そうげんに へいわが もどりました。"] },
+        { dur: 250, act: sceneGateOpen,   lines: ["「よく がんばったね。つぎの せかいへ いこう。」", "ようせいが 空に とびらを えがきます。"] },
+        { dur: 250, act: sceneGateCross,  lines: ["まるりんは 異次元の トンネルを くぐりぬけて——"] },
+        { dur: 260, act: sceneMagicLand,  lines: ["ついたのは “まほうの国”。", "「あの塔の てっぺんに つぎの スキルが あるよ。」"] },
+        { dur: 250, act: sceneTowerWizard,lines: ["「でも 塔のぬしの 大まどうしが、", "だれも 通さないって……。」"] },
+        { dur: 240, act: sceneTowerNight, lines: ["日が くれて、まるりんは 塔の ふもとに 着きました。", "さあ、てっぺんまで のぼろう！"] }
       ]
     },
     ending: {   // 世界編フィナーレ（ドランプ撃破後・ボスBGMではなくエンディング曲）
@@ -3746,6 +4411,32 @@
         ctx.beginPath(); ctx.arc(sx, sy, 1.2 + tw, 0, 7); ctx.fill();
       }
       drawClouds();
+    } else if (theme === "tower") {
+      // まほうの塔：夜空（深い藍〜むらさき）＋大きな月＋星
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#12143a");
+      g.addColorStop(0.45, "#2a2260");
+      g.addColorStop(0.8, "#59397e");
+      g.addColorStop(1, "#8a5a86");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      // 星（カメラでゆっくり動く／のぼるほど たくさん見える）
+      for (let i = 0; i < 34; i++) {
+        const sx = ((i * 211 + 40 - camX * 0.06) % (W + 60) + W + 60) % (W + 60) - 30;
+        const sy = ((i * 137 + 20 - camY * 0.05) % (H + 60) + H + 60) % (H + 60) - 30;
+        const tw = 0.5 + Math.sin(elapsed * 0.04 + i * 1.3) * 0.5;
+        ctx.fillStyle = "rgba(255,248,220," + (0.3 + tw * 0.55) + ")";
+        ctx.beginPath(); ctx.arc(sx, sy, 1 + tw * 1.1, 0, 7); ctx.fill();
+      }
+      // 大きな月（ほぼ動かない＝すごく遠い）
+      const mx = W - 140 - camX * 0.02, my = 86 - camY * 0.02;
+      ctx.fillStyle = "rgba(255,246,210,0.20)";
+      ctx.beginPath(); ctx.arc(mx, my, 74, 0, 7); ctx.fill();
+      ctx.fillStyle = "#fdf3cd";
+      ctx.beginPath(); ctx.arc(mx, my, 46, 0, 7); ctx.fill();
+      ctx.fillStyle = "rgba(222,206,158,0.75)";
+      ctx.beginPath(); ctx.arc(mx - 15, my - 11, 9, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(mx + 13, my + 6, 12, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(mx - 6, my + 20, 6, 0, 7); ctx.fill();
     } else if (theme === "town") {
       // 街の空（少しやわらかい水色）
       const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -3792,8 +4483,10 @@
     else if (theme === "america") drawAmericaDecor();
     else if (theme === "rpg") drawRpgDecor();
     else if (theme === "fantasy") drawFantasyDecor();
+    else if (theme === "tower") drawTowerDecor();
     drawSolids();
     drawGoos();
+    drawCircles();      // まほうじん（地面の上に広がる光）
     drawPedestals();
     drawCoins();
     drawNuts();
@@ -3804,6 +4497,7 @@
     drawBreads();
     if (goal) drawGoal(goal);
     drawSeeds();
+    drawThrown();       // テレキネシスで投げたもの
     drawFlames();
     drawEnemies();
     drawBalls();
@@ -4023,8 +4717,125 @@
   }
 
   // ===== 種の飛び道具 =====
+
+  // ===== まほうまるりんの装備（顔と体は でかまるりん のまま。帽子・マント・杖を足す）=====
+  // とんがり帽子：走ると先っぽがゆれる
+  function drawMagicHat(p, run, airborne) {
+    const sway = Math.sin(p.animT * (run ? 0.28 : 0.08)) * (run ? 3.2 : 1.4);
+    ctx.save();
+    ctx.translate(1, -15);
+    // つば
+    ctx.fillStyle = "#4b3b8f";
+    ctx.beginPath(); ctx.ellipse(0, 0, 17, 4.6, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#6a55c4";
+    ctx.beginPath(); ctx.ellipse(0, -1.2, 15, 3.6, 0, 0, 7); ctx.fill();
+    // とんがり（先が少し曲がる）
+    ctx.fillStyle = "#5b47a8";
+    ctx.beginPath();
+    ctx.moveTo(-11, -1);
+    ctx.quadraticCurveTo(-5, -16, 2 + sway, -25);
+    ctx.quadraticCurveTo(6 + sway * 0.6, -13, 11, -1);
+    ctx.closePath(); ctx.fill();
+    // 帯
+    ctx.fillStyle = "#f0c33c";
+    ctx.beginPath();
+    ctx.moveTo(-11.5, -1.5); ctx.lineTo(11.5, -1.5); ctx.lineTo(10, -5.5); ctx.lineTo(-10, -5.5);
+    ctx.closePath(); ctx.fill();
+    // 星
+    ctx.fillStyle = "#ffe98a";
+    const stx = 2 + sway, sty = -25;
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI/2 + i * (Math.PI * 2 / 5);
+      const px = stx + Math.cos(a) * 4.2, py = sty + Math.sin(a) * 4.2;
+      if (i === 0) { ctx.beginPath(); ctx.moveTo(px, py); } else ctx.lineTo(px, py);
+      const a2 = a + Math.PI / 5;
+      ctx.lineTo(stx + Math.cos(a2) * 1.8, sty + Math.sin(a2) * 1.8);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+    // 杖（右手のあたり）
+    ctx.save();
+    ctx.translate(15, 6);
+    ctx.rotate(0.35 + (airborne ? -0.5 : 0) + Math.sin(p.animT * 0.1) * 0.06);
+    ctx.strokeStyle = "#8a6a45"; ctx.lineWidth = 2.6; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(0, 6); ctx.lineTo(0, -14); ctx.stroke();
+    const gl = 0.6 + 0.4 * Math.sin(p.animT * 0.18);
+    ctx.globalAlpha = 0.5 + gl * 0.3;
+    ctx.fillStyle = "#cfc2ff";
+    ctx.beginPath(); ctx.arc(0, -16, 6.5, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#8f7fe8";
+    ctx.beginPath(); ctx.arc(0, -16, 3.6, 0, 7); ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(-1.2, -17.2, 1.3, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+  // マント：走る・飛ぶとうしろにたなびく
+  function drawMagicCape(p, run, airborne) {
+    const flow = (run ? 6 : 0) + (airborne ? 5 : 0) + Math.sin(p.animT * 0.12) * 2;
+    ctx.save();
+    ctx.fillStyle = "#4b3b8f";
+    ctx.beginPath();
+    ctx.moveTo(-8, -12);
+    ctx.quadraticCurveTo(-22 - flow, -4, -20 - flow * 1.3, 14);
+    ctx.quadraticCurveTo(-10, 10, -2, 13);
+    ctx.quadraticCurveTo(-4, 0, -8, -12);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#5b47a8";
+    ctx.beginPath();
+    ctx.moveTo(-8, -12);
+    ctx.quadraticCurveTo(-17 - flow * 0.7, -4, -15 - flow, 10);
+    ctx.quadraticCurveTo(-8, 8, -4, 11);
+    ctx.closePath(); ctx.fill();
+    // えり
+    ctx.fillStyle = "#f0c33c";
+    ctx.beginPath(); ctx.ellipse(-4, -12, 7, 3, -0.3, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+  // 持ち上げているもの（頭の上でふわふわ）
+  function drawCarriedItem(p, cx, cy) {
+    const c = p.carry; if (!c) return;
+    const bob = Math.sin(p.animT * 0.16) * 2.5;
+    ctx.save();
+    ctx.translate(cx, cy - 60 + bob);   // とんがり帽子より上に浮かべる（顔をかくさない）
+    ctx.rotate(Math.sin(p.animT * 0.08) * 0.12);
+    drawCarriedShape(c.kind, c.w, c.h, c.ekind);
+    ctx.restore();
+    // 下から立ちのぼる光の粒
+    if (p.animT % 6 === 0) particles.push({ x: cx + (Math.random()-0.5)*20, y: cy - 12, vx: 0, vy: -1.4, life: 22, color: "#cfc2ff" });
+  }
+
+
+  // テレキネシスを使ったときの手ごたえ：手をかざした先に光のわが広がる。
+  // 何もつかめなかったとき（tkMiss）は、わが しぼんで消える＝「空ぶり」が見てわかる。
+  function drawTelekinesisFx(p, cx, cy) {
+    const t = p.tkFx, miss = p.tkMiss > 0;
+    const k = 1 - t / 22;                       // 0→1
+    ctx.save();
+    ctx.translate(cx + p.face * 26, cy + 2);
+    ctx.scale(p.face, 1);
+    // 広がる（空ぶりのときは しぼむ）光のわ
+    const r = miss ? 26 * (1 - k * 0.6) : 12 + k * 26;
+    ctx.globalAlpha = 0.75 * (1 - k);
+    ctx.strokeStyle = miss ? "#b9aee0" : "#cfc2ff";
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(0, 0, r * 0.55, r, 0, -1.1, 1.1); ctx.stroke();
+    ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.ellipse(0, 0, r * 0.34, r * 0.62, 0, -1.1, 1.1); ctx.stroke();
+    // 引きよせる光の粒
+    ctx.globalAlpha = 0.9 * (1 - k);
+    ctx.fillStyle = "#e6dcff";
+    for (let i = 0; i < 4; i++) {
+      const a = -0.9 + i * 0.6;
+      const rr = miss ? r * (0.4 + k * 0.5) : r * (1 - k * 0.5);
+      ctx.beginPath(); ctx.arc(Math.cos(a) * rr * 0.5, Math.sin(a) * rr, 2.4, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function drawSeeds() {
     for (const sd of seeds) {
+      if (sd.magic) { drawMagicOrb(sd); continue; }
       ctx.save();
       ctx.translate(sd.x, sd.y);
       ctx.rotate(sd.t * 0.5);
@@ -4036,9 +4847,146 @@
     }
   }
 
+
+  // ひかりのたま（まほう）：ふわふわ光る玉＋しっぽ
+  function drawMagicOrb(sd) {
+    const pulse = 0.6 + 0.4 * Math.sin(sd.t * 0.35);
+    ctx.save();
+    ctx.translate(sd.x, sd.y);
+    // 後光
+    ctx.globalAlpha = 0.4 + pulse * 0.25;
+    const g = ctx.createRadialGradient(0, 0, 1, 0, 0, 16);
+    g.addColorStop(0, "#e9f2ff"); g.addColorStop(1, "rgba(150,170,255,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 16, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1;
+    // 玉
+    ctx.fillStyle = "#8f7fe8";
+    ctx.beginPath(); ctx.arc(0, 0, 6.2, 0, 7); ctx.fill();
+    ctx.fillStyle = "#c9bcff";
+    ctx.beginPath(); ctx.arc(-0.8, -0.8, 4.4, 0, 7); ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(-1.8, -2, 1.8, 0, 7); ctx.fill();
+    // まわりの星
+    ctx.fillStyle = "#fff3a8";
+    for (let i = 0; i < 3; i++) {
+      const a = sd.t * 0.2 + i * 2.09;
+      ctx.beginPath(); ctx.arc(Math.cos(a) * 10, Math.sin(a) * 8, 1.6, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // まほうじん：足元に魔法陣がひろがって、そこから 光の球 がふくらむ。
+  // 球の中に入った敵が止まる（＝当たる範囲と見た目の大きさが同じ）。
+  function drawCircles() {
+    for (const c of circles) {
+      const gr = CIRCLE_R * Math.min(1, c.t / CIRCLE_GROW);        // いまの球の半径
+      const rise = Math.min(1, Math.max(0, (c.t - 3) / (CIRCLE_GROW + 4)));  // 球がふくらむ具合
+      const fade = Math.min(1, c.life / 40);
+      ctx.save();
+      ctx.translate(c.x, c.y);
+
+      // ① 足元の魔法陣（球の「赤道」にあたる、つぶれた円）
+      ctx.globalAlpha = 0.5 * fade;
+      const g = ctx.createRadialGradient(0, 0, 4, 0, 0, gr);
+      g.addColorStop(0, "rgba(190,170,255,0.55)");
+      g.addColorStop(1, "rgba(150,120,255,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.ellipse(0, 0, gr, gr * 0.34, 0, 0, 7); ctx.fill();
+      ctx.globalAlpha = 0.85 * fade;
+      ctx.strokeStyle = "#c9bcff"; ctx.lineWidth = 2.4;
+      ctx.beginPath(); ctx.ellipse(0, 0, gr * 0.94, gr * 0.32, 0, 0, 7); ctx.stroke();
+      ctx.strokeStyle = "#8f7fe8"; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.ellipse(0, 0, gr * 0.62, gr * 0.21, 0, 0, 7); ctx.stroke();
+      // まわる魔法文字
+      ctx.fillStyle = "#e9e2ff";
+      for (let i = 0; i < 8; i++) {
+        const a = c.t * 0.035 + i * 0.785;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * gr * 0.78, Math.sin(a) * gr * 0.26, 2.4, 0, 7);
+        ctx.fill();
+      }
+
+      // ② 魔法陣から せり上がる 光の球（シャボン玉のように、ふちが明るく中は すける）
+      if (rise > 0.02) {
+        const sr = gr * rise;
+        ctx.globalAlpha = fade;
+        const bg = ctx.createRadialGradient(0, 0, sr * 0.35, 0, 0, sr);
+        bg.addColorStop(0,    "rgba(180,150,255,0.06)");
+        bg.addColorStop(0.72, "rgba(196,176,255,0.16)");
+        bg.addColorStop(0.93, "rgba(222,206,255,0.42)");
+        bg.addColorStop(1,    "rgba(240,232,255,0.10)");
+        ctx.fillStyle = bg;
+        ctx.beginPath(); ctx.arc(0, 0, sr, 0, 7); ctx.fill();
+        // 球のふち（ここまで当たる、というしるし）
+        ctx.strokeStyle = "rgba(232,220,255," + (0.9 * fade) + ")"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(0, 0, sr, 0, 7); ctx.stroke();
+        // 球であることが分かるように たての線（経線）を2本
+        ctx.strokeStyle = "rgba(210,195,255," + (0.35 * fade) + ")"; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.ellipse(0, 0, sr * 0.46, sr, 0, 0, 7); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(0, 0, sr * 0.84, sr, 0, 0, 7); ctx.stroke();
+        // ハイライト（左上のつや）
+        ctx.globalAlpha = 0.5 * fade;
+        ctx.fillStyle = "#f2ecff";
+        ctx.beginPath(); ctx.ellipse(-sr * 0.42, -sr * 0.46, sr * 0.17, sr * 0.10, -0.7, 0, 7); ctx.fill();
+        // 球の中でただよう光のつぶ
+        ctx.globalAlpha = 0.8 * fade;
+        ctx.fillStyle = "#efe8ff";
+        for (let i = 0; i < 9; i++) {
+          const a = c.t * 0.02 + i * 0.7;
+          const rr = sr * (0.2 + ((i * 37) % 70) / 100);
+          ctx.beginPath();
+          ctx.arc(Math.cos(a) * rr, Math.sin(a * 1.3 + i) * rr * 0.9, 2.1, 0, 7);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
+  }
+
+  // テレキネシスで投げたもの／持ち上げているもの
+  function drawThrown() {
+    for (const th of thrown) {
+      ctx.save();
+      ctx.translate(th.x + th.w/2, th.y + th.h/2);
+      ctx.rotate(th.t * 0.12 * (th.vx >= 0 ? 1 : -1));
+      drawCarriedShape(th.kind, th.w, th.h, th.ekind);
+      ctx.restore();
+    }
+  }
+  function drawCarriedShape(kind, w, h, ekind) {
+    if (kind === "crate") {
+      ctx.fillStyle = "#a9a08c"; ctx.fillRect(-w/2, -h/2, w, h);
+      ctx.fillStyle = "#bdb39c"; ctx.fillRect(-w/2 + 3, -h/2 + 3, w - 6, h - 6);
+      ctx.fillStyle = "#8d846f";
+      ctx.fillRect(-w/2 + 3, -2, w - 6, 3);
+      ctx.fillRect(-3, -h/2 + 3, 3, h - 6);
+    } else {
+      ctx.fillStyle = "#7fc4ea";
+      ctx.beginPath(); ctx.ellipse(0, 0, w/2, h/2, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#12283c";
+      ctx.beginPath(); ctx.arc(-4, -2, 2.2, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(4, -2, 2.2, 0, 7); ctx.fill();
+    }
+    // まほうのオーラ
+    ctx.strokeStyle = "rgba(190,170,255,0.85)"; ctx.lineWidth = 2;
+    ctx.strokeRect(-w/2 - 2, -h/2 - 2, w + 4, h + 4);
+  }
+
   function drawSolids() {
     for (const s of solids) {
       if (s.x + s.w < camX - 40 || s.x > camX + W + 40) continue;
+      if (s.y + s.h < camY - 40 || s.y > camY + H + 40) continue;   // 背の高いステージ（塔）用の縦の間引き
+      if (s.type === "crate") {
+        // テレキネシスで動かせる石（まわりに光のふちがある）
+        ctx.fillStyle = "#a9a08c"; ctx.fillRect(s.x, s.y, s.w, s.h);
+        ctx.fillStyle = "#bdb39c"; ctx.fillRect(s.x + 3, s.y + 3, s.w - 6, s.h - 6);
+        ctx.fillStyle = "#8d846f";
+        ctx.fillRect(s.x + 3, s.y + s.h/2 - 1, s.w - 6, 3);
+        ctx.fillRect(s.x + s.w/2 - 1.5, s.y + 3, 3, s.h - 6);
+        ctx.strokeStyle = "rgba(190,170,255,0.7)"; ctx.lineWidth = 2;
+        ctx.strokeRect(s.x + 1, s.y + 1, s.w - 2, s.h - 2);
+        continue;
+      }
       if (s.type === "stone") {
         // こわせない石ブロック（足場）
         ctx.fillStyle = "#9fa8b8"; ctx.fillRect(s.x, s.y, s.w, s.h);
@@ -4141,6 +5089,17 @@
         for (let i=0;i<3;i++) for(let j=0;j<3;j++) ctx.fillRect(s.x+4+i*13, s.y+13+j*10, 6, 4);
         if (!isSolidAt(s.x, s.y - TILE)) {
           ctx.fillStyle = underwater ? "#e4d4a2" : "#f3e6bd"; ctx.fillRect(s.x, s.y, s.w, 6);
+        }
+      } else if (s.type === "ground" && theme === "tower") {
+        // まほうの塔：むらさきの石だたみ（上面は月あかりで少し光る）
+        ctx.fillStyle = "#4c4270"; ctx.fillRect(s.x, s.y, s.w, s.h);
+        ctx.fillStyle = "#413861";
+        for (let i=0;i<2;i++) for(let j=0;j<2;j++) ctx.fillRect(s.x+5+i*17, s.y+6+j*16, 14, 12);
+        ctx.strokeStyle = "rgba(24,18,44,0.5)"; ctx.lineWidth = 1;
+        ctx.strokeRect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);
+        if (!isSolidAt(s.x, s.y - TILE)) {
+          ctx.fillStyle = "#6d5f9c"; ctx.fillRect(s.x, s.y, s.w, 6);
+          ctx.fillStyle = "#8b7bc0"; ctx.fillRect(s.x, s.y, s.w, 3);
         }
       } else if (s.type === "ground" && theme === "fantasy") {
         // ファンタジー：紫がかった土＋ミントグリーンのまほうの草
@@ -4301,6 +5260,8 @@
     if (theme === "hawaii") { drawHawaiiGoal(gl); return; }
     if (theme === "portugal") { drawStadiumGoal(gl); return; }
     if (theme === "america") { drawWhiteHouseGoal(gl); return; }
+    if (theme === "rpg") { drawPortalGoal(gl); return; }
+    if (theme === "tower") { drawCrystalGoal(gl); return; }
     const x = gl.x;
     // ポール
     ctx.fillStyle = "#cfcfcf"; ctx.fillRect(x-3, gl.top, 6, TILE*6);
@@ -4319,6 +5280,142 @@
     // 台座
     ctx.fillStyle="#5a8f3a";
     ctx.fillRect(x-TILE, gl.top+TILE*6, TILE*2, TILE);
+  }
+
+  // ゴール①：はじまりのそうげん＝「ふしぎな石の門」。まもののすみかへ つづく ワープゲート。
+  function drawPortalGoal(gl) {
+    const x = gl.x, gy = gl.top + TILE * 6;   // 石の門が立っている地面
+    const t = elapsed * 0.05;
+    const PW = 34, PH = 176;                  // 柱の太さ／高さ
+    const IN = 46;                            // 門のうち側の半分の幅
+    ctx.save();
+    // 台座（草の上の石だたみ）
+    ctx.fillStyle = "#8e8676"; ctx.fillRect(x - IN - PW - 12, gy - 12, (IN + PW + 12) * 2, 12);
+    ctx.fillStyle = "#a49b88"; ctx.fillRect(x - IN - PW - 12, gy - 12, (IN + PW + 12) * 2, 4);
+    // ゲートの中の うずまくポータル（先に描いて、柱で ふちを かくす）
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x - IN, gy - PH + 6, IN * 2, PH - 6); ctx.clip();
+    const pg = ctx.createRadialGradient(x, gy - PH * 0.52, 6, x, gy - PH * 0.52, IN * 1.5);
+    pg.addColorStop(0, "#eae0ff");
+    pg.addColorStop(0.35, "#a071e0");
+    pg.addColorStop(0.75, "#5a3aa8");
+    pg.addColorStop(1, "#24164a");
+    ctx.fillStyle = pg; ctx.fillRect(x - IN, gy - PH + 6, IN * 2, PH - 6);
+    // うずまき
+    ctx.strokeStyle = "rgba(235,225,255,0.5)"; ctx.lineWidth = 3; ctx.lineCap = "round";
+    for (let s = 0; s < 3; s++) {
+      ctx.beginPath();
+      for (let i = 0; i <= 26; i++) {
+        const a = t * 1.4 + s * 2.09 + i * 0.24;
+        const rr = 4 + i * 2.6;
+        const px = x + Math.cos(a) * rr, py = gy - PH * 0.52 + Math.sin(a) * rr * 0.9;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+    }
+    // 吸い込まれる光のつぶ
+    ctx.fillStyle = "rgba(255,250,230,0.85)";
+    for (let i = 0; i < 7; i++) {
+      const a = t * 0.9 + i * 0.9;
+      const rr = 52 - ((t * 22 + i * 30) % 52);
+      ctx.beginPath();
+      ctx.arc(x + Math.cos(a) * rr, gy - PH * 0.52 + Math.sin(a) * rr * 0.9, 2.2, 0, 7);
+      ctx.fill();
+    }
+    ctx.restore();
+    // 左右の石柱
+    for (const s of [-1, 1]) {
+      const px = x + s * (IN + PW / 2);
+      ctx.fillStyle = "#9aa0a8"; ctx.fillRect(px - PW/2, gy - PH, PW, PH);
+      ctx.fillStyle = "#868d95";
+      for (let by = gy - PH + 6; by < gy - 8; by += 22) ctx.fillRect(px - PW/2 + 3, by, PW - 6, 16);
+      ctx.fillStyle = "rgba(255,255,255,0.3)"; ctx.fillRect(px - PW/2, gy - PH, 5, PH);
+      // 柱の上の たいまつ
+      ctx.fillStyle = "#6f5a3a"; ctx.fillRect(px - 5, gy - PH - 16, 10, 16);
+      const fl = Math.sin(elapsed * 0.28 + s) * 3;
+      ctx.fillStyle = "#ff9b2a";
+      ctx.beginPath(); ctx.ellipse(px, gy - PH - 26, 8, 13 + fl, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#ffe07a";
+      ctx.beginPath(); ctx.ellipse(px, gy - PH - 24, 4.2, 7 + fl * 0.5, 0, 0, 7); ctx.fill();
+    }
+    // 上のまぐさ石＋まほうの文字
+    ctx.fillStyle = "#a8aeb6"; ctx.fillRect(x - IN - PW, gy - PH - 26, (IN + PW) * 2, 26);
+    ctx.fillStyle = "rgba(255,255,255,0.3)"; ctx.fillRect(x - IN - PW, gy - PH - 26, (IN + PW) * 2, 5);
+    ctx.fillStyle = "#6c5aa8";
+    for (let i = -2; i <= 2; i++) {
+      const rx = x + i * 26;
+      ctx.fillRect(rx - 5, gy - PH - 19, 10, 3);
+      ctx.fillRect(rx - 2, gy - PH - 19, 4, 12);
+      ctx.fillRect(rx - 5, gy - PH - 10, 10, 3);
+    }
+    ctx.restore();
+  }
+
+  // ゴール②：まほうの塔のてっぺん＝「大きなまほうのクリスタル」
+  function drawCrystalGoal(gl) {
+    const x = gl.x, by = gl.top + TILE * 3;   // 台座の足もと（Gタイルの3マス下＝てっぺんの足場の上）
+    const t = elapsed;
+    const fy = Math.sin(t * 0.045) * 6;       // ふわふわ浮く
+    ctx.save();
+    // 石の台座
+    ctx.fillStyle = "#6b5f86"; ctx.fillRect(x - 34, by - 16, 68, 16);
+    ctx.fillStyle = "#8577a6"; ctx.fillRect(x - 28, by - 26, 56, 12);
+    ctx.fillStyle = "#9a8bc0"; ctx.fillRect(x - 28, by - 26, 56, 4);
+    // 足もとの光だまり
+    ctx.fillStyle = "rgba(150,220,255,0.30)";
+    ctx.beginPath(); ctx.ellipse(x, by - 24, 46, 12, 0, 0, 7); ctx.fill();
+    // 大きなクリスタル本体
+    const cy = by - 96 + fy, hh = 56, hw = 26;
+    const cg = ctx.createLinearGradient(x - hw, cy - hh, x + hw, cy + hh);
+    cg.addColorStop(0, "#eafcff");
+    cg.addColorStop(0.4, "#7fd8f5");
+    cg.addColorStop(1, "#3a7fd0");
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.moveTo(x, cy - hh);
+    ctx.lineTo(x + hw, cy - hh * 0.25);
+    ctx.lineTo(x + hw * 0.62, cy + hh);
+    ctx.lineTo(x - hw * 0.62, cy + hh);
+    ctx.lineTo(x - hw, cy - hh * 0.25);
+    ctx.closePath(); ctx.fill();
+    // カットの面
+    ctx.strokeStyle = "rgba(255,255,255,0.65)"; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, cy - hh); ctx.lineTo(x, cy + hh);
+    ctx.moveTo(x - hw, cy - hh * 0.25); ctx.lineTo(x + hw, cy - hh * 0.25);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.beginPath();
+    ctx.moveTo(x - 4, cy - hh + 8); ctx.lineTo(x - 15, cy - hh * 0.2);
+    ctx.lineTo(x - 8, cy + hh * 0.6); ctx.lineTo(x - 2, cy - hh * 0.2);
+    ctx.closePath(); ctx.fill();
+    // まわりを回る小さなクリスタル
+    for (let i = 0; i < 3; i++) {
+      const a = t * 0.03 + i * 2.09;
+      const ox = Math.cos(a) * 52, oy = Math.sin(a) * 16;
+      const sc = 0.7 + Math.sin(a) * 0.25;
+      ctx.save(); ctx.translate(x + ox, cy + oy); ctx.scale(sc, sc); ctx.rotate(a * 0.6);
+      ctx.fillStyle = "#bdeeff";
+      ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(7, 0); ctx.lineTo(0, 12); ctx.lineTo(-7, 0);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    // ぼんやりした光
+    ctx.globalAlpha = 0.5 + Math.sin(t * 0.07) * 0.18;
+    const g = ctx.createRadialGradient(x, cy, 10, x, cy, 96);
+    g.addColorStop(0, "rgba(190,245,255,0.55)");
+    g.addColorStop(1, "rgba(120,200,255,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x, cy, 96, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1;
+    // 上へのぼる光のつぶ
+    ctx.fillStyle = "rgba(230,250,255,0.9)";
+    for (let i = 0; i < 5; i++) {
+      const px = x - 30 + ((i * 61 + t) % 60);
+      const py = by - 30 - ((t * 1.6 + i * 45) % 150);
+      ctx.beginPath(); ctx.arc(px, py, 2, 0, 7); ctx.fill();
+    }
+    ctx.restore();
   }
 
   // ゴール：サッカースタジアム（ポルトガル）
@@ -4848,6 +5945,133 @@
     }
   }
 
+  // まほうの塔：外は夜の草原、中は大きな石づみのかべ＋アーチ窓＋浮かぶろうそく
+  const TOWER_L = 24 * TILE, TOWER_R = 58 * TILE;   // 塔の左のかべ／右のかべ（ステージ2の作りに合わせた値）
+  function drawTowerDecor() {
+    const gy = LEVEL_H - 80;                     // 外の地面の上面
+    const vx0 = camX - 60, vx1 = camX + W + 60;
+    const vy0 = camY - 60, vy1 = camY + H + 60;
+
+    // --- 塔の外：夜の草原（遠くの木のシルエット）---
+    if (vx0 < TOWER_L && vy1 > gy - 260) {
+      ctx.fillStyle = "#1b2547";
+      for (let x = -40; x < TOWER_L; x += 62) {
+        if (x + 60 < vx0 || x > Math.min(vx1, TOWER_L)) continue;
+        const h = 66 + Math.floor(Math.abs(Math.sin(x * 0.73)) * 46);
+        ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(x + 21, gy - h); ctx.lineTo(x + 42, gy);
+        ctx.closePath(); ctx.fill();
+      }
+      // 塔の外かべ（そびえ立つシルエット）
+      ctx.fillStyle = "#241d3e";
+      const oy = Math.max(vy0, -200);
+      ctx.fillRect(TOWER_L - 26, oy, 26, vy1 - oy);
+    }
+
+    // --- 塔の中のかべ ---
+    const wx0 = Math.max(TOWER_L, vx0), wx1 = Math.min(TOWER_R, vx1);
+    if (wx1 <= wx0) return;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(wx0, vy0, wx1 - wx0, vy1 - vy0); ctx.clip();
+    // かべの下地（下にいくほど暗い＝高いところは月あかりで明るい）
+    const wg = ctx.createLinearGradient(0, 0, 0, LEVEL_H);
+    wg.addColorStop(0, "#4a3f70");
+    wg.addColorStop(0.6, "#372f56");
+    wg.addColorStop(1, "#282342");
+    ctx.fillStyle = wg;
+    ctx.fillRect(wx0, vy0, wx1 - wx0, vy1 - vy0);
+    // 大きな石づみ（レンガのように半分ずらす）
+    ctx.strokeStyle = "rgba(18,14,36,0.5)"; ctx.lineWidth = 2;
+    const BW = 120, BH = 60;
+    for (let r = Math.floor(vy0 / BH); r <= Math.ceil(vy1 / BH); r++) {
+      const y = r * BH;
+      ctx.beginPath(); ctx.moveTo(wx0, y); ctx.lineTo(wx1, y); ctx.stroke();
+      const off = (r & 1) ? BW / 2 : 0;
+      for (let x = TOWER_L + off; x < TOWER_R; x += BW) {
+        if (x < wx0 - BW || x > wx1 + BW) continue;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + BH); ctx.stroke();
+      }
+    }
+    ctx.restore();
+
+    // アーチ窓（外の夜空が見える）
+    for (let wy = 260; wy < LEVEL_H; wy += 480) {
+      for (const wxc of [TOWER_L + 170, TOWER_R - 170]) {
+        if (wxc < vx0 - 90 || wxc > vx1 + 90 || wy < vy0 - 170 || wy > vy1 + 60) continue;
+        drawTowerWindow(wxc, wy);
+      }
+    }
+    // ふわふわ浮かぶ ろうそく
+    for (let i = 0; i < 40; i++) {
+      const cx = TOWER_L + 100 + ((i * 337) % (TOWER_R - TOWER_L - 200));
+      const cy = 140 + ((i * 523) % Math.max(200, LEVEL_H - 260)) + Math.sin(elapsed * 0.03 + i) * 9;
+      if (cx < vx0 || cx > vx1 || cy < vy0 || cy > vy1) continue;
+      drawFloatCandle(cx, cy, i);
+    }
+  }
+  // 塔のアーチ窓（下端が (x,y)）
+  function drawTowerWindow(x, y) {
+    const w = 58, h = 128;
+    ctx.save();
+    // 窓わく
+    ctx.fillStyle = "#251f42";
+    roundRectPath(x - w/2 - 7, y - h - 7, w + 14, h + 10, 6); ctx.fill();
+    // 窓の中＝夜空
+    ctx.beginPath();
+    ctx.moveTo(x - w/2, y);
+    ctx.lineTo(x - w/2, y - h + w/2);
+    ctx.arc(x, y - h + w/2, w/2, Math.PI, 0);
+    ctx.lineTo(x + w/2, y);
+    ctx.closePath();
+    ctx.save(); ctx.clip();
+    const sg = ctx.createLinearGradient(0, y - h, 0, y);
+    sg.addColorStop(0, "#0e1136");
+    sg.addColorStop(1, "#3a2a63");
+    ctx.fillStyle = sg; ctx.fillRect(x - w/2, y - h, w, h);
+    ctx.fillStyle = "rgba(255,248,220,0.9)";
+    for (let i = 0; i < 5; i++) {
+      const sx = x - w/2 + 8 + ((i * 47 + Math.floor(x)) % (w - 16));
+      const sy = y - h + 14 + ((i * 61 + Math.floor(y)) % (h - 24));
+      const tw = 0.5 + Math.sin(elapsed * 0.05 + i + x) * 0.5;
+      ctx.globalAlpha = 0.35 + tw * 0.55;
+      ctx.beginPath(); ctx.arc(sx, sy, 1.3, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+    // 十字の さん
+    ctx.strokeStyle = "#2f2752"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(x, y - h + 10); ctx.lineTo(x, y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x - w/2, y - h * 0.52); ctx.lineTo(x + w/2, y - h * 0.52); ctx.stroke();
+    // 窓から差しこむ光（下にいくほど消える）
+    const bg = ctx.createLinearGradient(0, y - h, 0, y + 130);
+    bg.addColorStop(0, "rgba(207,216,255,0.16)");
+    bg.addColorStop(1, "rgba(207,216,255,0)");
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.moveTo(x - w/2, y - h + 10); ctx.lineTo(x + w/2, y - h + 10);
+    ctx.lineTo(x + w/2 + 70, y + 120); ctx.lineTo(x - w/2 + 70, y + 120);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  // 空中に浮かぶ ろうそく
+  function drawFloatCandle(x, y, i) {
+    const fl = Math.sin(elapsed * 0.3 + i * 1.7) * 2;
+    ctx.save();
+    // まわりのぼんやりした明かり（ふちに向かって消えるので、かべに穴があいて見えない）
+    const lg = ctx.createRadialGradient(x, y - 16, 2, x, y - 16, 30);
+    lg.addColorStop(0, "rgba(255,214,140,0.45)");
+    lg.addColorStop(0.5, "rgba(255,196,110,0.16)");
+    lg.addColorStop(1, "rgba(255,180,90,0)");
+    ctx.fillStyle = lg;
+    ctx.beginPath(); ctx.arc(x, y - 16, 30, 0, 7); ctx.fill();
+    ctx.fillStyle = "#efe6d2"; ctx.fillRect(x - 4, y - 10, 8, 18);
+    ctx.fillStyle = "#d8ccb2"; ctx.fillRect(x - 4, y + 4, 8, 4);
+    ctx.fillStyle = "#ff9b2a";
+    ctx.beginPath(); ctx.ellipse(x, y - 16, 4, 8 + fl, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#ffe9a8";
+    ctx.beginPath(); ctx.ellipse(x, y - 15, 2, 4.5 + fl * 0.5, 0, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+
   // スライムのベトベト（倒したあとに残る。ふむとスピードが落ちる）
   function drawGoos() {
     for (const go of goos) {
@@ -4995,10 +6219,15 @@
   function drawEnemies() {
     for (const e of enemies) {
       if (e.x + e.w < camX - 40 || e.x > camX + W + 40) continue;
+      if (e.y + e.h < camY - 60 || e.y > camY + H + 60) continue;
       if (e.kind === "slime") { drawSlime(e); continue; }
       if (e.kind === "bigslime") { drawBigSlime(e); continue; }
       if (e.kind === "spiky") { drawSpiky(e); continue; }
       if (e.kind === "bat")  { drawBat(e);  continue; }
+      if (e.kind === "wisp") { drawWisp(e); continue; }
+      if (e.kind === "shroom") { drawShroom(e); continue; }
+      if (e.kind === "crystal") { drawCrystalOrb(e); continue; }
+      if (e.kind === "hat") { drawFlyingHat(e); continue; }
       if (e.kind === "cat")  { drawCat(e);  continue; }
       if (e.kind === "crow") { drawCrow(e); continue; }
       if (e.kind === "car")  { drawCar(e);  continue; }
@@ -5188,6 +6417,7 @@
 
   function drawBossBackdrop() {
     if (STAGES[stageIndex].boss === "kingslime") { drawKingArenaBackdrop(); return; }
+    if (STAGES[stageIndex].boss === "wizard") { drawWizardArenaBackdrop(); return; }
     if (STAGES[stageIndex].boss === "sumo") { drawSumoBackdrop(); return; }
     if (STAGES[stageIndex].boss === "mega") { drawDeepSeaBackdrop(); return; }
     if (STAGES[stageIndex].boss === "zagat") { drawZagatBackdrop(); return; }
@@ -5254,10 +6484,250 @@
     usFlag(x + 158, gy - 206);
   }
 
+  // ===== 大まどうし ゲドルフ の絵 =====
+  function drawWizardBoss(b) {
+    const cx = b.x + b.w/2, topY = b.y, footY = b.y + b.h;
+    // ワープ中は うすい紫のもや だけ
+    if (b.hidden) {
+      ctx.save();
+      ctx.globalAlpha = 0.35 + Math.sin(b.t * 0.3) * 0.15;
+      ctx.fillStyle = "#a98fe8";
+      ctx.beginPath(); ctx.ellipse(cx, footY - 50, 26, 54, 0, 0, 7); ctx.fill();
+      ctx.restore();
+      return;
+    }
+    // ねらいのしるし（ひかりの柱が落ちてくる場所）
+    if (b.markT > 0) {
+      ctx.save();
+      const bl = 0.4 + 0.6 * Math.abs(Math.sin(b.markT * 0.28));
+      ctx.globalAlpha = bl;
+      ctx.strokeStyle = "#ffe98a"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(b.markX, BOSS_GROUND - 4, 42, 12, 0, 0, 7); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(b.markX, BOSS_GROUND - 4, 22, 6, 0, 0, 7); ctx.stroke();
+      ctx.fillStyle = "rgba(255,240,160,0.25)";
+      ctx.beginPath(); ctx.ellipse(b.markX, BOSS_GROUND - 4, 42, 12, 0, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.save();
+    if (b.hurtFlash > 0 && Math.floor(b.hurtFlash/4) % 2 === 0) ctx.globalAlpha = 0.45;
+    ctx.translate(cx, footY); ctx.scale(1, Math.max(0.15, b.squash)); ctx.translate(-cx, -footY);
+    const f = b.face;
+
+    // --- ローブのすそ（浮いているので ゆらゆら）---
+    const sway = Math.sin(b.floatT * 0.06) * 6;
+    ctx.fillStyle = "#4a3a86";
+    ctx.beginPath();
+    ctx.moveTo(cx - 30, topY + 46);
+    ctx.quadraticCurveTo(cx - 40 + sway, footY - 20, cx - 22 + sway, footY);
+    ctx.quadraticCurveTo(cx, footY - 12, cx + 22 + sway, footY);
+    ctx.quadraticCurveTo(cx + 40 + sway, footY - 20, cx + 30, topY + 46);
+    ctx.closePath(); ctx.fill();
+    // ローブの前あわせ
+    ctx.fillStyle = "#5c4aa0";
+    ctx.beginPath();
+    ctx.moveTo(cx - 14, topY + 48);
+    ctx.quadraticCurveTo(cx - 16 + sway*0.6, footY - 24, cx - 8 + sway*0.7, footY - 4);
+    ctx.lineTo(cx + 8 + sway*0.7, footY - 4);
+    ctx.quadraticCurveTo(cx + 16 + sway*0.6, footY - 24, cx + 14, topY + 48);
+    ctx.closePath(); ctx.fill();
+    // 金のふちどり
+    ctx.strokeStyle = "#d8b955"; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(cx - 14, topY + 48);
+    ctx.quadraticCurveTo(cx - 16 + sway*0.6, footY - 24, cx - 8 + sway*0.7, footY - 4);
+    ctx.stroke();
+
+    // --- つえ（光る玉つき）---
+    const stx = cx + f * 34, sty0 = topY + 26, sty1 = footY - 6;
+    ctx.strokeStyle = "#7a5a34"; ctx.lineWidth = 6; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(stx, sty0); ctx.lineTo(stx + f * 6, sty1); ctx.stroke();
+    const orbGlow = b.castT > 0 ? 1 : 0.55;
+    const ogz = ctx.createRadialGradient(stx, sty0 - 8, 2, stx, sty0 - 8, 20);
+    ogz.addColorStop(0, "rgba(255,255,255," + orbGlow + ")");
+    ogz.addColorStop(0.4, "rgba(190,160,255," + (orbGlow * 0.9) + ")");
+    ogz.addColorStop(1, "rgba(150,110,240,0)");
+    ctx.fillStyle = ogz;
+    ctx.beginPath(); ctx.arc(stx, sty0 - 8, 20 + (b.castT > 0 ? 6 : 0), 0, 7); ctx.fill();
+    ctx.fillStyle = "#e8dcff";
+    ctx.beginPath(); ctx.arc(stx, sty0 - 8, 7, 0, 7); ctx.fill();
+
+    // --- 体（そで）---
+    ctx.fillStyle = "#5c4aa0";
+    ctx.beginPath(); ctx.ellipse(cx, topY + 56, 30, 22, 0, 0, 7); ctx.fill();
+    // 手
+    ctx.fillStyle = "#f6e2c0";
+    ctx.beginPath(); ctx.arc(cx + f * 30, topY + 30, 7, 0, 7); ctx.fill();
+
+    // --- 顔（ひげでほとんど かくれている）---
+    ctx.fillStyle = "#f6e2c0";
+    ctx.beginPath(); ctx.ellipse(cx, topY + 34, 19, 17, 0, 0, 7); ctx.fill();
+    // 目（帽子のかげで光る）
+    ctx.fillStyle = "#2b2140";
+    ctx.beginPath(); ctx.ellipse(cx + f * 4 - 7, topY + 31, 3, 3.4, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + f * 4 + 6, topY + 31, 3, 3.4, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(cx + f * 4 - 8, topY + 30, 1.1, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + f * 4 + 5, topY + 30, 1.1, 0, 7); ctx.fill();
+    // まゆ（きびしい顔）
+    ctx.strokeStyle = "#e8e2ee"; ctx.lineWidth = 3; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(cx + f*4 - 12, topY + 24); ctx.lineTo(cx + f*4 - 3, topY + 27); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + f*4 + 11, topY + 24); ctx.lineTo(cx + f*4 + 2, topY + 27); ctx.stroke();
+    // 長い白ひげ
+    ctx.fillStyle = "#f2eef8";
+    ctx.beginPath();
+    ctx.moveTo(cx - 16, topY + 36);
+    ctx.quadraticCurveTo(cx - 12, topY + 70, cx, topY + 78);
+    ctx.quadraticCurveTo(cx + 12, topY + 70, cx + 16, topY + 36);
+    ctx.quadraticCurveTo(cx, topY + 46, cx - 16, topY + 36);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "rgba(200,192,215,0.8)"; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(cx - 6, topY + 46); ctx.lineTo(cx - 4, topY + 72); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 6, topY + 46); ctx.lineTo(cx + 4, topY + 72); ctx.stroke();
+
+    // --- とんがり帽子（第2段階でぬぐと消える）---
+    if (!b.hatOut) {
+      ctx.fillStyle = "#4c3a86";
+      ctx.beginPath(); ctx.ellipse(cx, topY + 20, 34, 9, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#6b52b0";
+      ctx.beginPath();
+      ctx.moveTo(cx - 22, topY + 20);
+      ctx.quadraticCurveTo(cx - 14, topY - 26, cx + f * 12, topY - 40);
+      ctx.quadraticCurveTo(cx + f * 20, topY - 44, cx + f * 16, topY - 30);
+      ctx.quadraticCurveTo(cx + 6, topY - 6, cx + 22, topY + 20);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#ffd85e";
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const a = -Math.PI/2 + i * 1.257;
+        ctx.lineTo(cx + f * 13 + Math.cos(a) * 6, topY - 34 + Math.sin(a) * 6);
+        ctx.lineTo(cx + f * 13 + Math.cos(a + 0.628) * 2.6, topY - 34 + Math.sin(a + 0.628) * 2.6);
+      }
+      ctx.closePath(); ctx.fill();
+    } else {
+      // 帽子をぬいだ頭（はげ頭に白い横髪）
+      ctx.fillStyle = "#f6e2c0";
+      ctx.beginPath(); ctx.ellipse(cx, topY + 22, 18, 14, 0, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = "#f2eef8";
+      ctx.beginPath(); ctx.ellipse(cx - 17, topY + 26, 6, 10, 0.3, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx + 17, topY + 26, 6, 10, -0.3, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+
+    // --- まほうバリア（割れていないあいだ）---
+    if (b.alive) {
+      const broken = b.shieldT > 0;
+      ctx.save();
+      const bcy = topY + b.h * 0.42, rr = 74;
+      if (!broken) {
+        const hit = b.guardHit > 0 ? 0.5 : 0;
+        ctx.globalAlpha = 0.30 + hit + Math.sin(b.t * 0.06) * 0.06;
+        const sgz = ctx.createRadialGradient(cx, bcy, rr * 0.5, cx, bcy, rr);
+        sgz.addColorStop(0, "rgba(150,200,255,0.05)");
+        sgz.addColorStop(0.8, "rgba(170,215,255,0.30)");
+        sgz.addColorStop(1, "rgba(220,240,255,0.75)");
+        ctx.fillStyle = sgz;
+        ctx.beginPath(); ctx.ellipse(cx, bcy, rr * 0.72, rr, 0, 0, 7); ctx.fill();
+        ctx.strokeStyle = b.guardHit > 0 ? "#ffffff" : "rgba(210,235,255,0.9)"; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.ellipse(cx, bcy, rr * 0.72, rr, 0, 0, 7); ctx.stroke();
+        // 六角のもよう
+        ctx.strokeStyle = "rgba(200,230,255,0.45)"; ctx.lineWidth = 1.2;
+        for (const yy of [-0.4, 0, 0.4]) {
+          ctx.beginPath(); ctx.ellipse(cx, bcy + yy * rr, rr * 0.72 * Math.cos(yy * 1.3), rr * 0.16, 0, 0, 7); ctx.stroke();
+        }
+      } else {
+        // 割れている＝きらきらのカケラだけ
+        ctx.globalAlpha = Math.min(1, b.shieldT / 60) * 0.6;
+        ctx.strokeStyle = "rgba(220,240,255,0.8)"; ctx.lineWidth = 2;
+        for (let i = 0; i < 6; i++) {
+          const a = b.t * 0.02 + i * 1.047;
+          const px = cx + Math.cos(a) * rr * 0.8, py = bcy + Math.sin(a) * rr * 0.95;
+          ctx.beginPath(); ctx.arc(px, py, 5, a, a + 1.4); ctx.stroke();
+        }
+      }
+      ctx.restore();
+      // バリアが割れているあいだの合図
+      if (broken) {
+        ctx.save();
+        ctx.globalAlpha = 0.6 + 0.4 * Math.sin(elapsed * 0.25);
+        ctx.fillStyle = "#ffe98a";
+        ctx.font = "bold 15px 'Segoe UI',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText("バリアが われている！ いまだ！", cx, topY - 54);
+        ctx.restore();
+      }
+    }
+  }
+
+  // ゲドルフの闘技場＝塔のいちばん上の部屋（大きな丸窓と月・ろうそく・じゅうたん）
+  function drawWizardArenaBackdrop() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#2a2350");
+    g.addColorStop(0.6, "#3a2f60");
+    g.addColorStop(1, "#241e40");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    // 石づみのかべ
+    ctx.strokeStyle = "rgba(18,14,36,0.5)"; ctx.lineWidth = 2;
+    for (let r = 0; r * 60 < BOSS_GROUND + 60; r++) {
+      const y = r * 60;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+      const off = (r & 1) ? 60 : 0;
+      for (let x = off; x < W; x += 120) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 60); ctx.stroke(); }
+    }
+    // 大きな丸窓（夜空と月）
+    const wx = W/2, wy = 150, wr = 96;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(wx, wy, wr, 0, 7); ctx.clip();
+    const sgz = ctx.createLinearGradient(0, wy - wr, 0, wy + wr);
+    sgz.addColorStop(0, "#0d1038"); sgz.addColorStop(1, "#38266a");
+    ctx.fillStyle = sgz; ctx.fillRect(wx - wr, wy - wr, wr*2, wr*2);
+    ctx.fillStyle = "#fdf3cd";
+    ctx.beginPath(); ctx.arc(wx + 26, wy - 22, 34, 0, 7); ctx.fill();
+    ctx.fillStyle = "rgba(222,206,158,0.7)";
+    ctx.beginPath(); ctx.arc(wx + 16, wy - 32, 7, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(wx + 38, wy - 12, 9, 0, 7); ctx.fill();
+    ctx.fillStyle = "rgba(255,248,220,0.9)";
+    for (let i = 0; i < 8; i++) {
+      const sx = wx - wr + 14 + ((i * 53) % (wr*2 - 28));
+      const sy = wy - wr + 12 + ((i * 71) % (wr*2 - 24));
+      const tw = 0.5 + Math.sin(elapsed * 0.05 + i) * 0.5;
+      ctx.globalAlpha = 0.3 + tw * 0.6;
+      ctx.beginPath(); ctx.arc(sx, sy, 1.4, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+    ctx.strokeStyle = "#251f42"; ctx.lineWidth = 10;
+    ctx.beginPath(); ctx.arc(wx, wy, wr, 0, 7); ctx.stroke();
+    ctx.strokeStyle = "#2f2752"; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(wx - wr, wy); ctx.lineTo(wx + wr, wy); ctx.moveTo(wx, wy - wr); ctx.lineTo(wx, wy + wr); ctx.stroke();
+    // 左右のろうそく立て
+    for (const sx of [90, W - 90]) {
+      ctx.fillStyle = "#3b3160"; ctx.fillRect(sx - 8, BOSS_GROUND - 120, 16, 120);
+      ctx.fillStyle = "#4a3f74"; ctx.fillRect(sx - 22, BOSS_GROUND - 8, 44, 8);
+      for (const dx of [-16, 0, 16]) {
+        ctx.fillStyle = "#efe6d2"; ctx.fillRect(sx + dx - 3, BOSS_GROUND - 148, 6, 30);
+        const fl = Math.sin(elapsed * 0.3 + dx) * 2;
+        const lgz = ctx.createRadialGradient(sx + dx, BOSS_GROUND - 154, 1, sx + dx, BOSS_GROUND - 154, 26);
+        lgz.addColorStop(0, "rgba(255,214,140,0.45)");
+        lgz.addColorStop(1, "rgba(255,180,90,0)");
+        ctx.fillStyle = lgz;
+        ctx.beginPath(); ctx.arc(sx + dx, BOSS_GROUND - 154, 26, 0, 7); ctx.fill();
+        ctx.fillStyle = "#ff9b2a";
+        ctx.beginPath(); ctx.ellipse(sx + dx, BOSS_GROUND - 154, 4, 8 + fl, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = "#ffe9a8";
+        ctx.beginPath(); ctx.ellipse(sx + dx, BOSS_GROUND - 153, 2, 4.5 + fl*0.5, 0, 0, 7); ctx.fill();
+      }
+      ctx.fillStyle = "#3b3160"; ctx.fillRect(sx - 26, BOSS_GROUND - 122, 52, 8);
+    }
+    // 床のじゅうたん
+    ctx.fillStyle = "#6b2b46";
+    ctx.fillRect(W/2 - 190, BOSS_GROUND - 6, 380, 6);
+  }
+
   // ボスの描画（種類ごとに振り分け）
   function drawBosses() {
     for (const b of bosses) {
       if (b.kind === "kingslime") drawKingSlime(b);
+      else if (b.kind === "wizard") drawWizardBoss(b);
       else if (b.kind === "pegi" || b.kind === "nisepegi") drawPenguinBoss(b);
       else if (b.kind === "sumo") drawSumoBoss(b);
       else if (b.kind === "mega") drawMegaBoss(b);
@@ -5565,6 +7035,40 @@
         ctx.restore();
         continue;
       }
+      if (cu.kind === "wbolt") {   // ゲドルフのまほうだん（むらさきの光弾）
+        ctx.save();
+        ctx.translate(cu.x, cu.y);
+        ctx.rotate(cu.t * 0.2);
+        const bgz = ctx.createRadialGradient(0, 0, 1, 0, 0, 14);
+        bgz.addColorStop(0, "rgba(255,255,255,0.95)");
+        bgz.addColorStop(0.45, "rgba(190,160,255,0.85)");
+        bgz.addColorStop(1, "rgba(140,110,230,0)");
+        ctx.fillStyle = bgz;
+        ctx.beginPath(); ctx.arc(0, 0, 14, 0, 7); ctx.fill();
+        ctx.fillStyle = "#e6dbff";
+        for (let i = 0; i < 4; i++) {
+          const a = i * 1.57;
+          ctx.beginPath(); ctx.ellipse(Math.cos(a) * 7, Math.sin(a) * 7, 3, 1.6, a, 0, 7); ctx.fill();
+        }
+        ctx.restore();
+        continue;
+      }
+      if (cu.kind === "wpillar") {   // ひかりの柱（天から どーんと落ちる）
+        ctx.save();
+        const a = cu.t < 8 ? 1 : Math.max(0, 1 - (cu.t - 8) / 26);
+        ctx.globalAlpha = a;
+        const pw = 44;
+        const pgz = ctx.createLinearGradient(cu.x - pw, 0, cu.x + pw, 0);
+        pgz.addColorStop(0, "rgba(255,240,180,0)");
+        pgz.addColorStop(0.5, "rgba(255,248,220,0.9)");
+        pgz.addColorStop(1, "rgba(255,240,180,0)");
+        ctx.fillStyle = pgz;
+        ctx.fillRect(cu.x - pw, 0, pw * 2, BOSS_GROUND);
+        ctx.fillStyle = "rgba(255,250,225,0.75)";
+        ctx.beginPath(); ctx.ellipse(cu.x, BOSS_GROUND, pw * 1.1, 12, 0, 0, 7); ctx.fill();
+        ctx.restore();
+        continue;
+      }
       if (cu.kind === "gel") {   // 対空のゲル（ぷるんとした青い玉）
         ctx.save();
         ctx.translate(cu.x, cu.y);
@@ -5723,8 +7227,170 @@
   function drawHazards() {
     for (const h of hazards) {
       if (h.x < camX - 60 || h.x > camX + W + 60) continue;
+      if (h.kind === "spore") { drawSpore(h.x, h.y, h.t); continue; }
       drawTigerShot(h.x, h.y, h.kind === "tiger", h.t);
     }
+  }
+
+  // キノコンの ほうしだま（むらさきの もやもや玉）
+  function drawSpore(x, y, t) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(t * 0.16);
+    ctx.fillStyle = "rgba(200,162,232,0.35)";
+    ctx.beginPath(); ctx.arc(0, 0, 11 + Math.sin(t * 0.25) * 1.5, 0, 7); ctx.fill();
+    ctx.fillStyle = "#b98fdc";
+    for (let i = 0; i < 5; i++) {
+      const a = i * 1.256;
+      ctx.beginPath(); ctx.arc(Math.cos(a) * 4.5, Math.sin(a) * 4.5, 4, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = "#e0cdf2";
+    ctx.beginPath(); ctx.arc(0, 0, 4.2, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+
+  // おにび：ゆらゆらする青むらさきの ほのお（目つき）
+  function drawWisp(e) {
+    const cx = e.x + e.w/2, cy = e.y + e.h/2;
+    const fl = Math.sin(e.t * 0.22) * 2;
+    ctx.save();
+    ctx.translate(cx, cy);
+    // 外がわのぼんやりした光
+    const g = ctx.createRadialGradient(0, 0, 2, 0, 0, 24);
+    g.addColorStop(0, "rgba(180,220,255,0.75)");
+    g.addColorStop(0.5, "rgba(120,150,255,0.35)");
+    g.addColorStop(1, "rgba(90,110,220,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(0, 0, 24, 0, 7); ctx.fill();
+    // ほのおの形（上にゆらぐ）
+    ctx.fillStyle = "#7d8cf0";
+    ctx.beginPath();
+    ctx.moveTo(0, -16 - fl);
+    ctx.quadraticCurveTo(11, -4, 8, 4);
+    ctx.quadraticCurveTo(6, 13, 0, 13);
+    ctx.quadraticCurveTo(-6, 13, -8, 4);
+    ctx.quadraticCurveTo(-11, -4, 0, -16 - fl);
+    ctx.fill();
+    ctx.fillStyle = "#bcd2ff";
+    ctx.beginPath();
+    ctx.moveTo(0, -9 - fl * 0.6);
+    ctx.quadraticCurveTo(6, -2, 4.5, 3);
+    ctx.quadraticCurveTo(3, 9, 0, 9);
+    ctx.quadraticCurveTo(-3, 9, -4.5, 3);
+    ctx.quadraticCurveTo(-6, -2, 0, -9 - fl * 0.6);
+    ctx.fill();
+    // 目（ちょっとイジワル）
+    ctx.fillStyle = "#25305a";
+    ctx.beginPath(); ctx.arc(-3, 1, 1.9, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(3, 1, 1.9, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#25305a"; ctx.lineWidth = 1.4; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-5.5, -3); ctx.lineTo(-1.5, -1.4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(5.5, -3); ctx.lineTo(1.5, -1.4); ctx.stroke();
+    ctx.restore();
+  }
+
+  // ゲドルフのクリスタル：浮いている水色の結晶（テレキネシスで つかんで 投げ返す）
+  function drawCrystalOrb(e) {
+    const cx = e.x + e.w/2, cy = e.y + e.h/2;
+    const ready = e.hover > 0;
+    ctx.save();
+    ctx.translate(cx, cy);
+    // まわりの光（もうすぐ飛ぶときは 赤っぽく点滅して しらせる）
+    const warn = ready && e.hover < 26 && Math.floor(e.hover / 4) % 2 === 0;
+    const gz = ctx.createRadialGradient(0, 0, 2, 0, 0, 26);
+    gz.addColorStop(0, warn ? "rgba(255,190,190,0.7)" : "rgba(190,235,255,0.6)");
+    gz.addColorStop(1, "rgba(120,200,255,0)");
+    ctx.fillStyle = gz;
+    ctx.beginPath(); ctx.arc(0, 0, 26, 0, 7); ctx.fill();
+    ctx.rotate(e.t * 0.03);
+    // 結晶（六角のとがった形）
+    const cgz = ctx.createLinearGradient(-13, -15, 13, 15);
+    cgz.addColorStop(0, "#eafcff");
+    cgz.addColorStop(0.45, "#8fdcf7");
+    cgz.addColorStop(1, "#3f86d4");
+    ctx.fillStyle = cgz;
+    ctx.beginPath();
+    ctx.moveTo(0, -16); ctx.lineTo(11, -6); ctx.lineTo(8, 13); ctx.lineTo(-8, 13); ctx.lineTo(-11, -6);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.75)"; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(0, -16); ctx.lineTo(0, 13); ctx.moveTo(-11, -6); ctx.lineTo(11, -6); ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.beginPath(); ctx.moveTo(-3, -13); ctx.lineTo(-7, -4); ctx.lineTo(-4, 8); ctx.lineTo(-1, -4); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  // ゲドルフのぼうし（第2段階・ひとりでに飛ぶ）
+  function drawFlyingHat(e) {
+    const cx = e.x + e.w/2, cy = e.y + e.h/2;
+    const tilt = Math.sin(e.t * 0.1) * 0.18;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(tilt);
+    ctx.scale(e.face < 0 ? -1 : 1, 1);
+    // つば
+    ctx.fillStyle = "#4c3a86";
+    ctx.beginPath(); ctx.ellipse(0, 11, 25, 7, 0, 0, 7); ctx.fill();
+    // とんがり（くにゃっと曲がった帽子）
+    ctx.fillStyle = "#6b52b0";
+    ctx.beginPath();
+    ctx.moveTo(-16, 11);
+    ctx.quadraticCurveTo(-10, -12, 8, -20);
+    ctx.quadraticCurveTo(14, -22, 12, -14);
+    ctx.quadraticCurveTo(6, -2, 16, 11);
+    ctx.closePath(); ctx.fill();
+    // 星のかざり
+    ctx.fillStyle = "#ffd85e";
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI/2 + i * 1.257;
+      ctx.lineTo(9 + Math.cos(a) * 5, -17 + Math.sin(a) * 5);
+      ctx.lineTo(9 + Math.cos(a + 0.628) * 2.2, -17 + Math.sin(a + 0.628) * 2.2);
+    }
+    ctx.closePath(); ctx.fill();
+    // 目（つばの下でぎょろり）
+    ctx.fillStyle = "#f4efff";
+    ctx.beginPath(); ctx.arc(-6, 4, 5, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(6, 4, 5, 0, 7); ctx.fill();
+    ctx.fillStyle = "#20182f";
+    ctx.beginPath(); ctx.arc(-5, 5, 2.6, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(7, 5, 2.6, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+
+  // キノコン：その場に生えた きのこ。ほうしだま を撃つ
+  function drawShroom(e) {
+    const cx = e.x + e.w/2, by = e.y + e.h, k = e.squash;
+    ctx.save();
+    ctx.translate(cx, by);
+    ctx.scale(1 / k, k);
+    // じくの部分
+    ctx.fillStyle = "#f2e7cf";
+    roundRectPath(-8, -19, 16, 19, 5); ctx.fill();
+    ctx.fillStyle = "#dcd0b4"; ctx.fillRect(-8, -6, 16, 3);
+    // かさ
+    ctx.fillStyle = "#c4553f";
+    ctx.beginPath(); ctx.ellipse(0, -19, 17, 13, 0, Math.PI, 0); ctx.fill();
+    ctx.fillRect(-17, -20, 34, 3);
+    ctx.fillStyle = "#a8422f";
+    ctx.beginPath(); ctx.ellipse(0, -19, 17, 4, 0, 0, Math.PI); ctx.fill();
+    // かさの白い点々
+    ctx.fillStyle = "#f6ece0";
+    ctx.beginPath(); ctx.arc(-9, -24, 3.4, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(1, -28, 4.2, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(10, -23, 3, 0, 7); ctx.fill();
+    // 顔（向いている方へ）
+    const f = e.face || -1;
+    ctx.fillStyle = "#4a3a2a";
+    ctx.beginPath(); ctx.arc(-4.5 + f * 1.5, -12, 1.9, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(4.5 + f * 1.5, -12, 1.9, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#4a3a2a"; ctx.lineWidth = 1.4; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.arc(f * 1.5, -8, 3.2, 0.2, Math.PI - 0.2); ctx.stroke();
+    // つぎに撃つ合図（口もとが光る）
+    if (e.shootCd > 0 && e.shootCd < 22) {
+      ctx.fillStyle = "rgba(200,162,232," + (0.3 + Math.sin(e.t * 0.5) * 0.3) + ")";
+      ctx.beginPath(); ctx.arc(f * 12, -10, 5, 0, 7); ctx.fill();
+    }
+    ctx.restore();
   }
 
   // ===== ポルトガル：ボール・樽・敵・風景・PK戦 =====
@@ -7699,6 +9365,9 @@
       drawDragonMaruBody(p, run, airborne, legPhase);
     } else {
 
+    // まほうまるりん：マントは体のうしろに描く
+    if (isMagicForm() && playing) drawMagicCape(p, run, airborne);
+
     // 後ろ足（クリーム色）
     ctx.fillStyle = "#f6e2c0";
     const footSwing = run ? legPhase*6 : (airborne ? -3 : 0);
@@ -7786,9 +9455,30 @@
     ctx.beginPath(); ctx.arc(lhx, hy + lift - swing + 1, 1.5, 0, 7); ctx.fill();
     ctx.beginPath(); ctx.arc(rhx, hy + lift + swing + 1, 1.5, 0, 7); ctx.fill();
 
+    // まほうまるりん：とんがり帽子と杖は体の手前に描く
+    if (isMagicForm() && playing) drawMagicHat(p, run, airborne);
+
     }   // 通常まるりん／ドラゴンまるりんの描き分けここまで
 
     ctx.restore();
+
+    // ほうきダッシュ中：ほうきにまたがっている
+    if (p.broom > 0 && playing) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(p.face, 1);
+      ctx.rotate(-0.12);
+      ctx.strokeStyle = "#8a6a45"; ctx.lineWidth = 3.4; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(-26, 16); ctx.lineTo(18, 12); ctx.stroke();
+      ctx.fillStyle = "#c9a24a";
+      ctx.beginPath();
+      ctx.moveTo(-24, 16);
+      ctx.lineTo(-38, 9); ctx.lineTo(-36, 16); ctx.lineTo(-39, 23); ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "#a07f34"; ctx.lineWidth = 1.2;
+      for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(-25, 16); ctx.lineTo(-37, 10 + i * 6); ctx.stroke(); }
+      ctx.restore();
+    }
 
     // かじっている最中：前歯と、かじりカスが飛ぶ
     if (p.gnaw > 0 && playing) {
@@ -7807,6 +9497,11 @@
       }
       ctx.restore();
     }
+
+    // テレキネシスの手ごたえ（空ぶりでも見えるように）
+    if (playing && p.tkFx > 0) drawTelekinesisFx(p, cx, cy);
+    // 持ち上げているもの（テレキネシス）
+    if (playing && p.carry) drawCarriedItem(p, cx, cy);
 
     // 技のエフェクト（まるりんより手前に描くぶん）
     if (playing && p.spin > 0) drawSpinTail(p, cx, cy, true);
@@ -8130,8 +9825,8 @@
       ctx.font = "bold 12px 'Segoe UI', sans-serif";
       ctx.fillStyle = ab ? "#ffe38a" : "rgba(255,255,255,0.6)";
       ctx.fillText(ab ? ("B " + ab.icon + " " + ab.name) : "スキル：まだなし", 16, 51);
-      // ドラゴンモードのゲージ（ドラゴンスキルを持っているときだけ）
-      if (abilities.includes("dragon")) {
+      // ドラゴンモードのゲージ（ドラゴンを選んでいるときだけ。他のスキル中は出さない）
+      if (isDragonForm()) {
         ctx.fillStyle = (gaugeFlash > 0 && Math.floor(gaugeFlash / 5) % 2 === 0) ? "rgba(255,80,80,0.6)" : "rgba(0,0,0,0.28)";
         ctx.fillRect(8, 66, 130, 12);
         const frac = dragonGauge / DRAGON_MAX;
@@ -8140,6 +9835,18 @@
         ctx.font = "bold 9px 'Segoe UI', sans-serif";
         ctx.fillStyle = "rgba(0,0,0,0.75)";
         ctx.fillText(dragonMode ? "🐲 ドラゴンモード中！" : "B長押しでドラゴンモード", 14, 72.5);
+      }
+      // まほうじんのクールダウン（まほうを選んでいるときだけ）
+      if (isMagicForm()) {
+        const cd = player ? player.circleCd : 0;
+        const ready = cd <= 0;
+        ctx.fillStyle = "rgba(0,0,0,0.28)";
+        ctx.fillRect(8, 66, 130, 12);
+        ctx.fillStyle = ready ? "#c9bcff" : "rgba(160,140,230,0.55)";
+        ctx.fillRect(9, 67, 128 * (ready ? 1 : 1 - cd / CIRCLE_CD), 10);
+        ctx.font = "bold 9px 'Segoe UI', sans-serif";
+        ctx.fillStyle = "rgba(0,0,0,0.75)";
+        ctx.fillText(ready ? "🔮 B長押しで まほうじん" : "まほうじん じゅんび中…", 14, 72.5);
       }
       // はばたきの残り回数（空中でAをもう一度）
       const fm = flapMax();
@@ -8859,6 +10566,314 @@
     }
   }
   // =================== オープニングここまで ===================
+
+  // =================== ステージ2「まほうの塔」の前 ===================
+  // ムービー用の 遠くにそびえる まほうの塔（cxを中心に、groundYから上へ）
+  function storyFarTower(cx, groundY, sc, f) {
+    ctx.save();
+    ctx.translate(cx, groundY); ctx.scale(sc, sc);
+    // 塔の本体（上へいくほど細い）
+    ctx.fillStyle = "#4a3f70";
+    ctx.beginPath();
+    ctx.moveTo(-46, 0); ctx.lineTo(-30, -250); ctx.lineTo(30, -250); ctx.lineTo(46, 0);
+    ctx.closePath(); ctx.fill();
+    // 石づみの横線
+    ctx.strokeStyle = "rgba(20,16,40,0.45)"; ctx.lineWidth = 2;
+    for (let y = -20; y > -250; y -= 26) {
+      const t2 = (-y) / 250, hw = 46 - 16 * t2;
+      ctx.beginPath(); ctx.moveTo(-hw, y); ctx.lineTo(hw, y); ctx.stroke();
+    }
+    // 明かりのついた窓
+    for (let i = 0; i < 6; i++) {
+      const y = -40 - i * 36, t2 = (-y) / 250, hw = 46 - 16 * t2;
+      const on = (i % 2 === 0) || Math.sin(f * 0.05 + i) > -0.3;
+      ctx.fillStyle = on ? "#ffdc8a" : "#2a2350";
+      ctx.fillRect(-7, y - 14, 14, 16);
+      ctx.fillStyle = "rgba(255,220,138,0.18)";
+      if (on) { ctx.beginPath(); ctx.arc(0, y - 6, 18, 0, 7); ctx.fill(); }
+      ctx.fillStyle = "#3a3160"; ctx.fillRect(-hw, y + 2, hw * 2, 3);
+    }
+    // てっぺんのとんがり屋根
+    ctx.fillStyle = "#6b52b0";
+    ctx.beginPath(); ctx.moveTo(-38, -250); ctx.lineTo(0, -320); ctx.lineTo(38, -250); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#4c3a86"; ctx.fillRect(-40, -254, 80, 8);
+    // てっぺんで光る まほうの玉
+    const bob = Math.sin(f * 0.06) * 4;
+    const gz = ctx.createRadialGradient(0, -334 + bob, 2, 0, -334 + bob, 26);
+    gz.addColorStop(0, "rgba(190,245,255,0.95)");
+    gz.addColorStop(1, "rgba(120,200,255,0)");
+    ctx.fillStyle = gz;
+    ctx.beginPath(); ctx.arc(0, -334 + bob, 26, 0, 7); ctx.fill();
+    ctx.fillStyle = "#e8fbff";
+    ctx.beginPath(); ctx.arc(0, -334 + bob, 8, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+  // 夜空（星＋月）
+  function storyNightSky() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#12143a"); g.addColorStop(0.5, "#2a2260"); g.addColorStop(1, "#7a4d78");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    for (let i = 0; i < 40; i++) {
+      const sx = (i * 211) % W, sy = (i * 137) % 260;
+      const tw = 0.5 + Math.sin(elapsed * 0.04 + i * 1.3) * 0.5;
+      ctx.fillStyle = "rgba(255,248,220," + (0.3 + tw * 0.55) + ")";
+      ctx.beginPath(); ctx.arc(sx, sy, 1 + tw, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = "rgba(255,246,210,0.2)";
+    ctx.beginPath(); ctx.arc(660, 80, 62, 0, 7); ctx.fill();
+    ctx.fillStyle = "#fdf3cd";
+    ctx.beginPath(); ctx.arc(660, 80, 38, 0, 7); ctx.fill();
+    ctx.fillStyle = "rgba(222,206,158,0.75)";
+    ctx.beginPath(); ctx.arc(648, 70, 7, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(672, 90, 10, 0, 7); ctx.fill();
+  }
+
+  // シーン1：キングスライムを たおして ひと息（そうげん・昼）
+  function sceneTowerWin(f, dur) {
+    storyMeadow(f);
+    // たおれた王冠（キングスライムのなごり）
+    ctx.save();
+    ctx.translate(240, STORY_GROUND - 8); ctx.rotate(-0.35);
+    ctx.fillStyle = "#ffd34d";
+    ctx.beginPath();
+    ctx.moveTo(-18, 6); ctx.lineTo(-18, -8); ctx.lineTo(-9, 0); ctx.lineTo(0, -12);
+    ctx.lineTo(9, 0); ctx.lineTo(18, -8); ctx.lineTo(18, 6);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+    // よろこぶまるりん（ぴょんぴょん）
+    const hop = Math.abs(Math.sin(f * 0.09)) * 16;
+    storyMaru(400, STORY_GROUND - hop, 1, false);
+    storyFairy(486, STORY_GROUND - 118, f, 0.85);
+    // きらきら
+    ctx.fillStyle = "rgba(255,240,170,0.9)";
+    for (let i = 0; i < 6; i++) {
+      const a = f * 0.05 + i * 1.05;
+      ctx.beginPath(); ctx.arc(400 + Math.cos(a) * 60, STORY_GROUND - 60 + Math.sin(a) * 24, 2.4, 0, 7); ctx.fill();
+    }
+  }
+
+  // そうげんの背景（シーン1と2で共通）
+  function storyMeadow(f) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#2f7fd6"); g.addColorStop(0.5, "#7cc0ee"); g.addColorStop(1, "#d8f0ff");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    for (const [cxx, cyy, cr] of [[150, 66, 34], [470, 48, 26], [690, 92, 30]]) {
+      ctx.beginPath();
+      ctx.arc(cxx, cyy, cr * 0.6, 0, 7); ctx.arc(cxx + cr * 0.6, cyy + 6, cr * 0.5, 0, 7);
+      ctx.arc(cxx - cr * 0.6, cyy + 8, cr * 0.45, 0, 7); ctx.arc(cxx + cr * 0.2, cyy - cr * 0.3, cr * 0.5, 0, 7);
+      ctx.fill();
+    }
+    ctx.fillStyle = "rgba(120,160,140,0.5)";
+    for (let i = 0; i < 5; i++) {
+      const hx = 40 + i * 190;
+      ctx.beginPath(); ctx.moveTo(hx - 120, STORY_GROUND); ctx.lineTo(hx, STORY_GROUND - 80 - (i % 2) * 24); ctx.lineTo(hx + 120, STORY_GROUND); ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = "#5aa03a"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
+    ctx.fillStyle = "#6cbd46"; ctx.fillRect(0, STORY_GROUND, W, 8);
+  }
+
+  // シーン2：ようせいが 空に 異次元のとびらを えがく（そうげん）
+  //   ※異世界編は「1ステージ＝ひとつの異世界」。つぎの世界へは かならず このとびらをくぐる。
+  function sceneGateOpen(f, dur) {
+    storyMeadow(f);
+    // とびらが だんだん 大きく開く
+    const px = 560, py = STORY_GROUND - 96;
+    const r = Math.min(1, f / (dur * 0.55)) * 92;
+    storyWarp(px, py, r, f);
+    // まわりに 舞う まほうの文字
+    ctx.save();
+    ctx.fillStyle = "rgba(220,200,255,0.9)";
+    for (let i = 0; i < 8; i++) {
+      const a = f * 0.04 + i * 0.785, rr = r * 1.25;
+      ctx.beginPath(); ctx.arc(px + Math.cos(a) * rr, py + Math.sin(a) * rr * 0.8, 3, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+    storyMaru(300, STORY_GROUND, 1, false);
+    storyFairy(384, STORY_GROUND - 118, f, 0.9);
+    // ようせいから とびらへ のびる まほうの光
+    ctx.save();
+    ctx.globalAlpha = 0.45 + 0.25 * Math.sin(f * 0.14);
+    ctx.strokeStyle = "#c9a6ff"; ctx.lineWidth = 3; ctx.setLineDash([9, 7]);
+    ctx.beginPath(); ctx.moveTo(406, STORY_GROUND - 118); ctx.lineTo(px - r * 0.7, py); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  // シーン3：異次元のトンネルを くぐりぬける
+  function sceneGateCross(f, dur) {
+    ctx.fillStyle = "#140a2a"; ctx.fillRect(0, 0, W, H);
+    const cx = W / 2, cy = H * 0.42;
+    // 奥へ吸い込まれていく光の輪
+    for (let i = 11; i >= 0; i--) {
+      const k = (((i + f * 0.08) % 12) / 12);
+      const r = 26 + k * k * 660;
+      ctx.globalAlpha = 0.5 * (1 - k) + 0.08;
+      ctx.strokeStyle = i % 2 ? "#7a3fd0" : "#3fd0e0";
+      ctx.lineWidth = 6 + k * 26;
+      ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.72, 0, 0, 7); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    // 流れる星くず
+    for (let i = 0; i < 26; i++) {
+      const a = i * 1.7, rr = (i * 53 + f * 8) % 440;
+      ctx.globalAlpha = Math.min(1, rr / 320) * 0.9;
+      ctx.fillStyle = i % 3 ? "#ffffff" : "#d8b6ff";
+      ctx.beginPath(); ctx.arc(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * 0.72, 2.4, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // まるりんが くるくる回りながら 奥へ すすむ
+    const k2 = Math.min(1, f / dur);
+    storyMaruXform(cx, cy + 80 + Math.sin(f * 0.06) * 16, 1, false, 1.2 - k2 * 0.4, f * 0.1);
+    // ようせいが 先を いく
+    storyFairy(cx + 96 - k2 * 40, cy - 40, f, 0.8 - k2 * 0.25);
+    // 出口の光（おわりに近づくと 白くなる）
+    if (k2 > 0.62) {
+      ctx.globalAlpha = (k2 - 0.62) / 0.38;
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // シーン4：まほうの国に とうちゃく（紫の空・光るキノコ・水晶）＋遠くに塔
+  function sceneMagicLand(f, dur) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#4a3a8a"); g.addColorStop(0.45, "#8a6ac0");
+    g.addColorStop(0.8, "#d8a6d8"); g.addColorStop(1, "#f6d8e8");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    // またたく星
+    for (let i = 0; i < 18; i++) {
+      const sx = (i * 173 + 40) % W, sy = 18 + ((i * 97) % 190);
+      const tw = 0.5 + Math.sin(f * 0.05 + i * 1.7) * 0.5;
+      ctx.fillStyle = "rgba(255,240,200," + (0.35 + tw * 0.5) + ")";
+      ctx.beginPath(); ctx.arc(sx, sy, 1.2 + tw, 0, 7); ctx.fill();
+    }
+    // 浮かぶ島（ふわふわ）
+    ctx.fillStyle = "rgba(90,70,130,0.55)";
+    for (const [ix, iy, iw] of [[130, 150, 90], [690, 120, 70]]) {
+      const by = iy + Math.sin(f * 0.03 + ix) * 5;
+      ctx.beginPath(); ctx.ellipse(ix, by, iw / 2, 12, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(ix - iw/2, by); ctx.lineTo(ix, by + 34); ctx.lineTo(ix + iw/2, by); ctx.closePath(); ctx.fill();
+    }
+    // 遠くの まほうの塔
+    storyFarTower(600, STORY_GROUND - 28, 0.72, f);
+    // 地面（むらさきの土＋ミントの草）
+    ctx.fillStyle = "#6a4c88"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
+    ctx.fillStyle = "#4ec9a0"; ctx.fillRect(0, STORY_GROUND, W, 10);
+    ctx.fillStyle = "#6fe4bb"; ctx.fillRect(0, STORY_GROUND, W, 5);
+    // 光るキノコ
+    for (const [mx, ms] of [[110, 1], [470, 0.75]]) {
+      ctx.save(); ctx.translate(mx, STORY_GROUND); ctx.scale(ms, ms);
+      ctx.fillStyle = "#f2e7cf"; roundRectPath(-9, -40, 18, 40, 6); ctx.fill();
+      ctx.fillStyle = "rgba(190,245,255,0.35)";
+      ctx.beginPath(); ctx.arc(0, -46, 40, 0, 7); ctx.fill();
+      ctx.fillStyle = "#a86ad0";
+      ctx.beginPath(); ctx.ellipse(0, -40, 34, 24, 0, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = "#d8b6f0";
+      ctx.beginPath(); ctx.arc(-14, -50, 6, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(6, -56, 7.5, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+    // 光る水晶
+    for (const [qx, qs] of [[240, 1], [740, 0.8]]) {
+      ctx.save(); ctx.translate(qx, STORY_GROUND); ctx.scale(qs, qs);
+      const cg = ctx.createLinearGradient(-14, -54, 14, 0);
+      cg.addColorStop(0, "#eafcff"); cg.addColorStop(1, "#5fa8e0");
+      ctx.fillStyle = cg;
+      ctx.beginPath(); ctx.moveTo(0, -56); ctx.lineTo(13, -20); ctx.lineTo(7, 0); ctx.lineTo(-7, 0); ctx.lineTo(-13, -20); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    // 出口のワープ（うしろで まだ 光っている）
+    storyWarp(120, STORY_GROUND - 70, Math.max(0, 60 - f * 0.6), f);
+    // ふたり（ようせいが 塔を ゆびさす）
+    storyMaru(310, STORY_GROUND, 1, false);
+    storyFairy(392, STORY_GROUND - 118, f, 0.9);
+    ctx.save();
+    ctx.globalAlpha = 0.35 + 0.25 * Math.sin(f * 0.12);
+    ctx.strokeStyle = "#ffe98a"; ctx.lineWidth = 2; ctx.setLineDash([8, 8]);
+    ctx.beginPath(); ctx.moveTo(414, STORY_GROUND - 118); ctx.lineTo(566, STORY_GROUND - 240); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  // シーン4：ようせいが 大まどうしの すがたを 見せる（かげ絵）
+  function sceneTowerWizard(f, dur) {
+    storyNightSky();
+    // 塔の中の 大きなまど（そこに 大まどうしのシルエットが うつる）
+    const wx = W/2, wy = 168, wr = 118;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(wx, wy, wr, 0, 7); ctx.clip();
+    const sgz = ctx.createRadialGradient(wx, wy, 10, wx, wy, wr);
+    sgz.addColorStop(0, "#ffe9a8"); sgz.addColorStop(1, "#c98a3a");
+    ctx.fillStyle = sgz; ctx.fillRect(wx - wr, wy - wr, wr*2, wr*2);
+    // かげ絵の まどうし
+    ctx.fillStyle = "rgba(30,20,50,0.88)";
+    ctx.beginPath();
+    ctx.moveTo(wx - 44, wy + wr);
+    ctx.quadraticCurveTo(wx - 34, wy - 6, wx - 20, wy - 26);   // ローブ
+    ctx.lineTo(wx - 34, wy - 30);
+    ctx.quadraticCurveTo(wx - 6, wy - 96, wx + 24, wy - 108);  // とんがり帽子
+    ctx.quadraticCurveTo(wx + 12, wy - 60, wx + 30, wy - 30);
+    ctx.lineTo(wx + 18, wy - 26);
+    ctx.quadraticCurveTo(wx + 34, wy - 6, wx + 44, wy + wr);
+    ctx.closePath(); ctx.fill();
+    // つえ
+    ctx.strokeStyle = "rgba(30,20,50,0.88)"; ctx.lineWidth = 7; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(wx + 56, wy - 62); ctx.lineTo(wx + 50, wy + wr); ctx.stroke();
+    ctx.fillStyle = "rgba(190,235,255," + (0.7 + 0.3 * Math.sin(f * 0.14)) + ")";
+    ctx.beginPath(); ctx.arc(wx + 57, wy - 70, 11, 0, 7); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = "#251f42"; ctx.lineWidth = 11;
+    ctx.beginPath(); ctx.arc(wx, wy, wr, 0, 7); ctx.stroke();
+    // 下：見上げる ふたり
+    ctx.fillStyle = "#241d3e"; ctx.fillRect(0, STORY_GROUND - 40, W, H - STORY_GROUND + 40);
+    ctx.fillStyle = "#2b2348"; ctx.fillRect(0, STORY_GROUND - 40, W, 6);
+    storyMaru(200, STORY_GROUND, 1, false);
+    storyFairy(280, STORY_GROUND - 120, f, 0.85);
+  }
+
+  // シーン5：塔のふもとに とうちゃく（入口へ歩いていく）
+  function sceneTowerNight(f, dur) {
+    storyNightSky();
+    // 塔の外かべ（画面の右がわ いっぱい）
+    ctx.fillStyle = "#3a3160";
+    ctx.fillRect(430, 0, W - 430, STORY_GROUND);
+    ctx.strokeStyle = "rgba(18,14,36,0.5)"; ctx.lineWidth = 2;
+    for (let y = 20; y < STORY_GROUND; y += 40) { ctx.beginPath(); ctx.moveTo(430, y); ctx.lineTo(W, y); ctx.stroke(); }
+    for (let x = 470; x < W; x += 80) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, STORY_GROUND); ctx.stroke(); }
+    // 大きな入口（アーチ）
+    ctx.fillStyle = "#191430";
+    ctx.beginPath();
+    ctx.moveTo(560, STORY_GROUND);
+    ctx.lineTo(560, STORY_GROUND - 90);
+    ctx.arc(605, STORY_GROUND - 90, 45, Math.PI, 0);
+    ctx.lineTo(650, STORY_GROUND);
+    ctx.closePath(); ctx.fill();
+    // 入口の両わきの たいまつ
+    for (const tx of [536, 674]) {
+      ctx.fillStyle = "#6f5a3a"; ctx.fillRect(tx - 4, STORY_GROUND - 118, 8, 24);
+      const fl = Math.sin(f * 0.3 + tx) * 3;
+      const lgz = ctx.createRadialGradient(tx, STORY_GROUND - 128, 2, tx, STORY_GROUND - 128, 34);
+      lgz.addColorStop(0, "rgba(255,214,140,0.5)");
+      lgz.addColorStop(1, "rgba(255,180,90,0)");
+      ctx.fillStyle = lgz;
+      ctx.beginPath(); ctx.arc(tx, STORY_GROUND - 128, 34, 0, 7); ctx.fill();
+      ctx.fillStyle = "#ff9b2a";
+      ctx.beginPath(); ctx.ellipse(tx, STORY_GROUND - 128, 7, 12 + fl, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#ffe9a8";
+      ctx.beginPath(); ctx.ellipse(tx, STORY_GROUND - 126, 3.6, 6 + fl * 0.5, 0, 0, 7); ctx.fill();
+    }
+    // 地面
+    ctx.fillStyle = "#243a2c"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
+    ctx.fillStyle = "#2c4534"; ctx.fillRect(0, STORY_GROUND, W, 6);
+    // まるりんが入口へ歩いていく
+    const walkEnd = dur - 40;
+    const k = Math.min(1, f / walkEnd);
+    const mx = 120 + 400 * k;
+    storyMaru(mx, STORY_GROUND, 1, k < 1);
+    storyFairy(mx + 76, STORY_GROUND - 112, f, 0.8);
+  }
+  // =================== ステージ2の紙芝居ここまで ===================
 
   // シーン1：くさはらから南流山のおうちに帰宅（夕方）
   function sceneReturn(f, dur) {
