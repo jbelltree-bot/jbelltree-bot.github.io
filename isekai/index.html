@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 3.2 (2026-08-01)";
+  const GAME_VERSION = "異世界編 ver 3.3 (2026-08-01)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -1552,7 +1552,9 @@
     for (const b of back) {
       const sp = Math.max(7, Math.abs(b.vx) * GUARD_BACK);
       const dir = b.vx >= 0 ? -1 : 1;               // 来たほうへ 返す
-      seeds.push({ x: b.x, y: b.y, vx: dir * sp, vy: 0, life: 80, t: 0, cut: true, dmg: 2 });
+      // back:true ＝「もう 1回 はね返っている たま」。武将は これを もう一度 打ち返さない
+      //（返した たまが また 返ってくると、よけようが なくて 強すぎるため）。
+      seeds.push({ x: b.x, y: b.y, vx: dir * sp, vy: 0, life: 80, t: 0, cut: true, dmg: 2, back: true });
       score += 100; playSE("clash");
       screenShake = Math.max(screenShake, 6);
       p.guardFx = 14;
@@ -3143,9 +3145,19 @@
   // ★2人とも「飛び道具は 刀で 打ち返す」＝近づいて 斬るしかない 一騎打ち。
 
   // 武将は まるりんの 飛び道具を 打ち返す。返された たまは まるりんに 当たる。
+  // ★ただし back が 立っている たま＝「すでに 1回 はね返っている」ものは 打ち返さない。
+  //   （まるりんが かまえで 返した 矢を さらに 返されると、どうしようも なくなるため）
   function swatProjectiles(b) {
     if (!b.swat || !b.alive || b.hidden) return;
     const box = { x: b.x - 12, y: b.y - 8, w: b.w + 24, h: b.h + 16 };
+    // かまえで 返した たまは、打ち返されない かわりに ちゃんと 刺さる
+    for (const sd of seeds) {
+      if (sd.life <= 0 || !sd.back || sd.foe) continue;
+      if (!rectHit({ x: sd.x - 6, y: sd.y - 6, w: 12, h: 12 }, b)) continue;
+      sd.life = 0;
+      if (b.invuln <= 0) damageBoss(b, true);
+      break;
+    }
     let did = false;
     for (const sd of seeds) {
       if (sd.life <= 0 || sd.back) continue;
