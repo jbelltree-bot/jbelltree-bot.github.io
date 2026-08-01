@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 3.3 (2026-08-01)";
+  const GAME_VERSION = "異世界編 ver 3.6 (2026-08-01)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -619,7 +619,7 @@
       // ぶしスキル
       cut: 0, cutCd: 0, cutUp: 0, shuku: 0, shukuLeft: 0, shukuDir: 1, shukuHitB: [],
       guardT: 0, guardFx: 0, tsubameUsed: false, dive: 0, diveFx: 0,
-      wallDir: 0, wallT: 0, wallKick: 0, wallSlide: 0
+      wallDir: 0, wallT: 0, wallKick: 0, wallSlide: 0, tsubaKick: 0
     };
     // ステージ開始＝ワープから登場（演出）
     warpFx = { x: player.x + player.w/2, y: player.y + player.h/2 + 4, t: 100 };
@@ -964,7 +964,7 @@
         ["B", "かたなふり", "目のまえを 斬る。とどく きょりは みじかいが 力は2ばい"],
         ["B ながおし → はなす", "しゅくちぎり", "ためた ぶんだけ 遠くまで 一気に 斬りぬける（ため中は 動けない）"],
         ["↓ ＋ B おしっぱなし", "かまえ", "とんできた たまを はね返す。上からの こうげきは ふせげない"],
-        ["空中で ↑ ＋ B", "つばめがえし", "ななめ上を 斬りあげる。てきは 打ちあがり 自分も うく（1ジャンプ 1回）"],
+        ["空中で B", "つばめがえし", "ななめ前上へ 斬りあがって とぶ。とどかない がけも これで こえる（1ジャンプ 1回）"],
         ["空中で ↓ ＋ B", "かぶとわり", "刀を 下にむけて 急降下。地面を たたき割り まわりの てきを たおす"],
         ["かべに くっついて A", "かべジャンプ", "かべを けって のぼれる。空は とべない"]
       ],
@@ -972,9 +972,10 @@
       hold(p, charge) { startShukuchi(p, charge); },
       // 空中は 押している方向で 3つに 分かれる（↑＝斬りあげ／↓＝急降下／なし＝ふつうの かたなふり）
       air(p) {
+        // ★空中の B は そのまま つばめがえし（↑を おさえていなくても いい）。
+        //   1ジャンプ2回目からは startTsubame の中で ふつうの かたなふりに なる。
         if (downKey()) startDive(p);
-        else if (upKey()) startTsubame(p);
-        else katanaSwing(p);
+        else startTsubame(p);
       },
       // かまえ（うけながし）は guardHold の仕組みで毎フレーム処理する
     },
@@ -1352,7 +1353,7 @@
     p.broom = 0;
     // ぶしスキルの技も止める（スキルを切りかえたのに 構えっぱなし・突進しっぱなしにならないように）
     p.cut = 0; p.cutUp = 0; p.shuku = 0; p.shukuLeft = 0; p.shukuHitB = [];
-    p.guardT = 0; p.wallKick = 0; p.wallT = 0; p.dive = 0;
+    p.guardT = 0; p.wallKick = 0; p.wallT = 0; p.dive = 0; p.tsubaKick = 0;
     if (p.carry) { dropCarried(p); }        // 持っていた石は落とす
   }
   // 持っていたものを、その場にそっと落とす（被弾・スキル切替のとき）
@@ -1436,6 +1437,14 @@
   function canWallJump()   { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return !!(ab && ab.wallJump); }
   // いま しゅくちぎりを ためている最中か（ため中は 足が止まる）
   function chargingHold()  { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return abilCharging && !!(ab && ab.holdRelease); }
+  // しゅくちぎりの ため中は「前かがみ」に なる。ためるほど 深くなる（力を ためている 感じ）。
+  // ★じくは 足の うら（LEAN_PIVOT）。体の まん中で まわすと、うしろ足が ういて 前が 床に めりこむ。
+  const LEAN_MAX = 0.18, LEAN_PIVOT = 25;
+  function chargeLean() {
+    const p = player;
+    if (!chargingHold() || !p.onGround) return 0;
+    return LEAN_MAX * Math.min(1, abilCharge / SHUKU_MIN);
+  }
 
   // 敵に まとめて n ダメージ（damageEnemy は1回で1ダメージなので、その回数ぶん呼ぶ）
   function damageEnemyN(e, color, n) {
@@ -1566,6 +1575,9 @@
   // ④ つばめがえし：空中でB。ななめ上を 斬りあげる。てきは 打ちあがり、自分も うく。
   //    1ジャンプにつき1回（着地／かべジャンプで また使える）＝これで 空を とんではいけない
   const TSUBAME_TIME = 20;
+  // ★つばめがえしは「ななめ前上」へ とぶ技。前へ おす はやさと、その あいだの フレーム数。
+  //   このあいだは よこの はやさの 上限が あがり、まさつも かからない（かべジャンプと同じ しくみ）。
+  const TSUBAME_SPD = 6.8, TSUBAME_KICK = 16;
   function tsubameBox(p) {
     return { x: p.face > 0 ? p.x + 2 : p.x - 40, y: p.y - 30, w: 74, h: p.h + 24 };
   }
@@ -1575,6 +1587,11 @@
     p.cut = TSUBAME_TIME; p.cutCd = 10; p.cutUp = 1;
     p.vy = Math.min(p.vy - 3, -11.8);      // 自分も ぐっと うきあがる（およそ2.3マスぶん）
     p.bounceLock = 14;                     // Aを はなしていても 浮きあがりが 消えないように
+    // ★ななめ「前」へも とぶ。おしている むきが あれば そちら、なければ 向いている ほう。
+    const dir = left() ? -1 : (right() ? 1 : p.face);
+    p.face = dir;
+    p.vx = dir * TSUBAME_SPD;
+    p.tsubaKick = TSUBAME_KICK;
     p.squash = 0.74;
     playSE("slash1");
     const box = tsubameBox(p);
@@ -2215,7 +2232,19 @@
       slashEnemies(diveBox(p), 2, "#eaf6ff");
       if (p.dive % 2 === 0) afterimages.push({ x: p.x, y: p.y, w: p.w, h: p.h, face: p.face, t: 0 });
     }
+    // つばめがえし：斬りあがっている あいだは ずっと 刃が 出ている。
+    // ★ぶつかった てきを 斬れるようにする（ただし むてきでは ない＝斬れない てきには やられる）。
+    if (p.cut > 0 && p.cutUp === 1) {
+      const tb = tsubameBox(p);
+      for (const e of enemies) {
+        if (!e.alive || !rectHit(tb, e)) continue;
+        e.vy = -8; e.onGround = false;                 // 当たった てきは 打ちあがる
+      }
+      slashEnemies(tb, 2, "#eaf6ff");
+      hitBossesWith(tb, 2);                            // ボスは 無敵時間が あるので 何度も 入らない
+    }
     if (p.wallKick > 0) p.wallKick--;
+    if (p.tsubaKick > 0) p.tsubaKick--;
     if (p.wallSlide > 0) p.wallSlide--;
     updateGuardReflect(p);      // かまえ中：とんできた たまを 撃ち返す
     updateSlashFx();
@@ -2276,11 +2305,12 @@
     } else {
       // かべを けった直後は しばらく 操作が ききにくい（けった いきおいで はなれる）
       const ctrl = p.wallKick > 0 ? 0.7 : 1;
-      const capSp = p.wallKick > 0 ? Math.max(maxSp, 9.0) : maxSp;
+      const capSp = p.wallKick > 0 ? Math.max(maxSp, 9.0)
+                  : (p.tsubaKick > 0 ? Math.max(maxSp, TSUBAME_SPD) : maxSp);
       if (left())  { p.vx -= accel * ctrl; p.face = -1; }
       if (right()) { p.vx += accel * ctrl; p.face = 1; }
       // かべを けった直後は まさつを かけない＝何も おさなくても 反対がわの かべまで とどく
-      if (!left() && !right() && p.wallKick <= 0) p.vx *= FRICTION;
+      if (!left() && !right() && p.wallKick <= 0 && p.tsubaKick <= 0) p.vx *= FRICTION;
       p.vx = Math.max(-capSp, Math.min(capSp, p.vx));
       if (p.spin > 0) p.vx *= 0.72;          // しっぽスピン中はその場で回る感じに
       if (Math.abs(p.vx) < 0.05) p.vx = 0;
@@ -2333,7 +2363,7 @@
 
     // 着地したら滑空・はばたきをリセット（次のジャンプでまた飛べる）
     if (p.onGround) {
-      p.gliding = false; p.glideUsed = false; p.flaps = 0; p.tsubameUsed = false;
+      p.gliding = false; p.glideUsed = false; p.flaps = 0; p.tsubameUsed = false; p.tsubaKick = 0;
       if (p.dive > 0) endDive(p);          // かぶとわりは 着地で 地面を たたき割る
     }
 
@@ -2712,6 +2742,11 @@
       if (rectHit(p, e)) {
         if (p.shuku > 0) continue;   // しゅくちぎり中：斬るのは shukuHitScan がやる（ここでは無敵）
         if (p.dive > 0) { damageEnemyN(e, "#eaf6ff", 2); continue; }   // かぶとわり中：ふれた てきを 斬る
+        if (p.cut > 0 && p.cutUp === 1) {
+          // つばめがえし中：ぶつかった てきを 斬りあげる。
+          // ★たおせたら ノーダメージ。斬れない てき（トゲトゲなど）には ふつうに やられる＝むてきでは ない。
+          if (damageEnemyN(e, "#eaf6ff", 2)) { e.vy = -8; e.onGround = false; continue; }
+        }
         if (p.spin > 0 || p.tackle > 0 || p.roll > 0) {
           // しっぽスピン／タックル／ローリング中：ふれた敵にダメージ（まるりんはノーダメージ）
           damageEnemy(e, p.tackle > 0 ? "#ff9b45" : (p.roll > 0 ? "#e6d6bb" : "#9cd88a"));
@@ -11439,6 +11474,11 @@
 
     ctx.save();
     ctx.translate(cx, cy);
+    // しゅくちぎりの ため中：足もとを じくに 前かがみ
+    if (playing) {
+      const lean = chargeLean();
+      if (lean > 0) { ctx.translate(0, LEAN_PIVOT); ctx.rotate(p.face * lean); ctx.translate(0, -LEAN_PIVOT); }
+    }
     // ごろごろローリング中：小さく丸まってぐるぐる回る
     if (p.roll > 0 && playing) ctx.rotate(p.animT * 0.34 * p.face);
     // かべに しがみついている間：からだを かべがわへ かたむける
