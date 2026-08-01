@@ -260,7 +260,7 @@
      </div>
     </div>
   </div>
-  <div id="hint">X：スキル（長押し・↓＋X・ダッシュ中で技がかわる） ／ E：スキルきりかえ（ノーマル⇔ドラゴン） ／ ←→2回押し：ダッシュ ／ P：ポーズ ／ R：リスタート</div>
+  <div id="hint">X：スキル（長押し・↓＋X・↑＋X・空中・ダッシュ中で技がかわる） ／ E：スキルきりかえ ／ ←→2回押し：ダッシュ ／ P：ポーズ（技の一覧） ／ R：リスタート</div>
 </div>
 
 <!-- 縦向きのときの案内（横向きにすると自動で消えます） -->
@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 2.6 (2026-08-01)";
+  const GAME_VERSION = "異世界編 ver 3.1 (2026-08-01)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -406,6 +406,33 @@
         "--------S----------K----------K--ooo---------------------RRR",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      ]
+    },
+    {
+      // さむらいスキルの ステージ。足軽・鉄砲隊が 出る。ボスは 織田信長＆森蘭丸。
+      name: "ステージ3 本能寺の変",
+      theme: "honnoji",
+      boss: "honnoji",
+      skill: "samurai",
+      level: [
+        "------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "---------------------------------------------------------------------------------------------------------------------------------------------------------------------------o-o-o----B-----d--o-o------------------",
+        "------------------------------------------------------------------------------------------------------------------------------------------------------------------------RRRRRRRRRRRRRRRRRRRRRRRRR-----------------",
+        "--------------------------------------------------------------------------------------------------------------------------------------------------W-----------------R---R-----------------------------------------",
+        "--------------------------------------------------------------------------------------------------------------------------------------------d---------d-------------R---R-----------------------------------------",
+        "-----------------------------------------------------------------------------------------------------------------------------------------o-o-o-------------N--V---------R-----o-o-o-o-o-o-------------------------",
+        "-------------------------------------------------------d------------------------------------------------------------------------------RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR---###############-----------------------",
+        "-----------------------------------------------o----o-o-o-o-N---------------------------------------------------------------------R---R---------------------------------------------------------------------------",
+        "-------------------------------------------------RRRRRRRRRRRRRRRR-----------------------------------------------------------------R-o-R---------------------------------------------------------------------------",
+        "---------------------------------------------R---R--------------------------------------------------------------------------------R---R-------------------------------------------W-------------------------------",
+        "----------------------------------oo---------R---R--------------------------------A-----------------------W---------W-------------R---R---------------------------------------------------------------------------",
+        "---------------------------------RRRR--------R-o-R----------------------------o----------o-------------------------------?--------R-o-R---------------------------------------------------------------------G-----",
+        "-----------------?-------?-------------------R---R--------------------?------RRR--------RRR-------------oooo------oooo------------R---R----------------------------?----------------------------------------------",
+        "--P----------------------------------------------R------------------------------------------------------------------------------------R---------------------------------------------------------------------------",
+        "-------S---oo--Z--oo--Z---oo---Z-------Z---------R-----------------oo-----Y----Z----Y-----Z--oo-Y--------------Z-----------Z----------R--Y-------Z--ooo----Z-------------------Z---------Z---------oo--Y----------",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX----XXXXXX----XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX----XXXXXX----XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
       ]
     }
   ];
@@ -565,6 +592,8 @@
         else if (ch === "T") { enemySpawns.push({ x, y, kind: "spiky" }); enemies.push(makeEnemy(x, y, { kind: "spiky" })); }
         else if (ch === "W") { enemySpawns.push({ x, y, kind: "wisp" }); enemies.push(makeEnemy(x, y, { kind: "wisp" })); }
         else if (ch === "K") { enemySpawns.push({ x, y, kind: "shroom" }); enemies.push(makeEnemy(x, y, { kind: "shroom" })); }
+        else if (ch === "Z") { enemySpawns.push({ x, y, kind: "ashigaru" }); enemies.push(makeEnemy(x, y, { kind: "ashigaru" })); }  // 足軽
+        else if (ch === "Y") { enemySpawns.push({ x, y, kind: "gunner" }); enemies.push(makeEnemy(x, y, { kind: "gunner" })); }      // 鉄砲隊
         else if (ch === "P") start = { x, y };
         else if (ch === "G") goal = { x: x + TILE / 2, y: y, top: y };
       }
@@ -586,7 +615,11 @@
       spin: 0, spinCd: 0, tackle: 0, tackleCd: 0, flaps: 0, flapT: 0, mouthOpen: 0,
       roll: 0, rollCd: 0, gnaw: 0, gnawTarget: null, gnawBoss: null, burrow: 0, burrowCd: 0, slow: 0,
       orbCool: 0, circleCd: 0, carry: null, carryCd: 0, broom: 0, broomCd: 0,
-      floating: 0, tkFx: 0, tkMiss: 0
+      floating: 0, tkFx: 0, tkMiss: 0,
+      // ぶしスキル
+      cut: 0, cutCd: 0, cutUp: 0, shuku: 0, shukuLeft: 0, shukuDir: 1, shukuHitB: [],
+      guardT: 0, guardFx: 0, tsubameUsed: false, dive: 0, diveFx: 0,
+      wallDir: 0, wallT: 0, wallKick: 0, wallSlide: 0
     };
     // ステージ開始＝ワープから登場（演出）
     warpFx = { x: player.x + player.w/2, y: player.y + player.h/2 + 4, t: 100 };
@@ -725,6 +758,18 @@
                alive: true, t: Math.random()*6, squash: 1, root: true, face: -1,
                shootCd: 60 + Math.floor(Math.random()*90) };
     }
+    if (kind === "ashigaru") {
+      // 足軽：明智の兵。槍をかまえて 歩いてくる（ふつうに 踏める・斬れる）。本能寺ステージ。
+      return { kind, x: x + 3, y: y + TILE - 38, w: 34, h: 38, vx: opts.slow ? -0.8 : -1.3,
+               alive: true, t: Math.random()*6, squash: 1 };
+    }
+    if (kind === "gunner") {
+      // 鉄砲隊：その場に片ひざをついて 種子島を かまえる。まるりんを見つけると
+      // まっすぐ 弾を撃ってくる。**さむらいの「かまえ」で 撃ち返せる**のがミソ。
+      return { kind, x: x + 3, y: y + TILE - 36, w: 34, h: 36, vx: 0,
+               alive: true, t: Math.random()*6, squash: 1, root: true, gun: true, face: -1,
+               aim: 0, shootCd: 90 + Math.floor(Math.random()*60) };
+    }
     if (kind === "gator") {
       // ワニ：長い体で地面を低くゆっくり歩く（アメリカ・沼地）。口をパクパク。踏める。
       return { kind, x: x + 2, y: y + TILE - 22, w: 54, h: 22, vx: opts.slow ? 0 : -0.9,
@@ -792,7 +837,7 @@
       pauseFrom = state; state = "pause"; stopBGM();
       // 押しっぱなしのキーが残らないようにする
       for (const k in keys) keys[k] = false;
-      touch.left = touch.right = touch.up = touch.down = touch.abil = false;
+      touch.left = touch.right = touch.up = touch.upd = touch.down = touch.abil = false;
       dashLatch = 0;
     } else if (state === "pause") {
       state = pauseFrom || "play"; startBGM();
@@ -801,7 +846,9 @@
   let pauseFrom = "play";
 
   // タッチ入力の状態
-  const touch = { left: false, right: false, up: false, down: false, abil: false };
+  const touch = { left: false, right: false, up: false, upd: false, down: false, abil: false };
+  // ※ up  = Aボタン（ジャンプ専用）
+  //   upd = 十字キーの▲（ジャンプもするが「上を押している」判定にもなる＝武士のつばめがえし用）
 
   // ダッシュ＝方向を2回押し（カービィ方式）。同じ方向を素早く2回押すとその方向を押している間ダッシュ。
   let dashLatch = 0;                      // -1/1=その方向へダッシュ中, 0=なし
@@ -815,7 +862,10 @@
 
   function left()  { return keys["arrowleft"]  || keys["a"] || touch.left; }
   function right() { return keys["arrowright"] || keys["d"] || touch.right; }
-  function jumpKey(){ return keys[" "] || keys["arrowup"] || keys["w"] || touch.up; }
+  function jumpKey(){ return keys[" "] || keys["arrowup"] || keys["w"] || touch.up || touch.upd; }
+  // 「上を押している」判定＝ジャンプボタンと おなじ（A も ↑ も ▲ も 上あつかい）。
+  // ユーザー方針：わけると ややこしいので 一緒でいい。
+  function upKey(){ return jumpKey(); }
   function downKey(){ return keys["arrowdown"] || keys["s"] || touch.down; }
   function abilityBtn(){ return keys["x"] || touch.abil; }   // 能力ボタン（B）
   function running(){ return keys["shift"] || dashLatch !== 0; }
@@ -848,6 +898,12 @@
   //   downAtk(p)     … 地上で下を押しながら押した瞬間の技
   //   dashAtk(p)     … ダッシュ中に押した瞬間の技（あればダッシュ中は tap より優先）
   //   flap           … 空中でAをもう一度押すと、はばたいてもう一段ジャンプできる回数
+  //   holdRelease    … 長押しを「はなした瞬間」に hold(p, ためフレーム数) が出る（ためが技の強さになる）
+  //   minCharge      … holdRelease のとき、これ未満のためで はなしたら tap 扱い
+  //   guardHold      … ↓＋Bを押しているあいだ ずっと「かまえ」つづける（武士）
+  //   wallJump       … かべを けって のぼれる（武士）
+  // ぶしスキル「しゅくちぎり」のため時間（フレーム）。ここで先に決めておく（ABILITY_DEFSから使うため）
+  const SHUKU_MIN = 18, SHUKU_MAX = 90;
   const ABILITY_DEFS = {
     // 最初から持っているスキル。姿はいつものまるりん（でかまるりん）のまま。
     // 空は飛べない（flapなし）かわりに、小回り・かわす・すき間に入るのが得意。
@@ -896,6 +952,32 @@
       downAtk(p) { toggleTelekinesis(p); },
       dashAtk(p) { startBroom(p); },
     },
+    // ステージ3「本能寺」：はちまきに陣羽織の さむらいまるりん。
+    // 飛び道具を ひとつも持たない かわりに、近づいたときの強さと「うけながし」で戦うスキル。
+    // holdRelease = B長押しは"はなした瞬間"に発動（ためた時間が そのまま技の強さになる）
+    // guardHold   = ↓＋Bを"押しているあいだ ずっと"かまえる
+    // wallJump    = かべを けって のぼれる（そのかわり 空は とべない）
+    samurai: {
+      name: "さむらい", icon: "🗡", form: "samurai",
+      chargeFrames: SHUKU_MAX, minCharge: SHUKU_MIN, holdRelease: true, guardHold: true, wallJump: true,
+      moves: [
+        ["B", "かたなふり", "目のまえを 斬る。とどく きょりは みじかいが 力は2ばい"],
+        ["B ながおし → はなす", "しゅくちぎり", "ためた ぶんだけ 遠くまで 一気に 斬りぬける（ため中は 動けない）"],
+        ["↓ ＋ B おしっぱなし", "かまえ", "とんできた たまを はね返す。上からの こうげきは ふせげない"],
+        ["空中で ↑ ＋ B", "つばめがえし", "ななめ上を 斬りあげる。てきは 打ちあがり 自分も うく（1ジャンプ 1回）"],
+        ["空中で ↓ ＋ B", "かぶとわり", "刀を 下にむけて 急降下。地面を たたき割り まわりの てきを たおす"],
+        ["かべに くっついて A", "かべジャンプ", "かべを けって のぼれる。空は とべない"]
+      ],
+      tap(p) { katanaSwing(p); },
+      hold(p, charge) { startShukuchi(p, charge); },
+      // 空中は 押している方向で 3つに 分かれる（↑＝斬りあげ／↓＝急降下／なし＝ふつうの かたなふり）
+      air(p) {
+        if (downKey()) startDive(p);
+        else if (upKey()) startTsubame(p);
+        else katanaSwing(p);
+      },
+      // かまえ（うけながし）は guardHold の仕組みで毎フレーム処理する
+    },
   };
   function isMagicForm() { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return !!(ab && ab.form === "magic"); }
   // 空中でAを押したときに「ゆっくり落ちる」フレーム数（まほうスキルだけ）
@@ -918,7 +1000,7 @@
     if (dragonGauge < DRAGON_NEED) { gaugeFlash = 45; return; }   // ゲージがたりない
     dragonMode = true;
     p.vy = -3; p.squash = 0.7;
-    sfx.power(); playVoice("get");
+    playSE("roar");
     spawnParticles(p.x + p.w/2, p.y + p.h/2, "#8fdc6a", 16);
     spawnParticles(p.x + p.w/2, p.y + p.h/2, "#ffb545", 10);
   }
@@ -1097,7 +1179,7 @@
     p.mouthOpen = 8;
     const m = mouthPos(p);
     seeds.push({ x: m.x, y: m.y - 4, vx: p.face * 4.6, vy: -0.6, life: 110, t: 0, magic: true });
-    sfx.seed(); beep(1180, 0.06, "sine", 0.05);
+    playSE("shot");
     p.squash = 0.88;
     spawnParticles(m.x, m.y, "#cfe4ff", 4);
   }
@@ -1128,7 +1210,7 @@
     if (p.circleCd > 0) { sfx.block(); return; }
     p.circleCd = CIRCLE_CD;
     circles.push({ x: p.x + p.w/2, y: p.y + p.h - 4, t: 0, life: CIRCLE_LIFE });
-    sfx.power();
+    playSE("circle");
     p.squash = 0.8;
     spawnParticles(p.x + p.w/2, p.y + p.h, "#bba6ff", 16);
   }
@@ -1165,7 +1247,7 @@
     if (target) {
       target.dead = true;                       // いったん地形から外す
       p.carry = { kind: "crate", w: TILE, h: TILE };
-      sfx.power(); p.squash = 0.85;
+      playSE("reflect"); p.squash = 0.85;
       spawnParticles(target.x + TILE/2, target.y + TILE/2, "#bba6ff", 12);
       return;
     }
@@ -1174,7 +1256,7 @@
       if (!e.alive || e.spiky || !rectHit(box, e)) continue;
       e.alive = false; e.lifted = true;         // 敵は「手の中」に移る（ベトベトは残さない）
       p.carry = { kind: "enemy", w: e.w, h: e.h, ekind: e.kind };
-      sfx.power(); p.squash = 0.85;
+      playSE("reflect"); p.squash = 0.85;
       spawnParticles(e.x + e.w/2, e.y + e.h/2, "#bba6ff", 12);
       return;
     }
@@ -1189,7 +1271,7 @@
     const cx = p.x + p.w/2 - c.w/2, cy = p.y - c.h - 6;
     thrown.push({ kind: c.kind, ekind: c.ekind, x: cx, y: cy, w: c.w, h: c.h,
                   vx: p.face * 8.6, vy: -3.2, t: 0 });
-    sfx.stomp(); p.squash = 0.85;
+    playSE("reflect"); p.squash = 0.85;
     spawnParticles(cx + c.w/2, cy + c.h/2, "#bba6ff", 10);
   }
   let thrown = [];
@@ -1216,7 +1298,7 @@
           th.hitT = 1;
         }
       }
-      hitBossesWith(th, 2);   // ボスにも当たる
+      hitBossesWith(th, 2, true);   // ボスにも当たる（武将は打ち返す）
       // レンガを こわす
       for (const s2 of solids) {
         if (s2.dead || !rectHit(th, s2)) continue;
@@ -1268,6 +1350,9 @@
     if (p.roll > 0) { p.roll = 0; setLowProfile(p, false); }
     p.spin = 0; p.tackle = 0; p.gnaw = 0; p.gnawTarget = null; p.gnawBoss = null; p.burrow = 0; p.mouthOpen = 0;
     p.broom = 0;
+    // ぶしスキルの技も止める（スキルを切りかえたのに 構えっぱなし・突進しっぱなしにならないように）
+    p.cut = 0; p.cutUp = 0; p.shuku = 0; p.shukuLeft = 0; p.shukuHitB = [];
+    p.guardT = 0; p.wallKick = 0; p.wallT = 0; p.dive = 0;
     if (p.carry) { dropCarried(p); }        // 持っていた石は落とす
   }
   // 持っていたものを、その場にそっと落とす（被弾・スキル切替のとき）
@@ -1284,7 +1369,7 @@
     if (p.spin > 0 || p.spinCd > 0) return;
     p.spin = SPIN_TIME; p.spinCd = SPIN_TIME + SPIN_CD;
     p.vx *= 0.3; p.squash = 0.86;
-    sfx.stomp();
+    playSE("kick");
     spawnParticles(p.x + p.w/2, p.y + p.h * 0.7, "#9cd88a", 8);
   }
 
@@ -1294,7 +1379,7 @@
     if (p.tackle > 0 || p.tackleCd > 0) return;
     p.tackle = TACKLE_TIME; p.tackleCd = TACKLE_TIME + TACKLE_CD;
     p.vx = p.face * TACKLE_SPD; p.squash = 0.8;
-    sfx.seed();
+    playSE("fire");
     spawnParticles(p.x + p.w/2, p.y + p.h * 0.6, "#ff8a3a", 8);
   }
   function endTackle(p) {
@@ -1316,10 +1401,226 @@
     flames.push({ x: m.x, y: diag ? m.y : m.y,
       vx: p.face * (big ? 8 : 6.6), vy: diag ? 8 : 0,   // 斜め下は45度
       r: big ? 22 : 8, life: big ? 78 : 44, big: !!big, t: 0 });   // 大火炎は大きめ（15→22）
-    sfx.seed();
+    playSE("fire");
     p.squash = 0.82;
     spawnParticles(m.x, m.y, big ? "#ffb545" : "#ff8a3a", big ? 14 : 4);
   }
+  // かべジャンプ（ぶしスキル）：かべを けって 反対がわへ とびあがる。
+  // 左右のかべを こうごに ければ、上へ どんどん のぼれる。
+  function canWallJumpNow(p) {
+    return canWallJump() && !p.onGround && p.wallT > 0 && p.shuku <= 0 && p.dive <= 0;
+  }
+  function doWallJump(p) {
+    p.vy = -JUMP * 0.94;
+    p.vx = -p.wallDir * 8.8;
+    p.face = -p.wallDir;
+    p.wallT = 0; p.wallKick = 16;
+    p.bounceLock = 10;                   // Aを ちょんと おしただけでも ちゃんと 上がる
+    p.tsubameUsed = false;               // かべを けるたび つばめがえしが 復活する
+    p.squash = 0.72; sfx.jump();
+    spawnParticles(p.x + p.w/2 + p.wallDir * 16, p.y + p.h * 0.55, "#ffffff", 8);
+    spawnParticles(p.x + p.w/2 + p.wallDir * 16, p.y + p.h * 0.55, "#cfd8e6", 5);
+  }
+
+  // ===== ぶしスキルの技（さむらいまるりん） =====
+  // 飛び道具は ひとつも無い。そのかわり
+  //   ・かたなふり  … 近いけど 2ダメージ
+  //   ・しゅくちぎり… ためた ぶんだけ 遠くへ 斬りぬける（ため中は 動けないのが リスク）
+  //   ・かまえ      … とんできた たまを 撃ち返す（上からの こうげきは ふせげない）
+  //   ・つばめがえし… 空中で ななめ上を 斬りあげる（上の敵に とどく／自分も うく）
+  //   ・かべジャンプ… たての移動は かべを けって かせぐ
+  let slashes = [];        // 斬りエフェクト
+  let afterimages = [];    // しゅくちぎりの ざんぞう
+
+  function isSamuraiForm() { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return !!(ab && ab.form === "samurai"); }
+  function canWallJump()   { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return !!(ab && ab.wallJump); }
+  // いま しゅくちぎりを ためている最中か（ため中は 足が止まる）
+  function chargingHold()  { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return abilCharging && !!(ab && ab.holdRelease); }
+
+  // 敵に まとめて n ダメージ（damageEnemy は1回で1ダメージなので、その回数ぶん呼ぶ）
+  function damageEnemyN(e, color, n) {
+    for (let i = 0; i < (n || 1); i++) {
+      if (!e.alive) break;
+      const hp0 = (e.hp === undefined ? 1 : e.hp);
+      damageEnemy(e, color);
+      const hp1 = (e.hp === undefined ? 1 : e.hp);
+      // ダメージが まったく通らなかった＝はじかれた（トゲトゲ・止まっているクリスタル）。
+      // 何回くり返しても おなじなので そこで やめる。
+      if (e.alive && hp1 >= hp0) break;
+    }
+    return !e.alive;
+  }
+  // 斬った はんいの敵を まとめて斬る
+  function slashEnemies(box, dmg, color) {
+    let hit = false;
+    for (const e of enemies) {
+      if (!e.alive || !rectHit(box, e)) continue;
+      damageEnemyN(e, color || "#dff3ff", dmg);
+      hit = true;
+    }
+    return hit;
+  }
+
+  // ① かたなふり：Bをポン。目の前をサッと斬る。とどくのは近いけど 1回で2ダメージ
+  const CUT_TIME = 16, CUT_CD = 13, CUT_REACH = 46;
+  function katanaBox(p) {
+    return { x: p.face > 0 ? p.x + p.w - 6 : p.x - CUT_REACH + 6, y: p.y + 2, w: CUT_REACH, h: p.h - 4 };
+  }
+  function katanaSwing(p) {
+    if (p.cutCd > 0 || p.shuku > 0) return;
+    p.cut = CUT_TIME; p.cutCd = CUT_CD; p.cutUp = 0;
+    p.squash = 0.88;
+    playSE("slash2");
+    const box = katanaBox(p);
+    slashEnemies(box, 2, "#dff3ff");
+    hitBossesWith(box, 2);
+    slashes.push({ x: p.x + p.w/2, y: p.y + p.h/2, face: p.face, t: 0, life: CUT_TIME, up: 0 });
+  }
+
+  // ② しゅくちぎり：B長押し → はなす。ためた ぶんだけ 遠くまで 一気に 斬りぬける。
+  //    ため中は 足が止まる＝そこを ねらわれるのが リスク（そのかわり クールダウンは無し）
+  const SHUKU_NEAR = 120, SHUKU_FAR = 520, SHUKU_SPD = 19;
+  function startShukuchi(p, charge) {
+    const c = Math.max(0, Math.min(1, ((charge || 0) - SHUKU_MIN) / (SHUKU_MAX - SHUKU_MIN)));
+    p.shukuLeft = SHUKU_NEAR + (SHUKU_FAR - SHUKU_NEAR) * c;
+    p.shuku = Math.ceil(p.shukuLeft / SHUKU_SPD) + 2;
+    p.shukuDir = p.face;
+    p.shukuHitB = [];
+    p.squash = 0.72;
+    playSE("cut"); screenShake = Math.max(screenShake, 5);
+    spawnParticles(p.x + p.w/2, p.y + p.h/2, "#eaf6ff", 12);
+  }
+  function shukuBox(p) { return { x: p.x - 8, y: p.y - 6, w: p.w + 16, h: p.h + 10 }; }
+  function shukuHitScan(p) {
+    const box = shukuBox(p);
+    for (const e of enemies) if (e.alive && rectHit(box, e)) damageEnemyN(e, "#eaf6ff", 2);
+    for (const b of bosses) {
+      if (!b.alive || !b.techHit || b.hidden || b.invuln > 0) continue;
+      if (p.shukuHitB.indexOf(b) >= 0) continue;      // 1回の しゅくちぎりで 1体につき1回だけ
+      if (rectHit(box, b)) { p.shukuHitB.push(b); damageBoss(b, false, 2); }
+    }
+  }
+  function endShukuchi(p, wall) {
+    if (p.shuku <= 0) return;
+    p.shuku = 0; p.shukuLeft = 0; p.shukuHitB = [];
+    p.vx *= 0.25; p.squash = 1.18;
+    if (wall) {
+      screenShake = Math.max(screenShake, 7); sfx.block();
+      spawnParticles(p.x + p.w/2 + p.face * 18, p.y + p.h/2, "#ffffff", 10);
+    }
+  }
+
+  // ③ かまえ（うけながし）：↓＋Bを 押しているあいだ ずっと。
+  //    よこから とんできた たまを 1.8ばいの はやさで 撃ち返す。
+  //    弱点は「動けない」ことと「上からの こうげきは ふせげない」こと。
+  const GUARD_BACK = 1.8;
+  function startGuard(p) {
+    p.guardT = 1; p.vx = 0; p.squash = 0.92;
+    sfx.block();
+  }
+  function endGuard(p) {
+    if (p.guardT <= 0) return;
+    p.guardT = 0; p.guardFx = 8;
+  }
+  // かまえ中：とんできた たまを 見つけて 撃ち返す
+  function updateGuardReflect(p) {
+    if (p.guardT <= 0) return;
+    const box = { x: p.x - 12, y: p.y + 2, w: p.w + 24, h: p.h - 2 };
+    const back = [];
+    const grab = (list) => {
+      for (const o of list) {
+        if (o.dead) continue;
+        const ob = { x: o.x - 12, y: o.y - 12, w: 24, h: 24 };
+        if (!rectHit(box, ob)) continue;
+        const vx = o.vx || 0, vy = o.vy || 0;
+        if (Math.abs(vy) > Math.abs(vx)) continue;   // ほぼ真上から 落ちてくるものは はね返せない
+        o.dead = true;
+        back.push({ x: o.x, y: o.y, vx: vx });
+      }
+    };
+    grab(cukes); grab(hazards);
+    for (const b of back) {
+      const sp = Math.max(7, Math.abs(b.vx) * GUARD_BACK);
+      const dir = b.vx >= 0 ? -1 : 1;               // 来たほうへ 返す
+      seeds.push({ x: b.x, y: b.y, vx: dir * sp, vy: 0, life: 80, t: 0, cut: true, dmg: 2 });
+      score += 100; playSE("clash");
+      screenShake = Math.max(screenShake, 6);
+      p.guardFx = 14;
+      spawnParticles(b.x, b.y, "#ffffff", 10);
+      spawnParticles(b.x, b.y, "#ffe9a8", 6);
+    }
+  }
+
+  // ④ つばめがえし：空中でB。ななめ上を 斬りあげる。てきは 打ちあがり、自分も うく。
+  //    1ジャンプにつき1回（着地／かべジャンプで また使える）＝これで 空を とんではいけない
+  const TSUBAME_TIME = 20;
+  function tsubameBox(p) {
+    return { x: p.face > 0 ? p.x + 2 : p.x - 40, y: p.y - 30, w: 74, h: p.h + 24 };
+  }
+  function startTsubame(p) {
+    if (p.tsubameUsed || p.shuku > 0) { katanaSwing(p); return; }   // 2回目からは ふつうの かたなふり
+    p.tsubameUsed = true;
+    p.cut = TSUBAME_TIME; p.cutCd = 10; p.cutUp = 1;
+    p.vy = Math.min(p.vy - 3, -11.8);      // 自分も ぐっと うきあがる（およそ2.3マスぶん）
+    p.bounceLock = 14;                     // Aを はなしていても 浮きあがりが 消えないように
+    p.squash = 0.74;
+    playSE("slash1");
+    const box = tsubameBox(p);
+    for (const e of enemies) {             // 当たった てきは 上に 打ちあがる
+      if (!e.alive || !rectHit(box, e)) continue;
+      e.vy = -8; e.onGround = false;
+    }
+    slashEnemies(box, 2, "#eaf6ff");
+    hitBossesWith(box, 2);
+    slashes.push({ x: p.x + p.w/2, y: p.y + p.h/2, face: p.face, t: 0, life: TSUBAME_TIME, up: 1 });
+    spawnParticles(p.x + p.w/2 + p.face * 20, p.y + 6, "#eaf6ff", 10);
+  }
+
+  // ⑤ かぶとわり：空中で ↓＋B。刀を まっすぐ下にむけて 急降下し、着地で 地面を たたき割る。
+  //    通り道の てきも、着地の しょうげきで まわりの てきも たおれる。高いところから 一気に おりる技でもある。
+  const DIVE_SPD = 17;
+  function startDive(p) {
+    if (p.dive > 0 || p.onGround || p.shuku > 0) return;
+    p.dive = 1; p.vy = DIVE_SPD; p.vx = 0;
+    p.cut = 0; p.cutUp = 0; p.squash = 1.24;
+    playSE("slash1");
+    spawnParticles(p.x + p.w/2, p.y + p.h, "#eaf6ff", 8);
+  }
+  function diveBox(p) { return { x: p.x - 4, y: p.y + 6, w: p.w + 8, h: p.h + 18 }; }
+  function endDive(p) {
+    if (p.dive <= 0) return;
+    p.dive = 0; p.squash = 0.64; p.diveFx = 18;
+    screenShake = Math.max(screenShake, 9); sfx.stomp();
+    spawnParticles(p.x + p.w/2, p.y + p.h, "#ffffff", 14);
+    spawnParticles(p.x + p.w/2, p.y + p.h, "#d8cdb6", 10);
+    // 着地の しょうげきで、まわりの てきが たおれる
+    const box = { x: p.x - 46, y: p.y + p.h - 30, w: p.w + 92, h: 38 };
+    for (const e of enemies) {
+      if (!e.alive || !rectHit(box, e)) continue;
+      e.vy = -6; e.onGround = false;
+      damageEnemyN(e, "#ffffff", 2);
+    }
+    hitBossesWith(box, 1);
+    // 真下の レンガを たたき割る
+    for (const s of solids) {
+      if (s.dead || s.type !== "brick") continue;
+      if (s.y >= p.y + p.h - 4 && s.y < p.y + p.h + TILE &&
+          s.x + s.w > p.x + 2 && s.x < p.x + p.w - 2) breakBrick(s);
+    }
+  }
+
+  // 斬りエフェクト・ざんぞうの寿命管理
+  function updateSlashFx() {
+    if (slashes.length) {
+      for (const s of slashes) s.t++;
+      slashes = slashes.filter(s => s.t < s.life);
+    }
+    if (afterimages.length) {
+      for (const a of afterimages) a.t++;
+      afterimages = afterimages.filter(a => a.t < 14);
+    }
+  }
+
   let abilities = [];      // おぼえた能力のid（習得順）
   let abilityIndex = 0;    // いま選んでいる能力
   let abilityPopT = 0;     // 切り替え時に能力名を出す残りフレーム
@@ -1369,6 +1670,17 @@
       abilPrev = down; abilCharging = false;
       return;
     }
+    // かまえ（武士）：↓とBを押しているあいだ ずっと構える。どちらかを はなしたら解除
+    if (ab.guardHold) {
+      const want = p.onGround && down && downKey() && p.shuku <= 0;
+      if (want) {
+        if (p.guardT <= 0) startGuard(p);
+        else p.guardT++;
+        abilPrev = down; abilCharging = false; abilCharge = 0;
+        return;
+      }
+      if (p.guardT > 0) { endGuard(p); abilPrev = down; abilCharging = false; abilCharge = 0; return; }
+    }
     if (down && !abilPrev) {
       // 押した瞬間：空中技・下技・ダッシュ技があればそちらを優先
       if (!p.onGround && ab.air) ab.air(p);
@@ -1378,10 +1690,15 @@
       else if (ab.tap) ab.tap(p);
     } else if (down && abilCharging) {
       abilCharge++;
-      if (abilCharge >= (ab.chargeFrames || 40)) { abilCharging = false; ab.hold(p); }
+      const need = ab.chargeFrames || 40;
+      if (ab.holdRelease) { if (abilCharge > need) abilCharge = need; }   // 満タンで打ち止め（はなすまで待つ）
+      else if (abilCharge >= need) { abilCharging = false; ab.hold(p); }
     } else if (!down && abilPrev && abilCharging) {
+      const charged = abilCharge;
       abilCharging = false;
-      if (ab.tap) ab.tap(p);   // ためきる前に離した → 短押し技
+      // はなした瞬間に出すタイプ（しゅくちぎり）：ためが足りていれば ため技、足りなければ 短押し技
+      if (ab.holdRelease && ab.hold && charged >= (ab.minCharge || 18)) ab.hold(p, charged);
+      else if (ab.tap) ab.tap(p);
     }
     abilPrev = down;
   }
@@ -1391,7 +1708,8 @@
     if (act === "left")       { if (v && !touch.left)  dirPressed(-1); if (!v) dirReleased(-1); touch.left = v; }
     else if (act === "right") { if (v && !touch.right) dirPressed(1);  if (!v) dirReleased(1);  touch.right = v; }
     else if (act === "down")  touch.down = v;
-    else if (act === "up" || act === "jump") { touch.up = v; if (v && state === "stagename") skipStageName(); }   // ▲ / A ボタン
+    else if (act === "up")   { touch.upd = v; if (v && state === "stagename") skipStageName(); }   // 十字キーの▲（ジャンプ＋「上」）
+    else if (act === "jump") { touch.up  = v; if (v && state === "stagename") skipStageName(); }   // A ボタン（ジャンプだけ）
     else if (act === "abil")  touch.abil = v;                // B ボタン（能力）
     else if (act === "swap")  { if (v) cycleAbility(); }     // C ボタン（押した瞬間だけ）
   }
@@ -1417,7 +1735,7 @@
     // 保険：タブ切替やフォーカス喪失で全ボタンを解除
     const clearAll = () => {
       active.clear();
-      touch.left = touch.right = touch.up = touch.down = touch.abil = false;
+      touch.left = touch.right = touch.up = touch.upd = touch.down = touch.abil = false;
       dashLatch = 0;
       document.querySelectorAll("#touch-controls .pressed").forEach(e => e.classList.remove("pressed"));
     };
@@ -1495,16 +1813,59 @@
     try { const a = VOICE[name]; if (!a) return; a.currentTime = 0; a.play().catch(() => {}); } catch (e) {}
   }
 
+  // ---------- 技の効果音（SEフォルダの音源。audio/ に se_*.mp3 として置いてある） ----------
+  // 連打しても 音が とぎれないように、1つの音につき 何個か 用意して 順ぐりに 鳴らす。
+  // rate = 再生スピード（1より大きいと 速く＝短くなる）
+  const SE_DEFS = {
+    fire:   { file: "se_fire.mp3",    n: 3, vol: 0.55 },  // ドラゴンの 火・タックル（火炎魔法1）
+    shot:   { file: "se_shot.mp3",    n: 3, vol: 0.50 },  // ひかりのたま（ショット）
+    reflect:{ file: "se_reflect.mp3", n: 2, vol: 0.50 },  // テレキネシス（魔法反射）
+    circle: { file: "se_circle.mp3",  n: 1, vol: 0.55, rate: 1.4 },  // まほうじん（魔法陣を展開・速めて技の長さに合わせる）
+    slash2: { file: "se_slash2.mp3",  n: 3, vol: 0.50 },  // かたなふり（刀の素振り2）
+    slash1: { file: "se_slash1.mp3",  n: 3, vol: 0.50 },  // つばめがえし／かぶとわり（刀の素振り1）
+    cut:    { file: "se_cut.mp3",     n: 2, vol: 0.55 },  // しゅくちぎり（刀で斬る5）
+    clash:  { file: "se_clash.mp3",   n: 3, vol: 0.60 },  // かまえで はじいた瞬間（刀で打ち合う3）
+    kick:   { file: "se_kick.mp3",    n: 2, vol: 0.55 },  // しっぽスピン（キックの素振り3）
+    roar:   { file: "se_roar.mp3",    n: 1, vol: 0.60 }   // ドラゴンモード発動（ドラゴンの鳴き声2）
+  };
+  const SE = {};
+  const SE_ALL = [];
+  for (const key in SE_DEFS) {
+    const d = SE_DEFS[key];
+    const pool = [];
+    for (let i = 0; i < d.n; i++) {
+      const a = new Audio("audio/" + d.file);
+      a.volume = d.vol;
+      if (d.rate) a.playbackRate = d.rate;
+      pool.push(a);
+      SE_ALL.push(a);
+    }
+    SE[key] = { pool, i: 0 };
+  }
+  // 技の効果音を鳴らす。プールの中から 次のものを 使う（連打しても 前の音が 切れない）
+  function playSE(name) {
+    const s = SE[name];
+    if (!s) return;
+    try {
+      const a = s.pool[s.i];
+      s.i = (s.i + 1) % s.pool.length;
+      a.currentTime = 0;
+      a.play().catch(() => {});
+    } catch (e) {}
+  }
+
   // 異世界編のBGM（甘茶の音楽工房）。ステージが増えたらBGMの配列に足していく。
   const BGM = [
     new Audio("audio/bgm_isekai1.mp3"),    // ステージ1 はじまりのそうげん（楽しい冒険）
-    new Audio("audio/bgm_isekai2.mp3")     // ステージ2 まほうの塔（The sacred place）
+    new Audio("audio/bgm_isekai2.mp3"),    // ステージ2 まほうの塔（The sacred place）
+    new Audio("audio/bgm_isekai3.mp3")     // ステージ3 本能寺の変（hanamatsuri）
   ];
   BGM.forEach(a => { a.loop = true; a.volume = 0.15; });  // 小さめ・ループ
   // ボス戦BGM（ステージ別。無いステージはnull＝通常BGMのまま）
   const BOSS_BGM = [
     new Audio("audio/bgm_isekai_boss1.mp3"),  // ステージ1ボス キングスライム（騎兵戦）
-    new Audio("audio/bgm_isekai_boss2.mp3")   // ステージ2ボス 大まどうし ゲドルフ（Lost Emotion）
+    new Audio("audio/bgm_isekai_boss2.mp3"),  // ステージ2ボス 大まどうし ゲドルフ（Lost Emotion）
+    new Audio("audio/bgm_isekai_boss3.mp3")   // ステージ3ボス 織田信長＆森蘭丸（Battle-YAMATO）
   ];
   BOSS_BGM.forEach(a => { if (a) { a.loop = true; a.volume = 0.2; } });
   // ★曲は「使うときに読みこむ」。ステージが増えて曲が10本20本になっても、
@@ -1517,6 +1878,9 @@
   const OPENING_BGM = new Audio("audio/bgm_isekai_opening.mp3");  // オープニング紙芝居（Prologue）
   OPENING_BGM.loop = true; OPENING_BGM.volume = 0.18;
   OPENING_BGM.preload = "none";   // 「はじめから」を押してから読みこむ
+  const STORY3_BGM = new Audio("audio/bgm_isekai_story3.mp3");     // ステージ3前の紙芝居（uchiagehanabi）
+  STORY3_BGM.loop = true; STORY3_BGM.volume = 0.18;
+  STORY3_BGM.preload = "none";
   const ENDING_BGM = new Audio("audio/bgm_ending.mp3");   // 世界編フィナーレ用（異世界編ではまだ使わない）
   ENDING_BGM.loop = true; ENDING_BGM.volume = 0.2;
   ENDING_BGM.preload = "none";   // 使うまで読み込まない（最初の読み込みを軽くする）
@@ -1528,7 +1892,7 @@
   }
   // 曲の二重再生を防ぐために「全部の曲」をまとめて持っておく
   // 同じ曲を2つのステージで使い回すことがあるので、重複を取りのぞいておく
-  const ALL_BGM = BGM.concat(BOSS_BGM.filter(Boolean), [TITLE_BGM, OPENING_BGM, ENDING_BGM])
+  const ALL_BGM = BGM.concat(BOSS_BGM.filter(Boolean), [TITLE_BGM, OPENING_BGM, STORY3_BGM, ENDING_BGM])
                      .filter((a, i, arr) => arr.indexOf(a) === i);
   let bgm = BGM[0];                           // 今鳴らしているBGM
   function stageBgm() { return BGM[Math.min(stageIndex, BGM.length - 1)]; }
@@ -1568,7 +1932,8 @@
     audioPrimed = true;
     // ステージ2以降のBGM＋ボスBGMも先に解禁（ステージ1は開始時に鳴るので除外）
     // ミュートしたまま一瞬だけ再生して解禁 → 他の曲が一瞬鳴る二重再生を防ぐ
-    [VOICE.get, VOICE.sad, STAGE_JINGLE].concat(BGM.slice(1), BOSS_BGM.filter(Boolean), [OPENING_BGM]).forEach(a => {
+    // 技の効果音も 最初のタップで 解禁しておく（iPhoneは 音を さわる前に 鳴らせない）
+    [VOICE.get, VOICE.sad, STAGE_JINGLE].concat(SE_ALL, BGM.slice(1), BOSS_BGM.filter(Boolean), [OPENING_BGM]).forEach(a => {
       try {
         a.muted = true;
         a.play().then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; });
@@ -1608,15 +1973,26 @@
       return;
     }
     // 横移動
+    const preVx = p.vx;            // かべに ぶつかる直前の向き（かべジャンプの判定に使う）
     p.x += p.vx;
+    let wallHit = 0;
     for (const s of solids) {
       if (passable(s, p)) continue;
+      if (s.dead) continue;
       if (rectHit(p, s)) {
+        // しゅくちぎりは レンガを 斬りながら 進む（止まらない）
+        if (p.shuku > 0 && s.type === "brick") { breakBrick(s); continue; }
         if (p.vx > 0) p.x = s.x - p.w;
         else if (p.vx < 0) p.x = s.x + s.w;
         p.vx = 0;
+        if (preVx > 0) wallHit = 1; else if (preVx < 0) wallHit = -1;
+        if (p.shuku > 0) endShukuchi(p, true);   // かべに ぶつかったら そこで止まる
       }
     }
+    // かべジャンプ用：かべに ふれた向きを すこしのあいだ おぼえておく（うっかり はなれても間に合う）
+    if (wallHit !== 0 && !p.onGround) { p.wallDir = wallHit; p.wallT = 12; }
+    else if (p.wallT > 0) p.wallT--;
+    if (p.onGround) p.wallT = 0;
     // 縦移動（滑空中は重力をほぼ効かせない：ぷかぷか）
     if (dragonMode && p === player) {
       // ドラゴンモード：重力なし。上下キーで自由に飛ぶ（横シューティング風）
@@ -1624,12 +2000,36 @@
       else if (downKey()) p.vy += 0.85;
       else p.vy *= 0.82;
       p.vy = Math.max(-4.2, Math.min(4.2, p.vy));
+    } else if (p.shuku > 0) {
+      p.vy = 0;                     // しゅくちぎり中は まっすぐ横に 斬りぬける（落ちない）
+    } else if (p.dive > 0) {
+      p.vy = DIVE_SPD;              // かぶとわりは 一定の速さで まっすぐ 落ちる
     } else if (!p.gliding && p.broom <= 0) {
       p.vy += GRAVITY;
       // まほうの「ふわふわ」：落ちているあいだ A を押しっぱなしにすると、ゆっくり落ちる
       if (floatFrames() > 0 && !p.onGround && p.vy > FLOAT_FALL && jumpKey()) {
         p.vy = FLOAT_FALL;
         p.floating = 3;
+      }
+      // ぶしの かべしがみつき：かべに ふれると そのまま くっついて ゆっくり ずり落ちる。
+      // 方向キーは おさなくてよい（そのぶん Aを おすタイミングを ゆっくり ねらえる）。
+      //   ・かべと 反対がわを おす → はなれる
+      //   ・↓を おす／かぶとわり → すべり落ちる
+      if (canWallJump() && p.wallT > 0 && !p.onGround && p.dive <= 0 && p.shuku <= 0 && p.wallKick <= 0) {
+        const away = (p.wallDir > 0 && left()) || (p.wallDir < 0 && right());
+        if (away || downKey()) {
+          p.wallT = 0;                       // 自分から はなれた
+        } else {
+          if (p.vy > 1.7) p.vy = 1.7;
+          p.vx = p.wallDir * 0.8;            // かべに 軽くおしつけ続ける＝ずっと つかまっていられる
+          p.wallSlide = 3;
+          p.face = p.wallDir;                // かべの ほうを 向く
+          // かべを けずる 土けむり（宙に うかんでいるように 見えないように）
+          if (p.animT % 4 === 0) {
+            const wx2 = p.wallDir > 0 ? p.x + p.w : p.x;
+            spawnParticles(wx2, p.y + p.h * (0.35 + Math.random() * 0.5), "#cfc6b4", 2);
+          }
+        }
       }
     }
     if (p.vy > 18) p.vy = 18;
@@ -1792,6 +2192,30 @@
     if (p.broomCd > 0) p.broomCd--;
     if (p.tkFx > 0) p.tkFx--;
     if (p.tkMiss > 0) p.tkMiss--;
+    // ぶしスキル
+    if (p.cut > 0) p.cut--;
+    if (p.cutCd > 0) p.cutCd--;
+    if (p.guardFx > 0) p.guardFx--;
+    if (p.diveFx > 0) p.diveFx--;
+    // かぶとわり：落ちながら 通り道の てきを 斬る
+    if (p.dive > 0) {
+      p.dive++;
+      slashEnemies(diveBox(p), 2, "#eaf6ff");
+      if (p.dive % 2 === 0) afterimages.push({ x: p.x, y: p.y, w: p.w, h: p.h, face: p.face, t: 0 });
+    }
+    if (p.wallKick > 0) p.wallKick--;
+    if (p.wallSlide > 0) p.wallSlide--;
+    updateGuardReflect(p);      // かまえ中：とんできた たまを 撃ち返す
+    updateSlashFx();
+    // しゅくちぎり：ためた ぶんの きょりを 走りきるまで 一気に 斬りぬける（そのあいだ むてき）
+    if (p.shuku > 0) {
+      p.shuku--;
+      p.shukuLeft -= SHUKU_SPD;
+      p.invuln = Math.max(p.invuln, 3);      // 通りぬけるあいだは 当たらない（点滅はしない値にしておく）
+      shukuHitScan(p);
+      if (p.animT % 2 === 0) afterimages.push({ x: p.x, y: p.y, w: p.w, h: p.h, face: p.shukuDir, t: 0 });
+      if (p.shukuLeft <= 0 || p.shuku <= 0) endShukuchi(p, false);
+    }
     if (p.floating > 0) {
       p.floating--;
       if (p.animT % 4 === 0) particles.push({ x: p.x + p.w/2 + (Math.random()-0.5) * 26, y: p.y + p.h - 4, vx: (Math.random()-0.5)*0.6, vy: 1.2, life: 20, color: "#cfc2ff" });
@@ -1825,6 +2249,11 @@
     const maxSp = (dashing ? 7.6 : MAX_SPEED) * slowK;
     if (p.tackle > 0) {
       p.vx = p.face * TACKLE_SPD;            // ドラゴンタックル中は突進速度で固定（操作できない）
+    } else if (p.shuku > 0) {
+      p.vx = p.shukuDir * SHUKU_SPD;         // しゅくちぎり中も止まれない
+      p.face = p.shukuDir;
+    } else if (p.guardT > 0 || p.dive > 0 || (chargingHold() && p.onGround)) {
+      p.vx = 0;                              // かまえ中／ため中／かぶとわり中は 横に 動けない
     } else if (p.roll > 0) {
       p.vx = p.face * ROLL_SPD;              // ローリング中も止まれない
     } else if (p.burrow > 0) {
@@ -1833,10 +2262,14 @@
       else if (right()) { p.vx =  2.2; p.face =  1; }
       else p.vx = 0;
     } else {
-      if (left())  { p.vx -= accel; p.face = -1; }
-      if (right()) { p.vx += accel; p.face = 1; }
-      if (!left() && !right()) p.vx *= FRICTION;
-      p.vx = Math.max(-maxSp, Math.min(maxSp, p.vx));
+      // かべを けった直後は しばらく 操作が ききにくい（けった いきおいで はなれる）
+      const ctrl = p.wallKick > 0 ? 0.7 : 1;
+      const capSp = p.wallKick > 0 ? Math.max(maxSp, 9.0) : maxSp;
+      if (left())  { p.vx -= accel * ctrl; p.face = -1; }
+      if (right()) { p.vx += accel * ctrl; p.face = 1; }
+      // かべを けった直後は まさつを かけない＝何も おさなくても 反対がわの かべまで とどく
+      if (!left() && !right() && p.wallKick <= 0) p.vx *= FRICTION;
+      p.vx = Math.max(-capSp, Math.min(capSp, p.vx));
       if (p.spin > 0) p.vx *= 0.72;          // しっぽスピン中はその場で回る感じに
       if (Math.abs(p.vx) < 0.05) p.vx = 0;
     }
@@ -1855,6 +2288,8 @@
         } else if (p.coyote > 0) {
           p.vy = -JUMP; p.coyote = 0; p.squash = 0.7; sfx.jump();
           spawnParticles(p.x + p.w/2, p.y + p.h, "#ffffff", 4);
+        } else if (canWallJumpNow(p)) {
+          doWallJump(p);
         } else if (p.wing && !p.onGround && !p.gliding && !p.glideUsed) {
           // はねまるりん：ジャンプ中にもう一度Aで、少しの間ぷかぷか飛ぶ
           p.gliding = true; p.glideUsed = true; p.glideTimer = 78; p.glideT = 0;
@@ -1875,13 +2310,20 @@
       jumpHeld = false;
     }
 
+    // かべジャンプの おしゃれな受付：Aを おしてから 8フレームのあいだに かべに ついたら
+    // ちゃんと ける（かべに つく“ちょっと前”に おしても 間に合う）。
+    if (jumpBuffer > 0 && canWallJumpNow(p)) { jumpBuffer = 0; doWallJump(p); }
+
     if (p.invuln > 0) p.invuln--;
     p.squash += (1 - p.squash) * 0.2;
 
     moveAndCollide();
 
     // 着地したら滑空・はばたきをリセット（次のジャンプでまた飛べる）
-    if (p.onGround) { p.gliding = false; p.glideUsed = false; p.flaps = 0; }
+    if (p.onGround) {
+      p.gliding = false; p.glideUsed = false; p.flaps = 0; p.tsubameUsed = false;
+      if (p.dive > 0) endDive(p);          // かぶとわりは 着地で 地面を たたき割る
+    }
 
     // コイン
     for (const c of coins) {
@@ -1988,10 +2430,18 @@
       const box = { x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 };
       // 壁・ブロックに当たったら消える
       for (const s of solids) { if (rectHit(box, s)) { sd.life = 0; break; } }
+      // 武将に 打ち返された たまは、まるりんに 当たる
+      if (sd.foe && sd.life > 0 && player.invuln <= 0 && player.burrow <= 0 && rectHit(player, box)) {
+        sd.life = 0; hurtPlayer(1);
+        spawnParticles(sd.x, sd.y, "#ffd34d", 8);
+        continue;
+      }
       // 敵に当てたら倒す
       for (const e of enemies) {
         if (e.alive && rectHit(box, e)) {
-          damageEnemy(e, "#8a6d5a");
+          // うけながしで 撃ち返した たまは 強い（2ダメージ）
+          if (sd.dmg > 1) damageEnemyN(e, "#eaf6ff", sd.dmg);
+          else damageEnemy(e, "#8a6d5a");
           sd.life = 0; break;
         }
       }
@@ -2015,7 +2465,7 @@
           if (!fl.big) { fl.life = 0; break; }   // 大きい火炎は貫通してまとめて焼ける
         }
       }
-      if (fl.life > 0 && hitBossesWith(box, fl.big ? 2 : 1) && !fl.big) fl.life = 0;   // ボスにも当たる
+      if (fl.life > 0 && hitBossesWith(box, fl.big ? 2 : 1, true) && !fl.big) fl.life = 0;   // ボスにも当たる（武将は打ち返す）
       if (fl.t % 3 === 0) particles.push({ x: fl.x - fl.vx, y: fl.y + (Math.random()-0.5)*8, vx: -fl.vx*0.08, vy: -0.6, life: 14, color: fl.big ? "#ffb545" : "#ff8a3a" });
     }
     flames = flames.filter(fl => fl.life > 0 && fl.x > camX - 80 && fl.x < camX + W + 140);
@@ -2178,20 +2628,37 @@
           }
         }
       } else if (e.root) {
-        // キノコン：動かない。近づいたら ほうしだま を撃つ
+        // その場から 撃ってくる敵（キノコン＝ほうしだま／鉄砲隊＝たま）
         e.shootCd--;
         const cx = e.x + e.w/2, cy = e.y + e.h/2;
         const px = p.x + p.w/2, py = p.y + p.h/2;
-        if (Math.abs(px - cx) < 400 && Math.abs(py - cy) < 150) {
+        const reach = e.gun ? 520 : 400;
+        if (Math.abs(px - cx) < reach && Math.abs(py - cy) < (e.gun ? 120 : 150)) {
           e.face = px < cx ? -1 : 1;
-          if (e.shootCd <= 0) {
+          if (e.gun) {
+            // 鉄砲隊：いきなり撃たずに「ねらう→撃つ」。ねらっている間に かまえれば はね返せる。
+            if (e.aim > 0) {
+              e.aim--;
+              if (e.aim === 0) {
+                e.shootCd = 130 + Math.floor(Math.random() * 70);
+                e.squash = 0.7;
+                hazards.push({ kind: "tama", x: cx + e.face * 20, y: e.y + 12, vx: e.face * 4.6, t: 0 });
+                spawnParticles(cx + e.face * 22, e.y + 12, "#ffe3a0", 8);
+                spawnParticles(cx + e.face * 22, e.y + 12, "#8d8d8d", 6);
+                screenShake = Math.max(screenShake, 3);
+                playSE("shot");
+              }
+            } else if (e.shootCd <= 0) {
+              e.aim = 34;                                  // ねらいはじめ（約0.6びょう）
+            }
+          } else if (e.shootCd <= 0) {
             e.shootCd = 105 + Math.floor(Math.random() * 60);
             e.squash = 0.72;
             hazards.push({ kind: "spore", x: cx + e.face * 16, y: e.y + 9, vx: e.face * 2.7, t: 0 });
             spawnParticles(cx + e.face * 16, e.y + 9, "#c8a2e8", 4);
             sfx.seed();
           }
-        }
+        } else if (e.gun) { e.aim = 0; }
       } else if (e.fly) {
         // カラス：空を左右に往復＋上下にフワフワ
         e.x += e.vx;
@@ -2231,12 +2698,23 @@
       if (p.burrow > 0) continue;   // もぐっている間は敵に当たらない
       if (e.crystal && e.hover > 0) continue;   // 浮いているクリスタルは無害（つかむための的）
       if (rectHit(p, e)) {
+        if (p.shuku > 0) continue;   // しゅくちぎり中：斬るのは shukuHitScan がやる（ここでは無敵）
+        if (p.dive > 0) { damageEnemyN(e, "#eaf6ff", 2); continue; }   // かぶとわり中：ふれた てきを 斬る
         if (p.spin > 0 || p.tackle > 0 || p.roll > 0) {
           // しっぽスピン／タックル／ローリング中：ふれた敵にダメージ（まるりんはノーダメージ）
           damageEnemy(e, p.tackle > 0 ? "#ff9b45" : (p.roll > 0 ? "#e6d6bb" : "#9cd88a"));
           continue;
         }
         const fromAbove = p.vy > 0 && (p.y + p.h) - e.y < 20;
+        if (p.guardT > 0 && !fromAbove) {
+          // かまえ中：よこから 体当たりしてきた てきは 刀で はじき返す（上からは ふせげない）
+          const dir = (e.x + e.w/2 < p.x + p.w/2) ? -1 : 1;
+          e.vx = dir * 4.2; e.vy = -5; e.onGround = false; e.squash = 0.8;
+          damageEnemy(e, "#ffffff");
+          playSE("clash"); p.guardFx = 10;
+          spawnParticles(p.x + p.w/2 + dir * 20, p.y + p.h/2, "#ffffff", 6);
+          continue;
+        }
         if (fromAbove && (e.spiky || e.noStomp)) {
           // トゲトゲ・おにびは踏めない：はね返されてダメージ
           p.vy = -8; p.vx = -p.face * 3;
@@ -2420,7 +2898,7 @@
   // ボス登場時に出す名前
   function bossTitle() {
     const k = STAGES[stageIndex].boss;
-    return k === "kingslime" ? "キングスライム" : k === "wizard" ? "大まどうし ゲドルフ" : k === "penguins" ? "ペギ＆ニセペギ" : k === "sumo" ? "こうよう" : k === "mega" ? "メガロドン" : k === "zagat" ? "ザガット" : k === "clovis" ? "クリウド" : k === "dramp" ? "ドランプ大統領" : "くりだいおう";
+    return k === "honnoji" ? "織田信長 ＆ 森蘭丸" : k === "kingslime" ? "キングスライム" : k === "wizard" ? "大まどうし ゲドルフ" : k === "penguins" ? "ペギ＆ニセペギ" : k === "sumo" ? "こうよう" : k === "mega" ? "メガロドン" : k === "zagat" ? "ザガット" : k === "clovis" ? "クリウド" : k === "dramp" ? "ドランプ大統領" : "くりだいおう";
   }
 
   function startBoss() {
@@ -2451,6 +2929,7 @@
     p.x = (STAGES[stageIndex].boss === "mega") ? 150
         : (STAGES[stageIndex].boss === "kingslime") ? SAFE_L   // ボスは右がわなので左から（十字キーにかくれない位置）
         : (STAGES[stageIndex].boss === "wizard") ? SAFE_L
+        : (STAGES[stageIndex].boss === "honnoji") ? SAFE_L
         : (W/2 - p.w/2);
     p.y = BOSS_GROUND - p.h; p.vx = 0; p.vy = 0;
     p.onGround = false; p.face = 1; p.invuln = 50;
@@ -2464,6 +2943,10 @@
     } else if (type === "wizard") {
       // 大まどうし ゲドルフ（ステージ2）：右がわに浮いて まほうを撃ってくる
       bosses = [ makeBoss("wizard", safeBossX(W - 170, 74)) ];
+    } else if (type === "honnoji") {
+      // 本能寺（ステージ3）：どちらも 右がわ。蘭丸が 前（まるりん寄り）、信長は 右おく。
+      // 蘭丸を たおすまで 信長は 刀がとどかない（無敵）。
+      bosses = [ makeBoss("ranmaru", safeBossX(W - 300, 44)), makeBoss("nobunaga", safeBossX(W - 120, 50)) ];
     } else if (type === "penguins") {
       // にせぺぎ（左・投げ役）＋ ペギ（右・すばやい体当たり役）で挟み撃ち
       bosses = [ makeBoss("nisepegi", 120), makeBoss("pegi", W - 170) ];
@@ -2580,6 +3063,26 @@
         burgerCd: 420, swingT: 0, shoutT: 0,   // バーガー回復のクールダウン／ゴルフのフォロースルー／演説シャウト
         missileT: 0, doomT: 0, balconyX: W/2 - 30, balconyY: 96 };
     }
+    if (kind === "ranmaru") {
+      // 森蘭丸：若くて すばやい 前衛。刀で 詰めてくる。踏める。
+      return { kind, name: "森蘭丸", x, y: BOSS_GROUND - 62, w: 44, h: 62,
+               hp: 6, maxHp: 6, stompDmg: 1, seedDmg: 1, hpPerHeart: 2,
+               vx: 0, vy: 0, onGround: true, alive: true, t: 0, squash: 1,
+               invuln: 0, hurtFlash: 0, dyingT: 0, techHit: true, swat: true,
+               face: -1, mode: "idle", windup: 0, actCd: 100, next: "tsuki",
+               dashT: 0, slashT: 0, combo: 0, comboCd: 0, markX: 0, markT: 0, swatT: 0 };
+    }
+    if (kind === "nobunaga") {
+      // 織田信長：第1段は 右おくで 弓。蘭丸が たおれると 太刀を ぬいて 前に出る（第2段）。
+      return { kind, name: "織田信長", x, y: BOSS_GROUND - 74, w: 50, h: 74,
+               hp: 10, maxHp: 10, stompDmg: 1, seedDmg: 1, hpPerHeart: 2,
+               vx: 0, vy: 0, onGround: true, alive: true, t: 0, squash: 1,
+               invuln: 0, hurtFlash: 0, dyingT: 0, techHit: true, swat: true,
+               face: -1, phase: 1, guardAll: true,          // 蘭丸が いるあいだは 無敵
+               mode: "idle", windup: 0, actCd: 55, next: "arrow",
+               cryT: 0, walkT: 0, dashT: 0, spinT: 0, slashT: 0,
+               raging: false, emberCd: 0, swatT: 0, drawT: 0, homeX: x };
+    }
     if (kind === "kingslime") {
       // キングスライム（異世界編ステージ1）＝そうげんのスライムが合体した王様。
       // 大ジャンプの着地で地響き（もぐっていても当たる・真下は直撃でハート2）、子スライムをはき出す、体当たり。
@@ -2621,6 +3124,313 @@
   // 攻撃は3種＋対空。①大ジャンプ→着地の地響き（もぐっていても当たる／真下は直撃でハート2）
   // ②子スライムを3匹はき出す ③体当たり ④空にいるまるりんへ「ゲル」を飛ばす（飛んで逃げ続けさせない）
   // 王冠は「地面に降りているとき」だけ踏める＝空を飛んでいるだけでは倒せない。
+
+  // ===== ステージ3のボス：織田信長 ＆ 森蘭丸（本能寺の変） =====
+  // 蘭丸が 前で 刀、信長は 右おくで 弓。蘭丸を たおすと 信長が 太刀を ぬいて 出てくる。
+  // ★2人とも「飛び道具は 刀で 打ち返す」＝近づいて 斬るしかない 一騎打ち。
+
+  // 武将は まるりんの 飛び道具を 打ち返す。返された たまは まるりんに 当たる。
+  function swatProjectiles(b) {
+    if (!b.swat || !b.alive || b.hidden) return;
+    const box = { x: b.x - 12, y: b.y - 8, w: b.w + 24, h: b.h + 16 };
+    let did = false;
+    for (const sd of seeds) {
+      if (sd.life <= 0 || sd.back) continue;
+      if (!rectHit({ x: sd.x - 6, y: sd.y - 6, w: 12, h: 12 }, box)) continue;
+      sd.vx = -(sd.vx || 1) * 1.6; sd.vy = -(sd.vy || 0) * 0.6;
+      sd.magic = false;          // 追いかけるのは やめる（打ち返されたので）
+      sd.back = true; sd.foe = true;
+      sd.life = Math.max(sd.life, 70);
+      did = true;
+    }
+    for (const fl of flames) {
+      if (fl.life <= 0 || fl.back) continue;
+      if (!rectHit({ x: fl.x - fl.r, y: fl.y - fl.r, w: fl.r * 2, h: fl.r * 2 }, box)) continue;
+      fl.vx = -(fl.vx || 1) * 1.5; fl.vy = -(fl.vy || 0);
+      fl.back = true; fl.foe = true;
+      did = true;
+    }
+    for (const th of thrown) {
+      if (th.dead || th.back) continue;
+      if (!rectHit(th, box)) continue;
+      th.vx = -(th.vx || 1) * 1.4; th.vy = -4;
+      th.back = true; th.foe = true;
+      did = true;
+    }
+    if (did) {
+      b.swatT = 14; sfx.block();
+      screenShake = Math.max(screenShake, 3);
+      spawnParticles(b.x + b.w/2 + b.face * 16, b.y + b.h * 0.4, "#dfeaf7", 8);
+      spawnParticles(b.x + b.w/2 + b.face * 16, b.y + b.h * 0.4, "#ffe9a8", 4);
+    }
+  }
+
+  // ボスとの 体の当たり（踏むと ダメージ／横から ふれると 痛い）。技は hitBossesWith が あつかう。
+  function bossTouch(b) {
+    const p = player;
+    if (!rectHit(p, b)) return;
+    if (p.spin > 0 || p.tackle > 0 || p.roll > 0 || p.broom > 0 || p.shuku > 0 || p.dive > 0) return;
+    const fromAbove = p.vy > 0 && (p.y + p.h) - b.y < b.h * 0.5 + Math.max(0, p.vy);
+    if (fromAbove) {
+      if (b.invuln <= 0) damageBoss(b, false);
+      const timed = jumpKey() || jumpBuffer > 0;
+      p.vy = timed ? -15 : -10; p.bounceLock = 12; jumpBuffer = 0; p.squash = 0.7;
+      p.invuln = Math.max(p.invuln, 10);
+    } else if (p.invuln <= 0) {
+      hurtPlayer(1);
+    }
+  }
+  // ボスの 刀の 当たり（技を 出している あいだだけ）
+  function bossBladeHit(b, reach, hi) {
+    const p = player;
+    if (p.invuln > 0) return;
+    const box = { x: b.face > 0 ? b.x + b.w - 8 : b.x - reach + 8, y: b.y + (hi || 6), w: reach, h: b.h - (hi || 6) - 4 };
+    if (rectHit(p, box)) hurtPlayer(1);
+  }
+  // 地面に 落ちる位置の しるし
+  function bossGroundMark(x, k) {
+    ctx.save();
+    ctx.globalAlpha = 0.35 + Math.sin(elapsed * 0.4) * 0.25;
+    ctx.strokeStyle = "#ff6b4a"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(x, BOSS_GROUND - 3, 26 * (0.6 + k * 0.4), 8, 0, 0, 7); ctx.stroke();
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = "#ff6b4a";
+    ctx.beginPath(); ctx.ellipse(x, BOSS_GROUND - 3, 26 * (0.6 + k * 0.4), 8, 0, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+
+  // ---------- 森蘭丸 ----------
+  function updateRanmaru(b) {
+    const p = player, pcx = p.x + p.w/2, bcx = b.x + b.w/2;
+    if (b.swatT > 0) b.swatT--;
+    if (b.slashT > 0) b.slashT--;
+    if (b.comboCd > 0) b.comboCd--;
+
+    // じゅうりょく
+    b.vy += GRAVITY; b.y += b.vy; b.onGround = false;
+    for (const sl of solids) {
+      if (rectHit(b, sl) && b.vy > 0 && (b.y + b.h) - sl.y < 46) { b.y = sl.y - b.h; b.vy = 0; b.onGround = true; }
+    }
+
+    if (b.mode === "jump" && !b.onGround) b.x += (b.vxJump || 0);
+    if (b.mode === "dash") {
+      // 踏み込み突き：まっすぐ 走りぬける
+      b.dashT--;
+      b.x += b.face * 9.2;
+      bossBladeHit(b, 44, 10);
+      if (b.dashT % 3 === 0) spawnParticles(bcx - b.face * 14, b.y + b.h - 8, "#d8d2c4", 2);
+      if (b.dashT <= 0) { b.mode = "idle"; b.actCd = 70; b.slashT = 10; }
+    } else if (b.mode === "combo") {
+      // 三段斬り：その場で 3回 斬る
+      if (b.comboCd <= 0) {
+        b.combo--;
+        b.comboCd = 16; b.slashT = 12;
+        playSE("slash2");
+        bossBladeHit(b, 52, 6);
+        spawnParticles(bcx + b.face * 34, b.y + b.h * 0.4, "#eaf6ff", 6);
+        if (b.combo <= 0) { b.mode = "idle"; b.actCd = 80; }
+      }
+    } else if (b.mode === "jump") {
+      // 跳び込み斬り：着地で しょうげき
+      bossBladeHit(b, 40, 4);
+      if (b.onGround) {
+        b.mode = "idle"; b.actCd = 85; b.slashT = 14; b.markT = 0;
+        screenShake = Math.max(screenShake, 8); sfx.stomp();
+        spawnParticles(bcx, BOSS_GROUND, "#d8d2c4", 14);
+        for (const dir of [-1, 1]) cukes.push({ kind: "shockwave", x: bcx, y: BOSS_GROUND, vx: dir * 4.4, t: 0 });
+      }
+    } else if (b.windup > 0) {
+      b.windup--;
+      b.squash = 0.92 + Math.sin(b.windup * 0.6) * 0.05;
+      b.face = pcx < bcx ? -1 : 1;
+      if (b.windup === 0) startRanmaruAction(b);
+    } else {
+      // ふだんは じりじり 近づく
+      b.face = pcx < bcx ? -1 : 1;
+      const far = Math.abs(pcx - bcx);
+      b.x += b.face * (far > 90 ? 1.5 : 0.4);
+      b.actCd--;
+      if (b.actCd <= 0) {
+        const pool = far < 120 ? ["combo", "combo", "tsuki", "tobi"] : ["tsuki", "tsuki", "tobi", "combo"];
+        b.next = pool[Math.floor(Math.random() * pool.length)];
+        b.windup = b.next === "tobi" ? 30 : 26;
+        if (b.next === "tobi") { b.markX = pcx; b.markT = b.windup; }
+      }
+    }
+    if (b.markT > 0) b.markT--;
+    b.x = safeBossX(b.x, b.w);
+    bossTouch(b);
+    swatProjectiles(b);
+  }
+  function startRanmaruAction(b) {
+    const p = player, pcx = p.x + p.w/2, bcx = b.x + b.w/2;
+    if (b.next === "tsuki") {
+      b.mode = "dash"; b.dashT = 26; b.face = pcx < bcx ? -1 : 1;
+      playSE("cut"); screenShake = Math.max(screenShake, 4);
+    } else if (b.next === "combo") {
+      b.mode = "combo"; b.combo = 3; b.comboCd = 0;
+    } else {
+      // 跳び込み斬り：しるしの ところへ 跳ぶ
+      b.mode = "jump";
+      const dx = b.markX - bcx;
+      b.vy = -13.5; b.onGround = false;
+      b.x += 0;
+      b.vxJump = Math.max(-7, Math.min(7, dx / 26));
+      playSE("slash1");
+    }
+    if (b.mode === "jump") b.x += 0;
+  }
+
+  // ---------- 織田信長 ----------
+  function updateNobunaga(b) {
+    const p = player, pcx = p.x + p.w/2, bcx = b.x + b.w/2;
+    if (b.swatT > 0) b.swatT--;
+    if (b.slashT > 0) b.slashT--;
+    if (b.drawT > 0) b.drawT--;
+
+    // じゅうりょく
+    b.vy += GRAVITY; b.y += b.vy; b.onGround = false;
+    for (const sl of solids) {
+      if (rectHit(b, sl) && b.vy > 0 && (b.y + b.h) - sl.y < 46) { b.y = sl.y - b.h; b.vy = 0; b.onGround = true; }
+    }
+
+    // --- 蘭丸が たおれたら 第2段へ（さけぶ → 弓をすてる → 太刀をぬいて 前に出る）---
+    if (b.phase === 1) {
+      const ranAlive = bosses.some(x => x.kind === "ranmaru" && x.alive);
+      if (!ranAlive && b.cryT === 0 && !b.switching) {
+        b.switching = true; b.cryT = 150; b.mode = "cry"; b.windup = 0;
+        b.invuln = 999; playVoice("sad");
+        screenShake = Math.max(screenShake, 12);
+      }
+    }
+    if (b.mode === "cry") {
+      b.cryT--;
+      b.face = -1;
+      if (b.cryT === 90) {                       // 弓を なげすてる
+        spawnParticles(bcx, b.y + b.h * 0.4, "#8a6a45", 12);
+        sfx.block();
+      }
+      if (b.cryT === 60) { b.drawT = 40; playSE("cut"); }   // 太刀を ぬく
+      if (b.cryT <= 0) {
+        b.mode = "walk"; b.walkT = 90;
+      }
+      b.x = safeBossX(b.x, b.w);
+      swatProjectiles(b);
+      return;                                    // この間は 何も できない（無敵）
+    }
+    if (b.mode === "walk") {
+      b.walkT--;
+      b.face = -1;
+      b.x -= 1.6;
+      if (b.x <= SAFE_L + 220 || b.walkT <= 0) {
+        b.mode = "idle"; b.phase = 2; b.guardAll = false; b.invuln = 0; b.actCd = 60;
+        screenShake = Math.max(screenShake, 6);
+      }
+      b.x = safeBossX(b.x, b.w);
+      swatProjectiles(b);
+      return;
+    }
+
+    b.raging = b.phase === 2 && b.hp <= Math.ceil(b.maxHp * 0.4);
+
+    if (b.phase === 1) {
+      // === 第1段：右おくから 弓を射る（動かない）===
+      if (b.windup > 0) {
+        b.windup--;
+        b.face = -1;
+        if (b.windup === 0) fireNobunagaArrow(b);
+      } else {
+        b.actCd--;
+        if (b.actCd <= 0) {
+          b.next = Math.random() < 0.62 ? "arrow" : "lob";
+          b.windup = b.next === "arrow" ? 44 : 40;     // 弓を引く（この間に かまえる）
+          if (b.next === "lob") { b.markX = pcx; }
+        }
+      }
+    } else {
+      // === 第2段：太刀で 戦う ===
+      if (b.mode === "dash") {
+        b.dashT--;
+        b.x += b.face * (b.raging ? 11 : 9.4);
+        bossBladeHit(b, 50, 8);
+        if (b.dashT % 3 === 0) spawnParticles(b.x + b.w/2 - b.face * 16, b.y + b.h - 8, "#d8d2c4", 2);
+        if (b.dashT <= 0) { b.mode = "idle"; b.actCd = b.raging ? 55 : 80; b.slashT = 12; }
+      } else if (b.mode === "spin") {
+        b.spinT--;
+        if (b.spinT % 4 === 0) {
+          const box = { x: b.x - 40, y: b.y + 6, w: b.w + 80, h: b.h - 10 };
+          if (p.invuln <= 0 && rectHit(p, box)) hurtPlayer(1);
+          spawnParticles(b.x + b.w/2 + (Math.random() - 0.5) * 90, b.y + b.h * 0.5, "#eaf6ff", 3);
+        }
+        if (b.spinT <= 0) { b.mode = "idle"; b.actCd = b.raging ? 60 : 85; }
+      } else if (b.windup > 0) {
+        b.windup--;
+        b.squash = 0.93 + Math.sin(b.windup * 0.5) * 0.05;
+        b.face = pcx < b.x + b.w/2 ? -1 : 1;
+        if (b.windup === 0) startNobunagaAction(b);
+      } else {
+        b.face = pcx < b.x + b.w/2 ? -1 : 1;
+        const far = Math.abs(pcx - (b.x + b.w/2));
+        b.x += b.face * (far > 140 ? 1.1 : 0.3);
+        b.actCd--;
+        if (b.actCd <= 0) {
+          const pool = far < 110 ? ["spin", "spin", "issen", "battou"] : ["battou", "battou", "issen", "spin"];
+          b.next = pool[Math.floor(Math.random() * pool.length)];
+          b.windup = b.next === "battou" ? 34 : (b.next === "issen" ? 30 : 26);
+        }
+      }
+      // 怒りモード：燃える本堂から 火の粉が 落ちてくる
+      if (b.raging) {
+        b.emberCd--;
+        if (b.emberCd <= 0) {
+          b.emberCd = 44;
+          const ex = SAFE_L + 20 + Math.random() * (SAFE_R - SAFE_L - 40);
+          cukes.push({ kind: "ember", x: ex, y: -20, vx: 0, vy: 2.6, t: 0 });
+        }
+      }
+    }
+    b.x = safeBossX(b.x, b.w);
+    bossTouch(b);
+    swatProjectiles(b);
+  }
+  function fireNobunagaArrow(b) {
+    const bcx = b.x + b.w/2;
+    if (b.next === "arrow") {
+      // まっすぐな 矢＝かまえで 撃ち返せる。
+      // ★高さは「地面に立っている まるりんの むね」。高すぎると 頭の上を 通りすぎて 当たらない。
+      cukes.push({ kind: "arrow", x: bcx - 24, y: BOSS_GROUND - 26, vx: -5.6, vy: 0, t: 0 });
+      b.actCd = 88;
+    } else {
+      // 山なり矢＝上から 落ちてくるので かまえでは 返せない。地面に しるしが 出る。
+      // T フレームで 地面に とどく はやさ： vy = (地面 - 出た高さ - 0.5*g*T*T) / T
+      const sx = bcx - 20, sy = b.y + 10, tx = b.markX;
+      const T = 62, G2 = 0.42;
+      cukes.push({ kind: "arrowlob", x: sx, y: sy, vx: (tx - sx) / T,
+                   vy: (BOSS_GROUND - sy - 0.5 * G2 * T * T) / T, t: 0, markX: tx });
+      b.markT = T; b.markX = tx;
+      b.actCd = 120;
+    }
+    playSE("shot");
+    spawnParticles(bcx - 22, b.y + 22, "#ffe3a0", 6);
+  }
+  function startNobunagaAction(b) {
+    const p = player, pcx = p.x + p.w/2, bcx = b.x + b.w/2;
+    if (b.next === "battou") {
+      b.mode = "dash"; b.dashT = b.raging ? 30 : 26; b.face = pcx < bcx ? -1 : 1;
+      playSE("cut"); screenShake = Math.max(screenShake, 5);
+    } else if (b.next === "spin") {
+      b.mode = "spin"; b.spinT = 40; playSE("slash1");
+      screenShake = Math.max(screenShake, 4);
+    } else {
+      // 一閃：地面を 走る しょうげき
+      b.slashT = 16; playSE("cut");
+      for (const dir of [-1, 1]) cukes.push({ kind: "shockwave", x: bcx, y: BOSS_GROUND, vx: dir * (b.raging ? 6 : 4.8), t: 0 });
+      screenShake = Math.max(screenShake, 9);
+      b.actCd = b.raging ? 65 : 95;
+      b.mode = "idle";
+    }
+  }
+
   function updateKingSlime(b) {
     const p = player;
     const pcx = p.x + p.w/2, bcx = b.x + b.w/2;
@@ -2958,11 +3768,13 @@
   }
 
   // 技（火の玉・しっぽスピン・ドラゴンタックル・ローリング）でボスにダメージ
-  function hitBossesWith(box, amount) {
+  // proj = true のときは「飛び道具」。武将（swat）は 飛び道具を 刀で 打ち返すので ダメージにならない。
+  function hitBossesWith(box, amount, proj) {
     if (!inBoss || !bosses.length) return false;
     let hit = false;
     for (const b of bosses) {
       if (!b.alive || !b.techHit || b.hidden || b.invuln > 0) continue;
+      if (proj && b.swat) continue;          // 打ち返しは swatProjectiles がやる
       if (!rectHit(box, b)) continue;
       damageBoss(b, false, amount);
       hit = true;
@@ -2971,7 +3783,8 @@
   }
 
   // まほうバリアを持っているボスは、割れている（shieldT>0）あいだしか ダメージが入らない
-  function bossGuarded(b) { return !!b.guard && b.shieldT <= 0; }
+  // guardAll＝「今は ぜったいに ダメージが 入らない」（信長の第1段・段の切りかわり中）
+  function bossGuarded(b) { return (!!b.guard && b.shieldT <= 0) || !!b.guardAll; }
   // クリスタルを投げ返して バリアを割る
   function breakBossGuard(b) {
     if (!b.guard || b.shieldT > 0) return;
@@ -3045,6 +3858,7 @@
   function updateCukes() {
     const p = player;
     for (const cu of cukes) {
+      if (cu.dead) continue;      // もう消えた弾は動かさない（撃ち返した たまを 相殺しないように）
       cu.t++;
       if (cu.kind === "shock") {   // 四股の地響きの波（見た目だけ・スタンは着地時に別途）
         cu.x += cu.vx; cu.vx *= 0.95;
@@ -3089,6 +3903,34 @@
           if (rectHit({ x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 }, box)) { cu.dead = true; sd.life = 0; score += 50; sfx.stomp(); spawnParticles(cu.x, cu.y, "#7fc4ea", 8); break; }
         }
         if (!cu.dead && (cu.y > BOSS_GROUND - 4 || cu.x < -50 || cu.x > W + 50)) { cu.dead = true; spawnParticles(cu.x, Math.min(cu.y, BOSS_GROUND - 4), "#7fc4ea", 6); }
+        continue;
+      }
+      if (cu.kind === "arrow") {   // 信長の矢（まっすぐ・さむらいの「かまえ」で 撃ち返せる）
+        cu.x += cu.vx;
+        const box = { x: cu.x - 14, y: cu.y - 5, w: 28, h: 10 };
+        if (rectHit(p, box) && p.invuln <= 0 && p.burrow <= 0) { cu.dead = true; hurtPlayer(1); spawnParticles(cu.x, cu.y, "#e8dcc0", 8); }
+        else for (const sd of seeds) {
+          if (sd.life > 0 && rectHit({ x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 }, box)) { cu.dead = true; sd.life = 0; score += 50; sfx.stomp(); break; }
+        }
+        if (cu.x < camX - 80 || cu.x > camX + W + 80) cu.dead = true;
+        continue;
+      }
+      if (cu.kind === "arrowlob") {   // 山なり矢（上から 落ちてくる＝かまえでは 返せない）
+        cu.vy += 0.42; cu.x += cu.vx; cu.y += cu.vy;
+        const box = { x: cu.x - 9, y: cu.y - 12, w: 18, h: 24 };
+        if (rectHit(p, box) && p.invuln <= 0 && p.burrow <= 0) { cu.dead = true; hurtPlayer(1); spawnParticles(cu.x, cu.y, "#e8dcc0", 8); }
+        if (cu.y > BOSS_GROUND - 6) {
+          cu.dead = true;
+          spawnParticles(cu.x, BOSS_GROUND - 6, "#d8d2c4", 8);
+          screenShake = Math.max(screenShake, 3);
+        }
+        continue;
+      }
+      if (cu.kind === "ember") {   // 燃える本堂から 落ちてくる 火の粉
+        cu.vy += 0.16; cu.y += cu.vy; cu.x += Math.sin(cu.t * 0.09) * 0.8;
+        const box = { x: cu.x - 8, y: cu.y - 8, w: 16, h: 16 };
+        if (rectHit(p, box) && p.invuln <= 0 && p.burrow <= 0) { cu.dead = true; hurtPlayer(1); spawnParticles(cu.x, cu.y, "#ff9d4a", 8); }
+        if (cu.y > BOSS_GROUND - 4) { cu.dead = true; spawnParticles(cu.x, BOSS_GROUND - 4, "#ff9d4a", 6); }
         continue;
       }
       if (cu.kind === "shockwave") {   // 演説の衝撃波（地を這う・ジャンプでよける・タネ不可）
@@ -3173,6 +4015,27 @@
                    y: high ? TIGER_HIGH_Y : TIGER_LOW_Y, vx: -3.4, t: 0 });
   }
   // キノコンの「ほうしだま」：まっすぐ飛ぶ。かべに当たる／たね・ひかりのたま に当たると消える
+  // 鉄砲隊の たま：まっすぐ速く飛ぶ。かべに当たると 消える。
+  // ※さむらいの「かまえ」で はね返せる（updateGuardReflect が hazards を見ている）。
+  function stepTama(sp, p) {
+    sp.x += sp.vx;
+    const box = { x: sp.x - 7, y: sp.y - 5, w: 14, h: 10 };
+    for (const s of solids) {
+      if (s.dead) continue;
+      if (rectHit(box, s)) { sp.dead = true; spawnParticles(sp.x, sp.y, "#d8d2c4", 6); return; }
+    }
+    for (const sd of seeds) {          // たね・ひかりのたま・撃ち返しで 消せる
+      if (sd.life <= 0) continue;
+      if (rectHit(box, { x: sd.x - 6, y: sd.y - 6, w: 12, h: 12 })) {
+        sp.dead = true; sd.life = 0; score += 30; sfx.stomp();
+        spawnParticles(sp.x, sp.y, "#ffe3a0", 8); return;
+      }
+    }
+    if (p.burrow <= 0 && p.invuln <= 0 && rectHit(p, box)) {
+      sp.dead = true; hurtPlayer(); spawnParticles(sp.x, sp.y, "#ffe3a0", 8); return;
+    }
+    if (sp.t > 260 || sp.x < camX - 140 || sp.x > camX + W + 140) sp.dead = true;
+  }
   function stepSpore(sp, p) {
     sp.x += sp.vx;
     const box = { x: sp.x - 10, y: sp.y - 10, w: 20, h: 20 };
@@ -3195,7 +4058,15 @@
   function updateHazards() {
     if (!hazards.length) return;
     const p = player;
-    for (const h of hazards) { h.t++; if (h.kind === "spore") stepSpore(h, p); else stepTigerShot(h, p); }
+    // ※もう消えた弾（dead）は動かさない。動かすと「うけながしで撃ち返した たま」を
+    //   消えたはずの弾が その場で 相殺してしまう。
+    for (const h of hazards) {
+      if (h.dead) continue;
+      h.t++;
+      if (h.kind === "spore") stepSpore(h, p);
+      else if (h.kind === "tama") stepTama(h, p);
+      else stepTigerShot(h, p);
+    }
     hazards = hazards.filter(h => !h.dead);
   }
 
@@ -3325,6 +4196,8 @@
       b.squash += (1 - b.squash) * 0.2;
       if (b.kind === "kingslime") { updateKingSlime(b); continue; }
       if (b.kind === "wizard") { updateWizard(b); continue; }
+      if (b.kind === "ranmaru") { updateRanmaru(b); continue; }
+      if (b.kind === "nobunaga") { updateNobunaga(b); continue; }
       if (b.kind === "mega") { updateMega(b); continue; }
       if (b.kind === "zagat") { updateZagat(b); continue; }
       if (b.kind === "clovis") { updateClovis(b); continue; }
@@ -4179,6 +5052,262 @@
   // 自然にステージを進めたとき、次のステージに入る前に一度だけ見せる。各シーンは自動再生。
   // タップ／ジャンプで次のシーンへスキップできる。まるりんは通常のキャラ描画(drawPlayer)をそのまま動かす。
   const STORY_GROUND = 300;   // ムービー内の地面の高さ
+
+  // ===== ステージ3「本能寺の変」の まえの 紙芝居 =====
+  // 明智光秀が 兵に「時は今！」と 号令をかけるところへ、まるりんが 異次元から とび出してきて、
+  // そのまま「敵は本能寺にあり！」の おーっ！に 巻きこまれる——という 話。
+
+  // 夜の 陣地（空・遠くの 山・地面）
+  function storyCampBase() {
+    const g = ctx.createLinearGradient(0, 0, 0, STORY_GROUND);
+    g.addColorStop(0, "#080a1e");
+    g.addColorStop(0.55, "#151132");
+    g.addColorStop(1, "#2e1f36");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, STORY_GROUND);
+    for (let i = 0; i < 40; i++) {
+      const sx = (i * 197) % W, sy = (i * 83) % 150;
+      const tw = 0.4 + Math.sin(elapsed * 0.05 + i * 1.4) * 0.4;
+      ctx.fillStyle = "rgba(255,246,214," + (0.25 + tw * 0.45) + ")";
+      ctx.beginPath(); ctx.arc(sx, sy, 1 + tw, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = "rgba(255,240,200,0.13)";
+    ctx.beginPath(); ctx.arc(690, 58, 44, 0, 7); ctx.fill();
+    ctx.fillStyle = "#f6ecc6";
+    ctx.beginPath(); ctx.arc(690, 58, 24, 0, 7); ctx.fill();
+    ctx.fillStyle = "#151132";
+    ctx.beginPath(); ctx.arc(700, 52, 23, 0, 7); ctx.fill();
+    ctx.fillStyle = "#1a1630";
+    for (let i = 0; i < 6; i++) {
+      const mx = i * 165 - 40, mh = 70 + (i % 3) * 26;
+      ctx.beginPath();
+      ctx.moveTo(mx - 110, STORY_GROUND - 24);
+      ctx.lineTo(mx, STORY_GROUND - 24 - mh);
+      ctx.lineTo(mx + 110, STORY_GROUND - 24);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = "#3b2f2a"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
+    ctx.fillStyle = "#4a3b33"; ctx.fillRect(0, STORY_GROUND, W, 8);
+  }
+  // 陣地の たいまつ
+  function storyCampTorches(f, xs) {
+    for (const x of xs) {
+      ctx.strokeStyle = "#3d3028"; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(x, STORY_GROUND); ctx.lineTo(x, STORY_GROUND - 76); ctx.stroke();
+      const fh = 20 + Math.sin(f * 0.24 + x * 0.05) * 7;
+      ctx.fillStyle = "rgba(255,150,60,0.16)";
+      ctx.beginPath(); ctx.arc(x, STORY_GROUND - 84, 52, 0, 7); ctx.fill();
+      ctx.fillStyle = "rgba(255,170,60,0.95)";
+      ctx.beginPath(); ctx.moveTo(x - 9, STORY_GROUND - 76); ctx.quadraticCurveTo(x, STORY_GROUND - 76 - fh, x + 9, STORY_GROUND - 76); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "rgba(255,240,190,0.92)";
+      ctx.beginPath(); ctx.moveTo(x - 4.5, STORY_GROUND - 76); ctx.quadraticCurveTo(x, STORY_GROUND - 76 - fh * 0.6, x + 4.5, STORY_GROUND - 76); ctx.closePath(); ctx.fill();
+    }
+  }
+  // 足軽の 列（かげ絵。raise=1 で 槍を 高く つき上げる）
+  function storyTroops(f, x0, x1, face, raise) {
+    const n = Math.max(2, Math.round((x1 - x0) / 46));
+    for (let i = 0; i < n; i++) {
+      const x = x0 + i * ((x1 - x0) / (n - 1 || 1));
+      const back = i % 2;
+      const sc = back ? 0.82 : 1;
+      const y = STORY_GROUND - (back ? 8 : 0);
+      const bob = Math.sin(f * 0.16 + i * 1.1) * (raise ? 3.5 : 1.2);
+      ctx.save();
+      ctx.translate(x, y - bob);
+      ctx.scale(face * sc, sc);
+      ctx.fillStyle = back ? "#171426" : "#221d33";
+      ctx.beginPath(); ctx.ellipse(0, -22, 11, 22, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, -50, 8, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-15, -54); ctx.lineTo(0, -66); ctx.lineTo(15, -54); ctx.closePath(); ctx.fill();
+      // 槍：たいまつの あかりで うっすら 見えるように 明るめの色にする
+      ctx.strokeStyle = back ? "#3a3350" : "#4d445f"; ctx.lineWidth = 3.2; ctx.lineCap = "round";
+      const tipX = raise ? 13 : 26, tipY = raise ? -108 : -78;
+      ctx.beginPath();
+      ctx.moveTo(raise ? 9 : 9, raise ? -30 : -18); ctx.lineTo(tipX, tipY);
+      ctx.stroke();
+      ctx.fillStyle = back ? "#8f8aa4" : "#b9b3c8";           // 穂先（きらり）
+      ctx.beginPath();
+      ctx.moveTo(tipX - 3, tipY + 4); ctx.lineTo(tipX + 1, tipY - 9); ctx.lineTo(tipX + 4, tipY + 3);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+  }
+  // 明智光秀（arm=0 ふつう／1 采配を あげる）
+  function storyMitsuhide(f, cx, arm) {
+    const by = STORY_GROUND;
+    ctx.save();
+    ctx.translate(cx, by);
+    ctx.scale(1.4, 1.4);          // 兵より ひとまわり 大きく（主役）
+    ctx.fillStyle = "#2b2438";
+    ctx.beginPath();
+    ctx.moveTo(-22, -6); ctx.quadraticCurveTo(-26, -46, -14, -62);
+    ctx.lineTo(14, -62); ctx.quadraticCurveTo(26, -46, 22, -6);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#5c2b30";
+    ctx.beginPath();
+    ctx.moveTo(-12, -8); ctx.quadraticCurveTo(-14, -44, -6, -60);
+    ctx.lineTo(6, -60); ctx.quadraticCurveTo(14, -44, 12, -8);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#e0c096";
+    ctx.beginPath(); ctx.ellipse(2, -74, 11, 12, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#241d18";
+    ctx.beginPath(); ctx.ellipse(6, -76, 2, 2.6, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-2, -76, 2, 2.6, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#1e1e28";
+    ctx.beginPath(); ctx.ellipse(2, -84, 17, 12, 0, Math.PI, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#141420";
+    ctx.beginPath(); ctx.ellipse(2, -84, 19, 3.4, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#d9b23f";
+    for (const s2 of [-1, 1]) {
+      ctx.save(); ctx.translate(2 + s2 * 7, -88); ctx.scale(s2, 1); ctx.rotate(-0.2);
+      ctx.beginPath();
+      ctx.moveTo(-2.4, 2); ctx.lineTo(-2, -18); ctx.lineTo(-5, -23); ctx.lineTo(-2, -27);
+      ctx.lineTo(1, -25); ctx.lineTo(2.4, -18); ctx.lineTo(2.4, 2);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    ctx.strokeStyle = "#e0c096"; ctx.lineWidth = 6; ctx.lineCap = "round";
+    if (arm) {
+      const sh = Math.sin(f * 0.5) * 3;
+      ctx.beginPath(); ctx.moveTo(14, -52); ctx.lineTo(34, -104 + sh); ctx.stroke();
+      ctx.strokeStyle = "#3b3128"; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(34, -104 + sh); ctx.lineTo(40, -124 + sh); ctx.stroke();
+      ctx.strokeStyle = "#f2ead2"; ctx.lineWidth = 2.4;
+      for (let i = -2; i <= 2; i++) {
+        ctx.beginPath(); ctx.moveTo(40, -124 + sh); ctx.lineTo(40 + i * 6, -146 + sh + Math.abs(i) * 4); ctx.stroke();
+      }
+    } else {
+      ctx.beginPath(); ctx.moveTo(14, -52); ctx.lineTo(30, -34); ctx.stroke();
+      ctx.strokeStyle = "#3b3128"; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(30, -34); ctx.lineTo(36, -54); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  // さけび（大きな 文字が ドンと 出る）
+  function storyShout(text, cx, cy, k, color) {
+    const pop = Math.min(1, Math.max(0, k) * 5);
+    const sc = 0.6 + pop * 0.4;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(sc, sc);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.lineJoin = "round";
+    ctx.font = "bold 42px sans-serif";
+    ctx.strokeStyle = "rgba(20,10,6,0.9)"; ctx.lineWidth = 10;
+    ctx.strokeText(text, 0, 0);
+    ctx.fillStyle = color || "#ffd85e";
+    ctx.fillText(text, 0, 0);
+    ctx.restore();
+  }
+  // 「おーっ！」の ふきだし
+  function storyOh(x, y, k) {
+    const a = Math.max(0, Math.min(1, k * 4));
+    if (a <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(x, y - a * 10);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = "bold 17px sans-serif";
+    ctx.strokeStyle = "rgba(20,10,6,0.85)"; ctx.lineWidth = 5; ctx.lineJoin = "round";
+    ctx.strokeText("おーっ！", 0, 0);
+    ctx.fillStyle = "#ffe9a8";
+    ctx.fillText("おーっ！", 0, 0);
+    ctx.restore();
+  }
+
+  // (1) ゲドルフを たおして まほうの国に へいわが もどる
+  function sceneHonWin(f, dur) {
+    storyNightSky();
+    storyFarTower(560, STORY_GROUND, 1, f);
+    ctx.fillStyle = "#2b2450"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
+    ctx.fillStyle = "#3a3168"; ctx.fillRect(0, STORY_GROUND, W, 8);
+    storyFairy(300, 150, f);
+    storyMaru(250, STORY_GROUND, 1, false);
+    for (let i = 0; i < 14; i++) {
+      const a = f * 0.05 + i, rr = 40 + (f * 1.6 + i * 24) % 110;
+      ctx.globalAlpha = Math.max(0, 1 - rr / 150) * 0.9;
+      ctx.fillStyle = i % 2 ? "#fff3b0" : "#bfe4ff";
+      ctx.beginPath(); ctx.arc(250 + Math.cos(a) * rr, STORY_GROUND - 30 + Math.sin(a) * rr * 0.6, 3, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    void dur;
+  }
+  // (2) ようせいが つぎの とびらを ひらく
+  function sceneHonGate(f, dur) {
+    storyNightSky();
+    ctx.fillStyle = "#2b2450"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
+    ctx.fillStyle = "#3a3168"; ctx.fillRect(0, STORY_GROUND, W, 8);
+    const k = Math.min(1, f / (dur * 0.6));
+    storyWarp(540, 150, 20 + k * 74, f);
+    storyFairy(430, 118, f);
+    storyMaru(300, STORY_GROUND, 1, false);
+  }
+  // (3) 出た先は 夜の 陣地。光秀が 兵の前に 立っている
+  function sceneHonCamp(f, dur) {
+    storyCampBase();
+    storyCampTorches(f, [70, 250, 470, 690]);
+    storyTroops(f, 430, 760, -1, 0);
+    storyMitsuhide(f, 300, 0);
+    void dur;
+  }
+  // (4) 「時は今！」——そこへ まるりんが 異次元から とび出す
+  function sceneHonToki(f, dur) {
+    storyCampBase();
+    storyCampTorches(f, [70, 250, 470, 690]);
+    storyTroops(f, 430, 760, -1, 0);
+    storyMitsuhide(f, 300, 1);
+    const k = f / dur;
+    if (k > 0.12) storyShout("時は今！", 320, 92, k - 0.12, "#ffd85e");
+    const wk = Math.max(0, Math.min(1, (k - 0.3) / 0.25));
+    if (wk > 0) storyWarp(140, STORY_GROUND - 62, 18 + wk * 40, f);
+    if (k > 0.45) {
+      const pop = Math.min(1, (k - 0.45) / 0.2);
+      storyMaru(140, STORY_GROUND - 62 * (1 - pop), 1, false);
+      if (k > 0.62) {
+        ctx.save();
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.font = "bold 20px sans-serif";
+        ctx.strokeStyle = "rgba(20,10,6,0.85)"; ctx.lineWidth = 5; ctx.lineJoin = "round";
+        ctx.strokeText("え？", 140, STORY_GROUND - 96);
+        ctx.fillStyle = "#ffffff"; ctx.fillText("え？", 140, STORY_GROUND - 96);
+        ctx.restore();
+      }
+    }
+  }
+  // (5) 「敵は本能寺にあり！」——兵が 槍を つき上げて おーっ！
+  function sceneHonTeki(f, dur) {
+    storyCampBase();
+    storyCampTorches(f, [70, 250, 470, 690]);
+    const k = f / dur;
+    const raise = k > 0.35 ? 1 : 0;
+    storyTroops(f, 430, 760, -1, raise);
+    storyMitsuhide(f, 300, 1);
+    storyMaru(140, STORY_GROUND, 1, false);
+    if (k > 0.08) storyShout("敵は本能寺にあり！", 400, 78, k - 0.08, "#ff9d4a");
+    if (raise) {
+      for (let i = 0; i < 4; i++) storyOh(470 + i * 92, 176, (k - 0.4) * 3 - i * 0.15);
+    }
+  }
+  // (6) まるりんも つられて おーっ！——そのまま 本能寺へ
+  function sceneHonJoin(f, dur) {
+    storyCampBase();
+    storyCampTorches(f, [70, 250, 470, 690]);
+    const k = f / dur;
+    storyTroops(f, 400, 760, -1, 1);
+    storyMitsuhide(f, 300, 1);
+    const hop = Math.abs(Math.sin(f * 0.16)) * 14;
+    storyMaru(140, STORY_GROUND - hop, 1, false);
+    storyOh(140, STORY_GROUND - 104 - hop, k * 3);
+    for (let i = 0; i < 4; i++) storyOh(470 + i * 92, 176, k * 3 - i * 0.12);
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.45, k * 0.6);
+    const gg = ctx.createLinearGradient(0, 0, 0, STORY_GROUND);
+    gg.addColorStop(0, "rgba(255,80,20,0)");
+    gg.addColorStop(1, "rgba(255,120,40,0.75)");
+    ctx.fillStyle = gg; ctx.fillRect(0, 0, W, STORY_GROUND);
+    ctx.restore();
+    void dur;
+  }
+
   const STORIES = {
     opening: {   // ステージ1のまえ（はじめから のときだけ）＝世界編のつづき
       audio: OPENING_BGM,   // オープニング専用の曲（フィヨルドの澄んだ風）
@@ -4202,6 +5331,18 @@
         { dur: 260, act: sceneMagicLand,  lines: ["ついたのは “まほうの国”。", "「あの塔の てっぺんに つぎの スキルが あるよ。」"] },
         { dur: 250, act: sceneTowerWizard,lines: ["「でも 塔のぬしの 大まどうしが、", "だれも 通さないって……。」"] },
         { dur: 240, act: sceneTowerNight, lines: ["日が くれて、まるりんは 塔の ふもとに 着きました。", "さあ、てっぺんまで のぼろう！"] }
+      ]
+    },
+    2: {   // ステージ3「本能寺の変」の前
+      // 1ステージ＝ひとつの異世界。まほうの国から 異次元を くぐって 戦国の世へ。
+      audio: STORY3_BGM,   // uchiagehanabi（和風）
+      scenes: [
+        { dur: 230, act: sceneHonWin,  lines: ["ゲドルフを たおして、", "まほうの国に へいわが もどりました。"] },
+        { dur: 250, act: sceneHonGate, lines: ["「つぎの せかいへ いこう。」", "ようせいが また 空に とびらを えがきます。"] },
+        { dur: 250, act: sceneHonCamp, lines: ["とびらを くぐった 先は——よるの じんち。", "たいまつの 前に、ひとりの ぶしょうが 立っていました。"] },
+        { dur: 300, act: sceneHonToki, lines: ["「ときは いま！」", "——ちょうど その とき、まるりんが とび出しました。"] },
+        { dur: 300, act: sceneHonTeki, lines: ["「てきは ほんのうじに あり！」", "へいたちが やりを つき上げて さけびます。"] },
+        { dur: 280, act: sceneHonJoin, lines: ["つられて まるりんも「おーっ！」", "そのまま みんなと 本能寺へ！"] }
       ]
     },
     ending: {   // 世界編フィナーレ（ドランプ撃破後・ボスBGMではなくエンディング曲）
@@ -4447,6 +5588,36 @@
       ctx.beginPath(); ctx.arc(mx - 15, my - 11, 9, 0, 7); ctx.fill();
       ctx.beginPath(); ctx.arc(mx + 13, my + 6, 12, 0, 7); ctx.fill();
       ctx.beginPath(); ctx.arc(mx - 6, my + 20, 6, 0, 7); ctx.fill();
+    } else if (theme === "honnoji") {
+      // 本能寺の変：真夜中。下のほうが 火事の あかりで 赤い
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#080a1e");
+      g.addColorStop(0.42, "#1b1330");
+      g.addColorStop(0.72, "#4a1f27");
+      g.addColorStop(1, "#8d3a20");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      // 星（火の あかりで 下のほうは 見えない）
+      for (let i = 0; i < 26; i++) {
+        const sx = ((i * 197 + 30 - camX * 0.05) % (W + 60) + W + 60) % (W + 60) - 30;
+        const sy = ((i * 113 + 15 - camY * 0.04) % 200 + 200) % 200 - 20;
+        const tw = 0.5 + Math.sin(elapsed * 0.05 + i * 1.7) * 0.5;
+        ctx.fillStyle = "rgba(255,244,214," + (0.25 + tw * 0.4) + ")";
+        ctx.beginPath(); ctx.arc(sx, sy, 0.9 + tw, 0, 7); ctx.fill();
+      }
+      // 細い月
+      const mx = 120 - camX * 0.02, my = 62 - camY * 0.02;
+      ctx.fillStyle = "rgba(255,240,200,0.14)";
+      ctx.beginPath(); ctx.arc(mx, my, 40, 0, 7); ctx.fill();
+      ctx.fillStyle = "#f6ecc6";
+      ctx.beginPath(); ctx.arc(mx, my, 22, 0, 7); ctx.fill();
+      ctx.fillStyle = "#1b1330";
+      ctx.beginPath(); ctx.arc(mx + 9, my - 5, 21, 0, 7); ctx.fill();
+      // 火事の照り返し（画面の下がわが ゆらゆら 明るくなる）
+      const fl = 0.5 + Math.sin(elapsed * 0.06) * 0.16 + Math.sin(elapsed * 0.17) * 0.08;
+      const gg = ctx.createLinearGradient(0, H * 0.45, 0, H);
+      gg.addColorStop(0, "rgba(255,120,40,0)");
+      gg.addColorStop(1, "rgba(255,140,50," + (0.20 * fl + 0.12) + ")");
+      ctx.fillStyle = gg; ctx.fillRect(0, H * 0.45, W, H * 0.55);
     } else if (theme === "town") {
       // 街の空（少しやわらかい水色）
       const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -4494,6 +5665,7 @@
     else if (theme === "rpg") drawRpgDecor();
     else if (theme === "fantasy") drawFantasyDecor();
     else if (theme === "tower") drawTowerDecor();
+    else if (theme === "honnoji") drawHonnojiDecor();
     drawSolids();
     drawGoos();
     drawCircles();      // まほうじん（地面の上に広がる光）
@@ -4518,6 +5690,7 @@
     drawCukes();
     drawHazards();
     drawParticles();
+    if (afterimages.length) drawAfterimages();     // しゅくちぎりの ざんぞう（まるりんより奥）
     if (warpFx && warpFx.t > 0 && !inBoss) drawWarpPortal();
     if (state !== "gameover") {
       if (player.warpIn > 0) {
@@ -4530,6 +5703,9 @@
         drawPlayer();
       }
     }
+    if (slashes.length) drawSlashes();             // 斬りのきらめき（まるりんより手前）
+    if (player.diveFx > 0) drawDiveShock();        // かぶとわりの 着地しょうげき
+    if (isSamuraiForm()) drawChargeGauge();        // しゅくちぎりの ためゲージ
 
     ctx.restore();
 
@@ -4843,9 +6019,252 @@
     ctx.restore();
   }
 
+  // ===== ぶしスキルの絵 =====
+  // 斬りエフェクト：三日月のような きらめきが スッと消える
+  function drawSlashes() {
+    for (const s of slashes) {
+      const k = s.t / s.life;                 // 0→1
+      const a = Math.max(0, 1 - k);
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.scale(s.face, 1);
+      if (s.up) ctx.rotate(-0.62);            // つばめがえしは ななめ上へ
+      const R = (s.up ? 50 : 40) * (0.55 + k * 0.75);
+      ctx.globalAlpha = a * 0.95;
+      ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 7 * (1 - k * 0.6); ctx.lineCap = "round";
+      ctx.beginPath(); ctx.arc(6, 0, R, -1.05, 1.05); ctx.stroke();
+      ctx.globalAlpha = a * 0.55;
+      ctx.strokeStyle = "#bfe4ff"; ctx.lineWidth = 13 * (1 - k * 0.6);
+      ctx.beginPath(); ctx.arc(6, 0, R, -0.85, 0.85); ctx.stroke();
+      ctx.restore();
+    }
+  }
+  // かぶとわりの 着地しょうげき：足元から 白い波が ひろがる
+  function drawDiveShock() {
+    const p = player;
+    const k = 1 - p.diveFx / 18;               // 0→1
+    ctx.save();
+    ctx.globalAlpha = (1 - k) * 0.9;
+    ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1 + 4 * (1 - k);
+    const r = 20 + k * 72;
+    ctx.beginPath(); ctx.ellipse(p.x + p.w/2, p.y + p.h - 2, r, r * 0.32, 0, Math.PI, 0); ctx.stroke();
+    ctx.globalAlpha = (1 - k) * 0.4;
+    ctx.strokeStyle = "#ffe9a8"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(p.x + p.w/2, p.y + p.h - 2, r * 0.62, r * 0.2, 0, Math.PI, 0); ctx.stroke();
+    ctx.restore();
+  }
+  // しゅくちぎりの ざんぞう：通ってきた道に 白いシルエットが のこる
+  function drawAfterimages() {
+    for (const a of afterimages) {
+      const k = 1 - a.t / 14;
+      ctx.save();
+      ctx.globalAlpha = 0.30 * k;
+      ctx.fillStyle = "#eaf6ff";
+      ctx.beginPath();
+      ctx.ellipse(a.x + a.w/2, a.y + a.h/2, a.w * 0.52, a.h * 0.60, 0, 0, 7);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+  // しゅくちぎりの ためゲージ：あたまの上に たまっていく（どこまで飛べるか ひと目でわかるように）
+  function drawChargeGauge() {
+    const p = player;
+    if (!chargingHold() || abilCharge <= 0) return;
+    const k = Math.max(0, Math.min(1, (abilCharge - SHUKU_MIN) / (SHUKU_MAX - SHUKU_MIN)));
+    const ready = abilCharge >= SHUKU_MIN;
+    const bw = 46, bh = 7, bx = p.x + p.w/2 - bw/2, by = p.y - 20;
+    ctx.save();
+    ctx.fillStyle = "rgba(20,24,36,0.62)";
+    roundRectPath(bx - 1.5, by - 1.5, bw + 3, bh + 3, 4); ctx.fill();
+    const g = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+    g.addColorStop(0, ready ? "#bfe4ff" : "#8a93a8");
+    g.addColorStop(1, ready ? "#ffffff" : "#aab3c4");
+    ctx.fillStyle = g;
+    roundRectPath(bx, by, Math.max(3, bw * (abilCharge / SHUKU_MAX)), bh, 3); ctx.fill();
+    if (abilCharge >= SHUKU_MAX) {          // 満タン：きらっと光る
+      ctx.globalAlpha = 0.45 + Math.sin(p.animT * 0.5) * 0.35;
+      ctx.strokeStyle = "#fff7c4"; ctx.lineWidth = 2;
+      roundRectPath(bx - 2, by - 2, bw + 4, bh + 4, 4); ctx.stroke();
+    }
+    ctx.restore();
+    void k;
+  }
+  // さむらいまるりん：陣羽織（からだの うしろ・そとは 紺、裏は 赤）
+  function drawSamuraiCoat(p, run, airborne) {
+    const flow = (run ? 6 : 0) + (airborne ? 5 : 0) + Math.sin(p.animT * 0.12) * 2;
+    ctx.save();
+    ctx.fillStyle = "#2b3150";
+    ctx.beginPath();
+    ctx.moveTo(-6, -14);
+    ctx.quadraticCurveTo(-29 - flow, -6, -27 - flow * 1.3, 19);
+    ctx.quadraticCurveTo(-14, 13, 2, 17);       // すそは 体の下からも のぞく
+    ctx.quadraticCurveTo(-1, 0, -6, -14);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#b23a2e";                  // 裏地（赤）
+    ctx.beginPath();
+    ctx.moveTo(-6, -14);
+    ctx.quadraticCurveTo(-21 - flow * 0.7, -5, -19 - flow, 14);
+    ctx.quadraticCurveTo(-10, 10, -2, 14);
+    ctx.closePath(); ctx.fill();
+    // えり（きなり色）
+    ctx.fillStyle = "#e8e2d0";
+    ctx.beginPath(); ctx.ellipse(-4, -12, 6.5, 3, -0.3, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+  // さむらいまるりん：はちまき・刀（からだの 手前）
+  function drawSamuraiGear(p, run, airborne) {
+    const guarding = p.guardT > 0, charging = chargingHold(), cutting = p.cut > 0;
+    // ---- かぶと（兜）：しころ（首の たれ）→ 鉢（ドーム）→ 眉庇 → 大鍬形と 花の前立て ----
+    // ※兜は 頭に しっかり かぶっているので ゆらさない（ゆらすと 頭の上で ぷかぷか 浮いて 見える）。
+    // ※目が かくれないように、かぶとは まゆの上（y=-17）より 上だけに おさめる。
+    ctx.save();
+    ctx.translate(0, -17);
+    const GOLD = "#d9b23f", GOLD_HI = "#f3d878", BLACK = "#20242e";
+    // しころ（首まわりの たれ）：下に すこし 広がる
+    ctx.fillStyle = BLACK;
+    ctx.beginPath();
+    ctx.moveTo(-12, -2);
+    ctx.quadraticCurveTo(-16, 2, -15, 7);
+    ctx.lineTo(13, 7);
+    ctx.quadraticCurveTo(14, 2, 12, -2);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.10)"; ctx.lineWidth = 0.9;
+    ctx.beginPath(); ctx.moveTo(-15, 3); ctx.lineTo(13.5, 3); ctx.stroke();
+    // 吹返し（ふきかえし）＝ 耳のあたりで 左右に 大きく そりあがる 板。
+    // ここが 無いと ただの ぼうしに 見えてしまう（兜の いちばんの 目じるし）。
+    for (const s2 of [-1, 1]) {
+      ctx.save();
+      ctx.translate(s2 * 10, 1);
+      ctx.scale(s2, 1);
+      ctx.rotate(-0.46);                 // 外へ ななめ上に そらす
+      ctx.beginPath();
+      ctx.moveTo(0, -5.5);
+      ctx.lineTo(11.5, -7.5);
+      ctx.quadraticCurveTo(14.5, -1.5, 12.5, 4.5);
+      ctx.lineTo(0, 6);
+      ctx.closePath();
+      ctx.fillStyle = BLACK; ctx.fill();
+      ctx.strokeStyle = GOLD; ctx.lineWidth = 2.1; ctx.lineJoin = "round"; ctx.stroke();
+      ctx.fillStyle = GOLD;              // 板のうえの 小さな 金の紋
+      ctx.beginPath(); ctx.arc(7, -1, 2.2, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+    // 鉢（兜の本体・黒）
+    ctx.fillStyle = BLACK;
+    ctx.beginPath(); ctx.ellipse(0, 0, 15.5, 10.5, 0, Math.PI, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#31363f";                                       // 光の当たるところ
+    ctx.beginPath(); ctx.ellipse(-3, -0.5, 10, 7.2, 0, Math.PI, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.16)";
+    ctx.beginPath(); ctx.ellipse(-6, -3.5, 4, 2.6, -0.5, 0, 7); ctx.fill();
+    // 眉庇（まびさし）＝ ひさし。ふちが 金
+    ctx.fillStyle = BLACK;
+    ctx.beginPath(); ctx.ellipse(1, 0, 16, 3, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = GOLD;
+    ctx.beginPath(); ctx.ellipse(1, 1.4, 16, 1.3, 0, 0, 7); ctx.fill();
+    // 大鍬形（おおくわがた）＝ 金の つの2本。上へ ぐんと のびて 先が 外へ ひらく
+    for (const s2 of [-1, 1]) {
+      ctx.save();
+      ctx.translate(2 + s2 * 6.2, -3);
+      ctx.rotate(s2 * 0.16);
+      ctx.fillStyle = GOLD;
+      ctx.beginPath();
+      ctx.moveTo(-2.3, 1);
+      ctx.lineTo(-2.0, -14);
+      ctx.lineTo(-4.8, -18);        // 先が 外へ ひらく（くわがたの つの）
+      ctx.lineTo(-2.4, -21.5);
+      ctx.lineTo(0.8, -19.5);
+      ctx.lineTo(2.2, -14.5);
+      ctx.lineTo(2.3, 1);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = GOLD_HI;      // 内がわの ハイライト
+      ctx.beginPath();
+      ctx.moveTo(-0.9, 0.4); ctx.lineTo(-0.7, -14); ctx.lineTo(-2.6, -17.9);
+      ctx.lineTo(-1.3, -19.7); ctx.lineTo(0.2, -18.2); ctx.lineTo(0.9, -14.3); ctx.lineTo(1.0, 0.4);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    // 前立ての 花の紋（金の 五弁の花）
+    ctx.fillStyle = GOLD;
+    ctx.beginPath(); ctx.ellipse(2, -6.5, 7.5, 3.6, 0, 0, 7); ctx.fill();   // 花を のせる 金の板
+    for (let i = 0; i < 5; i++) {
+      const a2 = -Math.PI / 2 + i * Math.PI * 0.4;
+      ctx.fillStyle = GOLD_HI;
+      ctx.beginPath(); ctx.arc(2 + Math.cos(a2) * 3.1, -6.8 + Math.sin(a2) * 3.1, 2.3, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = "#8a6b1e";
+    ctx.beginPath(); ctx.arc(2, -6.8, 1.5, 0, 7); ctx.fill();
+    ctx.restore();
+    // ---- 刀（かまえ・ため・斬りで もちかたが かわる）----
+    ctx.save();
+    let sheathed = true, len = 22;
+    const clinging = p.wallSlide > 0 && !p.onGround;
+    if (clinging)      { ctx.translate(9, 8);    ctx.rotate(0.06);  sheathed = false; len = 28; }  // 刀を かべに 突き立てて ぶら下がる
+    else if (p.dive > 0){ ctx.translate(9, 5);   ctx.rotate(1.5);   sheathed = false; len = 30; }  // 刀を 下にむけて 急降下
+    else if (guarding) { ctx.translate(19, 2);  ctx.rotate(-1.5);  sheathed = false; len = 26; }  // 体の前に たてに 構える
+    else if (cutting)  { ctx.translate(15, 2);  ctx.rotate(p.cutUp ? -1.85 : -0.3); sheathed = false; len = 28; }
+    else if (charging) { ctx.translate(2, 9);   ctx.rotate(3.38); }   // 鞘に おさめて 腰だめ（居合のかまえ）
+    else               { ctx.translate(-1, 9);  ctx.rotate(3.32); }   // ふだんは 腰にさしている（うしろへ ななめ上）
+    // つか（黒）→ つば → 刀身
+    ctx.strokeStyle = "#26262e"; ctx.lineWidth = 3.2; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(7, 0); ctx.stroke();
+    ctx.strokeStyle = "#c9a24a"; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(8.4, -3); ctx.lineTo(8.4, 3); ctx.stroke();
+    if (sheathed) {
+      ctx.strokeStyle = "#1f2430"; ctx.lineWidth = 4;               // 黒い鞘
+      ctx.beginPath(); ctx.moveTo(10, 0); ctx.quadraticCurveTo(16, -1, len, -2.6); ctx.stroke();
+    } else {
+      ctx.strokeStyle = "#dfeaf7"; ctx.lineWidth = 2.8;             // 抜き身
+      ctx.beginPath(); ctx.moveTo(10, 0); ctx.quadraticCurveTo(18, -1.4, len, -4); ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(11, -1.1); ctx.quadraticCurveTo(18, -2.4, len - 1, -4.8); ctx.stroke();
+    }
+    ctx.restore();
+    // かべに しがみついているとき：前足を かべに つき、刀のささり口から 火花
+    if (p.wallSlide > 0 && !p.onGround) {
+      // かべに 手をつく（宙に うかんで 見えないように）。顔に かからないよう 外がわに 出す
+      ctx.strokeStyle = "#f6e2c0"; ctx.lineWidth = 4.6; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(15, 6); ctx.lineTo(21, 2); ctx.stroke();
+      ctx.fillStyle = "#f6e2c0";
+      ctx.strokeStyle = "rgba(120,95,70,0.55)"; ctx.lineWidth = 0.9;   // ほっぺと 区別がつくように ふちどり
+      ctx.beginPath(); ctx.ellipse(22, 1.5, 4, 4.6, -0.35, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#f0bd98";
+      ctx.beginPath(); ctx.arc(22.8, 2, 1.6, 0, 7); ctx.fill();
+      // 刀の ささり口から 火花
+      ctx.save();
+      ctx.globalAlpha = 0.5 + Math.sin(p.animT * 0.7) * 0.3;
+      ctx.strokeStyle = "#ffe9a8"; ctx.lineWidth = 1.4; ctx.lineCap = "round";
+      for (let i = 0; i < 3; i++) {
+        const a3 = -0.5 + i * 0.5;
+        ctx.beginPath(); ctx.moveTo(21, 8); ctx.lineTo(21 + Math.cos(a3) * 7, 8 + Math.sin(a3) * 7); ctx.stroke();
+      }
+      ctx.restore();
+    }
+    // かまえが 決まった瞬間の きらめき
+    if (p.guardFx > 0) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, p.guardFx / 14) * 0.85;
+      ctx.strokeStyle = "#fff7c4"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(12, 0, 18 + (14 - p.guardFx) * 1.4, -1.1, 1.1); ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   function drawSeeds() {
     for (const sd of seeds) {
       if (sd.magic) { drawMagicOrb(sd); continue; }
+      if (sd.cut) {   // うけながしで 撃ち返した たま（銀色に 回りながら 飛ぶ）
+        ctx.save();
+        ctx.translate(sd.x, sd.y);
+        ctx.rotate(sd.t * 0.7);
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = "#bfe4ff";
+        ctx.beginPath(); ctx.ellipse(0, 0, 13, 4.5, 0, 0, 7); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath(); ctx.ellipse(0, 0, 8, 3, 0, 0, 7); ctx.fill();
+        ctx.restore();
+        continue;
+      }
       ctx.save();
       ctx.translate(sd.x, sd.y);
       ctx.rotate(sd.t * 0.5);
@@ -4997,6 +6416,22 @@
         ctx.strokeRect(s.x + 1, s.y + 1, s.w - 2, s.h - 2);
         continue;
       }
+      if (s.type === "stone" && theme === "honnoji") {
+        // 本能寺：築地塀（ついじべい）＝白いかべ＋こげ茶の 木のわく。屋根がわは 瓦。
+        ctx.fillStyle = "#cbbca4"; ctx.fillRect(s.x, s.y, s.w, s.h);
+        ctx.fillStyle = "#b9a88d";
+        ctx.fillRect(s.x + 3, s.y + 3, s.w - 6, s.h - 6);
+        ctx.strokeStyle = "#4b3a2c"; ctx.lineWidth = 3;              // 木のわく
+        ctx.strokeRect(s.x + 1.5, s.y + 1.5, s.w - 3, s.h - 3);
+        ctx.strokeStyle = "rgba(75,58,44,0.55)"; ctx.lineWidth = 1.6; // 横の すじ
+        ctx.beginPath(); ctx.moveTo(s.x + 3, s.y + s.h/2); ctx.lineTo(s.x + s.w - 3, s.y + s.h/2); ctx.stroke();
+        if (!isSolidAt(s.x, s.y - TILE)) {                            // いちばん上は 瓦
+          ctx.fillStyle = "#2f2f3a"; ctx.fillRect(s.x - 2, s.y - 5, s.w + 4, 9);
+          ctx.fillStyle = "#43434f"; ctx.fillRect(s.x - 2, s.y - 5, s.w + 4, 3);
+          ctx.fillStyle = "rgba(255,140,60,0.35)"; ctx.fillRect(s.x - 2, s.y - 5, s.w + 4, 1.5);
+        }
+        continue;
+      }
       if (s.type === "stone") {
         // こわせない石ブロック（足場）
         ctx.fillStyle = "#9fa8b8"; ctx.fillRect(s.x, s.y, s.w, s.h);
@@ -5110,6 +6545,17 @@
         if (!isSolidAt(s.x, s.y - TILE)) {
           ctx.fillStyle = "#6d5f9c"; ctx.fillRect(s.x, s.y, s.w, 6);
           ctx.fillStyle = "#8b7bc0"; ctx.fillRect(s.x, s.y, s.w, 3);
+        }
+      } else if (s.type === "ground" && theme === "honnoji") {
+        // 本能寺：黒っぽい 石だたみ。上面は 火の あかりで オレンジに ふちどられる
+        ctx.fillStyle = "#3a3038"; ctx.fillRect(s.x, s.y, s.w, s.h);
+        ctx.fillStyle = "#332a31";
+        for (let i=0;i<2;i++) for(let j=0;j<2;j++) ctx.fillRect(s.x+5+i*17, s.y+6+j*16, 14, 12);
+        ctx.strokeStyle = "rgba(16,12,16,0.55)"; ctx.lineWidth = 1;
+        ctx.strokeRect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);
+        if (!isSolidAt(s.x, s.y - TILE)) {
+          ctx.fillStyle = "#5a4a44"; ctx.fillRect(s.x, s.y, s.w, 6);
+          ctx.fillStyle = "#c96a34"; ctx.fillRect(s.x, s.y, s.w, 2.5);   // 火のふちどり
         }
       } else if (s.type === "ground" && theme === "fantasy") {
         // ファンタジー：紫がかった土＋ミントグリーンのまほうの草
@@ -5272,6 +6718,7 @@
     if (theme === "america") { drawWhiteHouseGoal(gl); return; }
     if (theme === "rpg") { drawPortalGoal(gl); return; }
     if (theme === "tower") { drawCrystalGoal(gl); return; }
+    if (theme === "honnoji") { drawHonnojiGoal(gl); return; }
     const x = gl.x;
     // ポール
     ctx.fillStyle = "#cfcfcf"; ctx.fillRect(x-3, gl.top, 6, TILE*6);
@@ -5362,6 +6809,74 @@
   }
 
   // ゴール②：まほうの塔のてっぺん＝「大きなまほうのクリスタル」
+  // 本能寺のゴール＝燃えさかる 本堂の門。くぐると 信長のいる 奥へ すすむ。
+  function drawHonnojiGoal(gl) {
+    const x = gl.x, by = gl.top + TILE * 4;    // 門の足もと（Gタイルの4マス下）
+    const t = elapsed;
+    const flick = 0.6 + Math.sin(t * 0.09) * 0.22 + Math.sin(t * 0.23) * 0.12;
+    ctx.save();
+    // 奥の あかり（門の むこうが 燃えている）
+    const g = ctx.createRadialGradient(x, by - 70, 6, x, by - 70, 110);
+    g.addColorStop(0, "rgba(255,210,120," + (0.55 * flick) + ")");
+    g.addColorStop(0.5, "rgba(255,120,40," + (0.28 * flick) + ")");
+    g.addColorStop(1, "rgba(255,90,30,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x, by - 70, 110, 0, 7); ctx.fill();
+    // 門の おくの やみ
+    ctx.fillStyle = "#160f14";
+    ctx.fillRect(x - 30, by - 112, 60, 112);
+    // 中で ゆらぐ 炎
+    for (let i = 0; i < 3; i++) {
+      const fh = 46 + Math.sin(t * 0.11 + i * 2) * 16;
+      ctx.fillStyle = "rgba(255,140,44," + (0.5 + Math.sin(t * 0.14 + i) * 0.2) + ")";
+      ctx.beginPath();
+      ctx.moveTo(x - 22 + i * 22, by);
+      ctx.quadraticCurveTo(x - 12 + i * 22, by - fh, x - 2 + i * 22, by);
+      ctx.closePath(); ctx.fill();
+    }
+    // 柱（2本）
+    ctx.fillStyle = "#43312a";
+    ctx.fillRect(x - 42, by - 118, 13, 118);
+    ctx.fillRect(x + 29, by - 118, 13, 118);
+    ctx.fillStyle = "#573f34";
+    ctx.fillRect(x - 42, by - 118, 5, 118);
+    ctx.fillRect(x + 29, by - 118, 5, 118);
+    // かもい（横木）
+    ctx.fillStyle = "#3a2b24";
+    ctx.fillRect(x - 48, by - 126, 96, 12);
+    // 大屋根（そり）
+    ctx.fillStyle = "#20202a";
+    ctx.beginPath();
+    ctx.moveTo(x - 74, by - 126);
+    ctx.quadraticCurveTo(x - 26, by - 160, x, by - 166);
+    ctx.quadraticCurveTo(x + 26, by - 160, x + 74, by - 126);
+    ctx.quadraticCurveTo(x + 34, by - 136, x, by - 136);
+    ctx.quadraticCurveTo(x - 34, by - 136, x - 74, by - 126);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#2c2c38";                       // 瓦のすじ
+    for (let i = -3; i <= 3; i++) {
+      ctx.fillRect(x + i * 18 - 1.5, by - 152 + Math.abs(i) * 4, 3, 20 - Math.abs(i) * 2);
+    }
+    // 屋根の上の 炎
+    for (let i = -1; i <= 1; i++) {
+      const fh = 34 + Math.sin(t * 0.13 + i * 2.2) * 14;
+      ctx.fillStyle = "rgba(255,120,36," + (0.42 * flick + 0.18) + ")";
+      ctx.beginPath();
+      ctx.moveTo(x + i * 40 - 16, by - 150);
+      ctx.quadraticCurveTo(x + i * 40, by - 150 - fh, x + i * 40 + 16, by - 150);
+      ctx.closePath(); ctx.fill();
+    }
+    // 門札（「本能寺」）
+    ctx.fillStyle = "#d8cba8";
+    roundRectPath(x - 15, by - 122, 30, 22, 3); ctx.fill();
+    ctx.strokeStyle = "#7a6242"; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.fillStyle = "#2b2118";
+    ctx.font = "bold 9px 'Segoe UI', sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("本能寺", x, by - 111);
+    ctx.restore();
+  }
+
   function drawCrystalGoal(gl) {
     const x = gl.x, by = gl.top + TILE * 3;   // 台座の足もと（Gタイルの3マス下＝てっぺんの足場の上）
     const t = elapsed;
@@ -5957,6 +7472,81 @@
 
   // まほうの塔：外は夜の草原、中は大きな石づみのかべ＋アーチ窓＋浮かぶろうそく
   const TOWER_L = 24 * TILE, TOWER_R = 58 * TILE;   // 塔の左のかべ／右のかべ（ステージ2の作りに合わせた値）
+  // 本能寺の変：うしろに 燃えさかる 伽藍（お堂）、地面ぎわに 松明、空に 火の粉。
+  // ※この関数は カメラの中（ワールド座標）で 呼ばれる。画面のここに出したい、というものは
+  //   camX / camY を 足してから 描くこと（引くと 二重に ずれる）。
+  function drawHonnojiDecor() {
+    const gy = LEVEL_H - 80;                    // 地面の上面
+    const flick = 0.55 + Math.sin(elapsed * 0.07) * 0.2 + Math.sin(elapsed * 0.19) * 0.1;
+
+    // --- 遠くの お堂（ゆっくり流れる＝視差 0.28）---
+    for (let i = 0; i < 10; i++) {
+      const sx = (((i * 460 - camX * 0.28) % 4600) + 4600) % 4600 - 240;   // 画面上のx
+      if (sx < -260 || sx > W + 260) continue;
+      const bh = 116 + (i % 3) * 24;
+      ctx.save();
+      ctx.translate(camX + sx, camY + H * 0.80);      // 画面の下のほうに 立たせる
+      ctx.fillStyle = "#241f2b";
+      ctx.fillRect(-78, -bh, 156, bh + 130);
+      ctx.fillStyle = "#171420";                      // 大屋根（そり）
+      ctx.beginPath();
+      ctx.moveTo(-104, -bh);
+      ctx.quadraticCurveTo(-34, -bh - 40, 0, -bh - 46);
+      ctx.quadraticCurveTo(34, -bh - 40, 104, -bh);
+      ctx.quadraticCurveTo(52, -bh + 9, 0, -bh + 7);
+      ctx.quadraticCurveTo(-52, -bh + 9, -104, -bh);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "rgba(255,150,50," + (0.5 * flick + 0.28) + ")";     // 窓から もれる 火
+      for (let k = -2; k <= 2; k++) ctx.fillRect(k * 30 - 8, -bh + 30, 16, 24);
+      for (let k = -1; k <= 1; k++) {                                       // 立ちのぼる 炎
+        const fh = 54 + Math.sin(elapsed * 0.08 + i * 2 + k) * 20;
+        ctx.fillStyle = "rgba(255,110,36," + (0.28 * flick + 0.10) + ")";
+        ctx.beginPath();
+        ctx.moveTo(k * 52 - 24, -bh - 36);
+        ctx.quadraticCurveTo(k * 52, -bh - 36 - fh, k * 52 + 24, -bh - 36);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // --- けむり（空を もくもく 流れる）---
+    ctx.fillStyle = "rgba(40,32,40,0.26)";
+    for (let i = 0; i < 12; i++) {
+      const sx = (((i * 263 - camX * 0.16 + elapsed * 0.22) % (W + 300)) + W + 300) % (W + 300) - 150;
+      const sy = 30 + (i % 4) * 32 + Math.sin(elapsed * 0.02 + i) * 8;
+      ctx.beginPath();
+      ctx.ellipse(camX + sx, camY + sy, 58 + (i % 3) * 18, 24 + (i % 3) * 6, 0, 0, 7);
+      ctx.fill();
+    }
+
+    // --- 火の粉（下から 上へ 舞いあがる）---
+    for (let i = 0; i < 28; i++) {
+      const sp = 0.7 + (i % 5) * 0.22;
+      const sx = (((i * 173 - camX * 0.5) % (W + 80)) + W + 80) % (W + 80) - 40
+                 + Math.sin(elapsed * 0.05 + i) * 12;
+      const sy = (H + 100) - ((elapsed * sp + i * 97) % (H + 180));
+      const a = 0.35 + Math.sin(elapsed * 0.14 + i * 2.1) * 0.3;
+      if (a <= 0) continue;
+      ctx.fillStyle = "rgba(255," + (150 + (i % 4) * 24) + ",70," + a + ")";
+      ctx.beginPath(); ctx.arc(camX + sx, camY + sy, 1.2 + (i % 3) * 0.6, 0, 7); ctx.fill();
+    }
+
+    // --- 地面ぎわの 松明（ワールド座標。地面のうしろに 立っている）---
+    const x0 = Math.floor((camX - 160) / 200) * 200;
+    for (let x = x0; x < camX + W + 160; x += 200) {
+      if (x < 0 || x > LEVEL_W) continue;
+      ctx.strokeStyle = "#3d3028"; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(x, gy - 62); ctx.stroke();
+      const fh = 18 + Math.sin(elapsed * 0.22 + x * 0.05) * 6;
+      ctx.fillStyle = "rgba(255,150,60,0.13)";
+      ctx.beginPath(); ctx.arc(x, gy - 68, 46, 0, 7); ctx.fill();
+      ctx.fillStyle = "rgba(255,170,60,0.95)";
+      ctx.beginPath(); ctx.moveTo(x - 8, gy - 62); ctx.quadraticCurveTo(x, gy - 62 - fh, x + 8, gy - 62); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "rgba(255,240,190,0.92)";
+      ctx.beginPath(); ctx.moveTo(x - 4, gy - 62); ctx.quadraticCurveTo(x, gy - 62 - fh * 0.6, x + 4, gy - 62); ctx.closePath(); ctx.fill();
+    }
+  }
+
   function drawTowerDecor() {
     const gy = LEVEL_H - 80;                     // 外の地面の上面
     const vx0 = camX - 60, vx1 = camX + W + 60;
@@ -6236,6 +7826,8 @@
       if (e.kind === "bat")  { drawBat(e);  continue; }
       if (e.kind === "wisp") { drawWisp(e); continue; }
       if (e.kind === "shroom") { drawShroom(e); continue; }
+      if (e.kind === "ashigaru") { drawAshigaru(e); continue; }
+      if (e.kind === "gunner") { drawGunner(e); continue; }
       if (e.kind === "crystal") { drawCrystalOrb(e); continue; }
       if (e.kind === "hat") { drawFlyingHat(e); continue; }
       if (e.kind === "cat")  { drawCat(e);  continue; }
@@ -6738,6 +8330,8 @@
     for (const b of bosses) {
       if (b.kind === "kingslime") drawKingSlime(b);
       else if (b.kind === "wizard") drawWizardBoss(b);
+      else if (b.kind === "ranmaru") drawRanmaru(b);
+      else if (b.kind === "nobunaga") drawNobunaga(b);
       else if (b.kind === "pegi" || b.kind === "nisepegi") drawPenguinBoss(b);
       else if (b.kind === "sumo") drawSumoBoss(b);
       else if (b.kind === "mega") drawMegaBoss(b);
@@ -6746,6 +8340,235 @@
       else if (b.kind === "dramp") drawDrampBoss(b);
       else drawKuriBoss(b);
     }
+  }
+
+
+  // ===== 森蘭丸：若い小姓。前髪＋うしろ髪、水色の陣羽織、太刀 =====
+  function drawRanmaru(b) {
+    const cx = b.x + b.w/2, by = b.y + b.h;
+    const hurt = b.hurtFlash > 0 && Math.floor(b.hurtFlash / 4) % 2 === 0;
+    ctx.save();
+    ctx.translate(cx, by);
+    ctx.scale(b.face, b.squash);
+    // かげ
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.beginPath(); ctx.ellipse(0, 2, 22, 6, 0, 0, 7); ctx.fill();
+    // はかま
+    ctx.fillStyle = hurt ? "#ffffff" : "#2f4a63";
+    ctx.beginPath();
+    ctx.moveTo(-16, 0); ctx.lineTo(-11, -26); ctx.lineTo(11, -26); ctx.lineTo(16, 0);
+    ctx.closePath(); ctx.fill();
+    // 陣羽織（水色）
+    ctx.fillStyle = hurt ? "#ffffff" : "#4f86a8";
+    roundRectPath(-15, -50, 30, 28, 6); ctx.fill();
+    ctx.fillStyle = hurt ? "#ffffff" : "#3d6e8c";
+    ctx.fillRect(-15, -36, 30, 3);
+    // かお
+    ctx.fillStyle = hurt ? "#ffffff" : "#f2d3ae";
+    ctx.beginPath(); ctx.ellipse(1, -58, 11, 11, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#241d18";
+    ctx.beginPath(); ctx.ellipse(6, -59, 2, 2.8, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-2, -59, 2, 2.8, 0, 0, 7); ctx.fill();
+    // 髪（前髪＋うしろで むすぶ）
+    ctx.fillStyle = "#1e1a22";
+    ctx.beginPath(); ctx.ellipse(1, -66, 12.5, 8, 0, Math.PI, 0); ctx.closePath(); ctx.fill();
+    ctx.fillRect(-12, -68, 24, 5);
+    ctx.beginPath();
+    ctx.moveTo(-10, -64); ctx.quadraticCurveTo(-22, -56, -20, -40);
+    ctx.quadraticCurveTo(-14, -48, -9, -56);
+    ctx.closePath(); ctx.fill();
+    // 太刀
+    const sw = b.slashT > 0 ? 1 : 0;
+    ctx.save();
+    if (b.mode === "dash") { ctx.translate(16, -30); ctx.rotate(-0.05); }
+    else if (sw) { ctx.translate(14, -40); ctx.rotate(-0.55); }
+    else { ctx.translate(8, -28); ctx.rotate(2.62); }   // 腰にさす（下に はみ出さない角度）
+    ctx.strokeStyle = "#26262e"; ctx.lineWidth = 3.4; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(8, 0); ctx.stroke();
+    ctx.strokeStyle = "#c9a24a"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(9.5, -3.4); ctx.lineTo(9.5, 3.4); ctx.stroke();
+    ctx.strokeStyle = "#e9f3ff"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(11, 0); ctx.quadraticCurveTo(24, -2, 38, -6); ctx.stroke();
+    ctx.restore();
+    ctx.restore();
+    // 斬りの きらめき
+    if (b.slashT > 8) {
+      ctx.save();
+      ctx.globalAlpha = (b.slashT - 8) / 8;
+      ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 6; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.arc(cx + b.face * 22, by - 34, 40, -1.0, 1.0); ctx.stroke();
+      ctx.restore();
+    }
+    // 打ち返した きらめき
+    if (b.swatT > 0) drawSwatFx(cx + b.face * 22, by - 34, b.swatT);
+    // 跳び込みの しるし
+    if (b.markT > 0) bossGroundMark(b.markX, 1 - b.markT / 30);
+    // ためている あいだの ひかり
+    if (b.windup > 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.3 + Math.sin(b.t * 0.6) * 0.25;
+      ctx.fillStyle = "#ffe9a8";
+      ctx.beginPath(); ctx.arc(cx, by - 34, 34, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // ===== 織田信長：南蛮マント、烏帽子（えぼし）。第1段は 弓、第2段は 太刀 =====
+  function drawNobunaga(b) {
+    const cx = b.x + b.w/2, by = b.y + b.h;
+    const hurt = b.hurtFlash > 0 && Math.floor(b.hurtFlash / 4) % 2 === 0;
+    const bow = b.phase === 1 && b.mode !== "cry" && b.mode !== "walk";
+    ctx.save();
+    ctx.translate(cx, by);
+    ctx.scale(b.face, b.squash);
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.beginPath(); ctx.ellipse(0, 2, 26, 7, 0, 0, 7); ctx.fill();
+    // マント（うしろ）
+    const flow = (b.mode === "dash" ? 10 : 0) + Math.sin(b.t * 0.06) * 3;
+    ctx.fillStyle = hurt ? "#ffffff" : "#4a1420";
+    ctx.beginPath();
+    ctx.moveTo(-8, -62);
+    ctx.quadraticCurveTo(-34 - flow, -40, -30 - flow, 0);
+    ctx.lineTo(-4, 0);
+    ctx.quadraticCurveTo(-8, -30, -8, -62);
+    ctx.closePath(); ctx.fill();
+    // はかま
+    ctx.fillStyle = hurt ? "#ffffff" : "#241f2b";
+    ctx.beginPath();
+    ctx.moveTo(-18, 0); ctx.lineTo(-13, -30); ctx.lineTo(13, -30); ctx.lineTo(18, 0);
+    ctx.closePath(); ctx.fill();
+    // どう（黒＋金のふち）
+    ctx.fillStyle = hurt ? "#ffffff" : "#16161e";
+    roundRectPath(-17, -60, 34, 32, 6); ctx.fill();
+    ctx.strokeStyle = "#c9a24a"; ctx.lineWidth = 2;
+    roundRectPath(-17, -60, 34, 32, 6); ctx.stroke();
+    ctx.fillStyle = "#c9a24a";                      // 木瓜（もっこう）紋のかわりの 金の丸
+    ctx.beginPath(); ctx.arc(0, -46, 5.5, 0, 7); ctx.fill();
+    ctx.fillStyle = "#16161e";
+    ctx.beginPath(); ctx.arc(0, -46, 2.4, 0, 7); ctx.fill();
+    // かお
+    ctx.fillStyle = hurt ? "#ffffff" : "#e6c39a";
+    ctx.beginPath(); ctx.ellipse(1, -70, 11, 12, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#241d18"; ctx.lineWidth = 1.8; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(2, -75); ctx.lineTo(9, -73); ctx.stroke();       // するどい まゆ
+    ctx.beginPath(); ctx.moveTo(-3, -75); ctx.lineTo(-8, -73.5); ctx.stroke();
+    ctx.fillStyle = "#241d18";
+    ctx.beginPath(); ctx.ellipse(6, -70, 2, 2.6, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-3, -70, 2, 2.6, 0, 0, 7); ctx.fill();
+    // ひげ
+    ctx.strokeStyle = "#241d18"; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(-2, -62); ctx.lineTo(5, -62); ctx.stroke();
+    // 烏帽子（えぼし）
+    ctx.fillStyle = "#16161e";
+    ctx.beginPath();
+    ctx.moveTo(-11, -80); ctx.quadraticCurveTo(-6, -104, 8, -108);
+    ctx.quadraticCurveTo(14, -96, 12, -80);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "#c9a24a"; ctx.lineWidth = 1.6; ctx.stroke();
+    if (bow) {
+      // 弓（第1段）。※この中は scale(b.face,1) の中なので、+x が「前（まるりん側）」。
+      //   弓は 前に かまえる。うしろに 描くと 背中から 生えて見える。
+      const draw = b.windup > 0 ? Math.min(1, (44 - b.windup) / 32) : 0;
+      const R = 32, A = 1.2;
+      const topX = Math.cos(-A) * R, topY = -44 + Math.sin(-A) * R;
+      const botX = Math.cos(A) * R, botY = -44 + Math.sin(A) * R;
+      // 弓の 本体（前へ ふくらむ）
+      ctx.strokeStyle = "#6b4a2a"; ctx.lineWidth = 3.6; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.arc(0, -44, R, -A, A); ctx.stroke();
+      ctx.strokeStyle = "#8a6a45"; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.arc(0, -44, R - 1.6, -A, A); ctx.stroke();
+      // つる（引くほど 手前に くる）
+      const nx = R - 6 - draw * 24;
+      ctx.strokeStyle = "#e8e0cc"; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(topX, topY); ctx.lineTo(nx, -44); ctx.lineTo(botX, botY); ctx.stroke();
+      // 弓を もつ うで
+      ctx.strokeStyle = "#e6c39a"; ctx.lineWidth = 5.4; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(10, -50); ctx.lineTo(R - 6, -44); ctx.stroke();
+      if (draw > 0) {                       // つがえた 矢が 光る（「来るぞ」の 合図）
+        ctx.strokeStyle = "#7a5c38"; ctx.lineWidth = 2.4;
+        ctx.beginPath(); ctx.moveTo(nx, -44); ctx.lineTo(nx + 40, -44); ctx.stroke();
+        ctx.fillStyle = "#d9dee6";
+        ctx.beginPath(); ctx.moveTo(nx + 44, -44); ctx.lineTo(nx + 36, -47.6); ctx.lineTo(nx + 36, -40.4); ctx.closePath(); ctx.fill();
+        ctx.globalAlpha = 0.35 + Math.sin(b.t * 0.8) * 0.3;
+        ctx.fillStyle = "#ffd86a";
+        ctx.beginPath(); ctx.arc(nx + 44, -44, 6, 0, 7); ctx.fill();
+        ctx.globalAlpha = 1;
+        // 引いている うで（うしろ）
+        ctx.strokeStyle = "#e6c39a"; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(2, -50); ctx.lineTo(nx, -44); ctx.stroke();
+      }
+    } else {
+      // 太刀（第2段）
+      ctx.save();
+      if (b.mode === "dash") { ctx.translate(18, -34); ctx.rotate(-0.08); }
+      else if (b.mode === "spin") { ctx.translate(6, -40); ctx.rotate(b.t * 0.5); }
+      else if (b.slashT > 0) { ctx.translate(16, -46); ctx.rotate(-0.6); }
+      else if (b.drawT > 0) { ctx.translate(10, -30); ctx.rotate(1.2); }
+      else { ctx.translate(12, -30); ctx.rotate(-0.25); }
+      ctx.strokeStyle = "#26262e"; ctx.lineWidth = 4; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(9, 0); ctx.stroke();
+      ctx.strokeStyle = "#c9a24a"; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.moveTo(10.5, -4); ctx.lineTo(10.5, 4); ctx.stroke();
+      ctx.strokeStyle = "#e9f3ff"; ctx.lineWidth = 3.4;
+      ctx.beginPath(); ctx.moveTo(12, 0); ctx.quadraticCurveTo(28, -2, 46, -7); ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(13, -1.4); ctx.quadraticCurveTo(28, -3.4, 45, -8.4); ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+    // 回転斬りの わ
+    if (b.mode === "spin") {
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = "#eaf6ff"; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.ellipse(cx, by - 40, 52, 18, 0, 0, 7); ctx.stroke();
+      ctx.restore();
+    }
+    if (b.slashT > 8) {
+      ctx.save();
+      ctx.globalAlpha = (b.slashT - 8) / 8;
+      ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 7; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.arc(cx + b.face * 24, by - 40, 48, -1.0, 1.0); ctx.stroke();
+      ctx.restore();
+    }
+    if (b.swatT > 0) drawSwatFx(cx + b.face * 24, by - 40, b.swatT);
+    if (b.markT > 0 && b.phase === 1) bossGroundMark(b.markX, 0.8);
+    if (b.windup > 0 && b.phase === 2) {
+      ctx.save();
+      ctx.globalAlpha = 0.3 + Math.sin(b.t * 0.6) * 0.25;
+      ctx.fillStyle = "#ffb0a0";
+      ctx.beginPath(); ctx.arc(cx, by - 40, 40, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+    // 「蘭丸ゥ……！」
+    if (b.mode === "cry") {
+      const k = Math.min(1, (150 - b.cryT) / 20);
+      ctx.save();
+      ctx.translate(cx, by - 120);
+      ctx.scale(0.7 + k * 0.3, 0.7 + k * 0.3);
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = "bold 26px sans-serif";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "rgba(20,10,6,0.9)"; ctx.lineWidth = 8;
+      ctx.strokeText("蘭丸ゥ……！", 0, 0);
+      ctx.fillStyle = "#ff9d4a";
+      ctx.fillText("蘭丸ゥ……！", 0, 0);
+      ctx.restore();
+    }
+  }
+  // 飛び道具を 打ち返した ときの きらめき
+  function drawSwatFx(x, y, t) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, t / 14);
+    ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3; ctx.lineCap = "round";
+    for (let i = 0; i < 4; i++) {
+      const a = -0.9 + i * 0.6;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(a) * (10 + (14 - t) * 1.4), y + Math.sin(a) * (10 + (14 - t) * 1.4));
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   // ドランプ大統領（アメリカ・パロディのカリカチュア）
@@ -6994,6 +8817,9 @@
   // にせぺぎが投げるキュウリ／こうようがまく塩
   function drawCukes() {
     for (const cu of cukes) {
+      if (cu.kind === "arrow") { drawArrow(cu, false); continue; }
+      if (cu.kind === "arrowlob") { drawArrow(cu, true); continue; }
+      if (cu.kind === "ember") { drawEmber(cu); continue; }
       if (cu.kind === "shock") {   // 四股の地響き（土ぼこりの波）
         ctx.save();
         ctx.translate(cu.x, cu.y);
@@ -7234,12 +9060,131 @@
     ctx.fillStyle = core; ctx.beginPath(); ctx.ellipse(-2, -2, 6, 4.5, 0, 0, 7); ctx.fill();
     ctx.restore();
   }
+  // 信長の矢（まっすぐ／山なり）と 火の粉
+  function drawArrow(cu, lob) {
+    ctx.save();
+    ctx.translate(cu.x, cu.y);
+    ctx.rotate(lob ? Math.atan2(cu.vy, cu.vx) : (cu.vx < 0 ? Math.PI : 0));
+    ctx.strokeStyle = "#7a5c38"; ctx.lineWidth = 2.6; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-16, 0); ctx.lineTo(12, 0); ctx.stroke();
+    ctx.fillStyle = "#d9dee6";
+    ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(4, -4.4); ctx.lineTo(4, 4.4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#e8e0cc";
+    ctx.beginPath(); ctx.moveTo(-16, 0); ctx.lineTo(-9, -5); ctx.lineTo(-7, 0); ctx.lineTo(-9, 5); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  function drawEmber(cu) {
+    const a = 0.6 + Math.sin(cu.t * 0.3) * 0.3;
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = "#ff7a2a";
+    ctx.beginPath(); ctx.arc(cu.x, cu.y, 12, 0, 7); ctx.fill();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = "#ff9d4a";
+    ctx.beginPath(); ctx.arc(cu.x, cu.y, 6.5, 0, 7); ctx.fill();
+    ctx.fillStyle = "#fff0c0";
+    ctx.beginPath(); ctx.arc(cu.x, cu.y, 3, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+
   function drawHazards() {
     for (const h of hazards) {
       if (h.x < camX - 60 || h.x > camX + W + 60) continue;
       if (h.kind === "spore") { drawSpore(h.x, h.y, h.t); continue; }
+      if (h.kind === "tama") { drawTama(h.x, h.y, h.vx, h.t); continue; }
       drawTigerShot(h.x, h.y, h.kind === "tiger", h.t);
     }
+  }
+
+  // 足軽（明智の兵）：陣笠をかぶって 槍をかまえて 歩いてくる
+  function drawAshigaru(e) {
+    const cx = e.x + e.w/2, by = e.y + e.h;
+    const dir = e.vx >= 0 ? 1 : -1;
+    const step = Math.sin(e.t * 0.22) * 3;
+    ctx.save();
+    ctx.translate(cx, by);
+    ctx.scale(dir, e.squash);
+    // 足
+    ctx.fillStyle = "#4a3a2c";
+    ctx.beginPath(); ctx.ellipse(-5 + step, -3, 4.5, 3.5, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(6 - step, -3, 4.5, 3.5, 0, 0, 7); ctx.fill();
+    // どう（胴）＝あさぎ色の 陣羽織
+    ctx.fillStyle = "#3d5a6c";
+    roundRectPath(-10, -26, 20, 24, 5); ctx.fill();
+    ctx.fillStyle = "#2c4453";
+    ctx.fillRect(-10, -14, 20, 3);
+    // かお
+    ctx.fillStyle = "#e8c9a6";
+    ctx.beginPath(); ctx.ellipse(1, -30, 8, 7.5, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#2a2620";
+    ctx.beginPath(); ctx.ellipse(4, -31, 1.6, 2, 0, 0, 7); ctx.fill();
+    // 陣笠（じんがさ）＝ 三角の かさ
+    ctx.fillStyle = "#6b5436";
+    ctx.beginPath(); ctx.moveTo(-13, -34); ctx.lineTo(1, -44); ctx.lineTo(15, -34); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "#4a3a24"; ctx.lineWidth = 1.2; ctx.stroke();
+    // 槍（やり）
+    ctx.strokeStyle = "#7a5c38"; ctx.lineWidth = 2.4; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(6, -8); ctx.lineTo(24, -30); ctx.stroke();
+    ctx.fillStyle = "#d9dee6";
+    ctx.beginPath(); ctx.moveTo(23, -30); ctx.lineTo(30, -38); ctx.lineTo(26, -28); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  // 鉄砲隊：片ひざをついて 種子島（火縄銃）を かまえる。ねらっている間は 銃口が 光る
+  function drawGunner(e) {
+    const cx = e.x + e.w/2, by = e.y + e.h;
+    const aiming = e.aim > 0;
+    ctx.save();
+    ctx.translate(cx, by);
+    ctx.scale(e.face, e.squash);
+    // 片ひざ
+    ctx.fillStyle = "#4a3a2c";
+    ctx.beginPath(); ctx.ellipse(-6, -4, 7, 4, 0, 0, 7); ctx.fill();
+    // どう
+    ctx.fillStyle = "#5a4636";
+    roundRectPath(-10, -24, 19, 22, 5); ctx.fill();
+    ctx.fillStyle = "#42332766";
+    ctx.fillRect(-10, -13, 19, 3);
+    // かお
+    ctx.fillStyle = "#e8c9a6";
+    ctx.beginPath(); ctx.ellipse(0, -28, 7.5, 7, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#2a2620";
+    ctx.beginPath(); ctx.ellipse(3.5, -29, 1.5, 1.9, 0, 0, 7); ctx.fill();
+    // 陣笠
+    ctx.fillStyle = "#6b5436";
+    ctx.beginPath(); ctx.moveTo(-12, -32); ctx.lineTo(0, -41); ctx.lineTo(13, -32); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "#4a3a24"; ctx.lineWidth = 1.2; ctx.stroke();
+    // 種子島（火縄銃）
+    ctx.strokeStyle = "#3b3128"; ctx.lineWidth = 3.6; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-6, -14); ctx.lineTo(22, -18); ctx.stroke();
+    ctx.strokeStyle = "#7a5c38"; ctx.lineWidth = 4.4;
+    ctx.beginPath(); ctx.moveTo(-10, -12); ctx.lineTo(-2, -14); ctx.stroke();
+    if (aiming) {                       // 火なわの 火花＋銃口の 光（「来るぞ」の合図）
+      const k = 0.4 + Math.sin(e.t * 0.9) * 0.35;
+      ctx.globalAlpha = k;
+      ctx.fillStyle = "#ffb545";
+      ctx.beginPath(); ctx.arc(23, -18, 4.5, 0, 7); ctx.fill();
+      ctx.fillStyle = "#fff3c4";
+      ctx.beginPath(); ctx.arc(23, -18, 2.2, 0, 7); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
+  // 鉄砲の たま（金色の小さな弾＋けむりの尾）
+  function drawTama(x, y, vx, t) {
+    const dir = vx >= 0 ? 1 : -1;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir, 1);
+    ctx.globalAlpha = 0.42;
+    ctx.fillStyle = "#cfc7b6";
+    ctx.beginPath(); ctx.ellipse(-11, 0, 12, 3.2, 0, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#3b3128";
+    ctx.beginPath(); ctx.ellipse(0, 0, 6, 4.4, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#ffd86a";
+    ctx.beginPath(); ctx.ellipse(1.4, -1, 3.2, 2.2, 0, 0, 7); ctx.fill();
+    ctx.restore();
+    void t;
   }
 
   // キノコンの ほうしだま（むらさきの もやもや玉）
@@ -9338,6 +11283,8 @@
     ctx.translate(cx, cy);
     // ごろごろローリング中：小さく丸まってぐるぐる回る
     if (p.roll > 0 && playing) ctx.rotate(p.animT * 0.34 * p.face);
+    // かべに しがみついている間：からだを かべがわへ かたむける
+    if (playing && p.wallSlide > 0 && p.roll <= 0) ctx.rotate(p.wallDir * 0.16);
     // しっぽスピン中：まるりん自身もコマのようにその場で回る（横幅が縮んで向きが反転する）
     let faceDir = p.face, spinSq = 1;
     if (p.spin > 0 && playing) {
@@ -9377,6 +11324,8 @@
 
     // まほうまるりん：マントは体のうしろに描く
     if (isMagicForm() && playing) drawMagicCape(p, run, airborne);
+    // さむらいまるりん：陣羽織も体のうしろに描く
+    if (isSamuraiForm() && playing) drawSamuraiCoat(p, run, airborne);
 
     // 後ろ足（クリーム色）
     ctx.fillStyle = "#f6e2c0";
@@ -9467,6 +11416,8 @@
 
     // まほうまるりん：とんがり帽子と杖は体の手前に描く
     if (isMagicForm() && playing) drawMagicHat(p, run, airborne);
+    // さむらいまるりん：はちまきと刀は体の手前に描く
+    if (isSamuraiForm() && playing) drawSamuraiGear(p, run, airborne);
 
     }   // 通常まるりん／ドラゴンまるりんの描き分けここまで
 
