@@ -78,8 +78,8 @@
   .dbtn {
     position: absolute;
     width: 50px; height: 50px;
-    background: rgba(40,40,70,0.55);
-    border: 2px solid rgba(255,255,255,0.35);
+    background: rgba(40,40,70,0.40);
+    border: 2px solid rgba(255,255,255,0.30);
     color: #fff; font-size: 20px;
     display: flex; align-items: center; justify-content: center;
     pointer-events: auto;
@@ -113,20 +113,20 @@
   .rbtn.a {
     width: 86px; height: 86px; font-size: 30px;
     right: 8px; bottom: 6px;
-    background: rgba(233,69,96,0.85);
-    border: 3px solid rgba(255,255,255,0.5);
+    background: rgba(233,69,96,0.62);
+    border: 3px solid rgba(255,255,255,0.45);
   }
   .rbtn.b {
     width: 72px; height: 72px; font-size: 24px;
     left: 6px; bottom: 42px;
-    background: rgba(58,168,224,0.85);
-    border: 3px solid rgba(255,255,255,0.5);
+    background: rgba(58,168,224,0.62);
+    border: 3px solid rgba(255,255,255,0.45);
   }
   .rbtn.c {
     width: 58px; height: 58px; font-size: 19px;
     left: 14px; bottom: 128px;
-    background: rgba(255,183,28,0.85);
-    border: 3px solid rgba(255,255,255,0.5);
+    background: rgba(255,183,28,0.62);
+    border: 3px solid rgba(255,255,255,0.45);
   }
   .rbtn.pressed { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.35); filter: brightness(1.2); }
 
@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 2.5 (2026-08-01)";
+  const GAME_VERSION = "異世界編 ver 2.6 (2026-08-01)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -1507,12 +1507,16 @@
     new Audio("audio/bgm_isekai_boss2.mp3")   // ステージ2ボス 大まどうし ゲドルフ（Lost Emotion）
   ];
   BOSS_BGM.forEach(a => { if (a) { a.loop = true; a.volume = 0.2; } });
-  // ステージ2の曲は ステージ1をクリアするまで使わないので、最初の読み込みを軽くする
-  BGM[1].preload = "none"; BOSS_BGM[1].preload = "none";
+  // ★曲は「使うときに読みこむ」。ステージが増えて曲が10本20本になっても、
+  //   起動時に落ちてくるのは タイトル曲だけ＝重くならない。
+  //   （playTrack() で play() した瞬間にダウンロードが始まる。watchBGM() が鳴り出すまで面倒を見る）
+  BGM.forEach(a => { a.preload = "none"; });
+  BOSS_BGM.forEach(a => { if (a) a.preload = "none"; });
   const TITLE_BGM = new Audio("audio/bgm_isekai_title.mp3");      // タイトル画面（世界の最果てで、自由を謳う）
   TITLE_BGM.loop = true; TITLE_BGM.volume = 0.18;
   const OPENING_BGM = new Audio("audio/bgm_isekai_opening.mp3");  // オープニング紙芝居（Prologue）
   OPENING_BGM.loop = true; OPENING_BGM.volume = 0.18;
+  OPENING_BGM.preload = "none";   // 「はじめから」を押してから読みこむ
   const ENDING_BGM = new Audio("audio/bgm_ending.mp3");   // 世界編フィナーレ用（異世界編ではまだ使わない）
   ENDING_BGM.loop = true; ENDING_BGM.volume = 0.2;
   ENDING_BGM.preload = "none";   // 使うまで読み込まない（最初の読み込みを軽くする）
@@ -2399,6 +2403,12 @@
 
   // ---------- ボス戦 ----------
   const BOSS_GROUND = 360;   // 闘技場の地面の上端
+  // ★スマホの操作ボタンで かくれる範囲（iPhone横だと 右のA/B/Cが画面の右2割・下半分をふさぎ、
+  //   左の十字キーが左はしをふさぐ）。ボスは この内側に置く。
+  //   目安：canvas座標で 右は 620 より右、左は 110 より左が かくれる。
+  const SAFE_L = 110, SAFE_R = 616;
+  // ボスを「ボタンにかくれない位置」におさめる（幅wのボスの左端xを返す）
+  function safeBossX(x, w) { return Math.max(SAFE_L, Math.min(x, SAFE_R - w)); }
   // メガロドン戦（真ん中で割れた船：左右のデッキ＋中央の割れ目＋左右の端も海）
   const LDECK_L = 80,  LDECK_R = 320;   // 左のデッキ [80,320]
   const RDECK_L = 440, RDECK_R = 680;   // 右のデッキ [440,680]
@@ -2439,8 +2449,8 @@
     const p = player;
     // メガロドン戦は中央が割れ目（海）なので左のデッキに立たせる
     p.x = (STAGES[stageIndex].boss === "mega") ? 150
-        : (STAGES[stageIndex].boss === "kingslime") ? 60      // キングスライムは右はしなので左はしから
-        : (STAGES[stageIndex].boss === "wizard") ? 60         // ゲドルフも右はしなので左はしから
+        : (STAGES[stageIndex].boss === "kingslime") ? SAFE_L   // ボスは右がわなので左から（十字キーにかくれない位置）
+        : (STAGES[stageIndex].boss === "wizard") ? SAFE_L
         : (W/2 - p.w/2);
     p.y = BOSS_GROUND - p.h; p.vx = 0; p.vy = 0;
     p.onGround = false; p.face = 1; p.invuln = 50;
@@ -2448,11 +2458,12 @@
     // ステージごとのボス編成
     const type = STAGES[stageIndex].boss;
     if (type === "kingslime") {
-      // キングスライム（ステージ1）：画面の右はしに どすんと構える（まるりんは左はし＝いきなり当たらない）
-      bosses = [ makeBoss("kingslime", W - 190) ];
+      // キングスライム（ステージ1）：右がわに どすんと構える（まるりんは左＝いきなり当たらない）
+      // ※右はしすぎるとスマホのA/Bボタンにかくれるので safeBossX でおさめる
+      bosses = [ makeBoss("kingslime", safeBossX(W - 190, 136)) ];
     } else if (type === "wizard") {
-      // 大まどうし ゲドルフ（ステージ2）：右はしに立って まほうを撃ってくる
-      bosses = [ makeBoss("wizard", W - 170) ];
+      // 大まどうし ゲドルフ（ステージ2）：右がわに浮いて まほうを撃ってくる
+      bosses = [ makeBoss("wizard", safeBossX(W - 170, 74)) ];
     } else if (type === "penguins") {
       // にせぺぎ（左・投げ役）＋ ペギ（右・すばやい体当たり役）で挟み撃ち
       bosses = [ makeBoss("nisepegi", 120), makeBoss("pegi", W - 170) ];
@@ -2654,9 +2665,9 @@
       }
     }
 
-    // かべ（闘技場のはし）
-    if (b.x < 12) { b.x = 12; if (b.mode === "charge") { b.face = 1; b.chargeT = Math.min(b.chargeT, 8); } }
-    if (b.x + b.w > W - 12) { b.x = W - 12 - b.w; if (b.mode === "charge") { b.face = -1; b.chargeT = Math.min(b.chargeT, 8); } }
+    // かべ（闘技場のはし）※スマホの操作ボタンの下に入りこまない範囲で止める
+    if (b.x < SAFE_L) { b.x = SAFE_L; if (b.mode === "charge") { b.face = 1; b.chargeT = Math.min(b.chargeT, 8); } }
+    if (b.x + b.w > SAFE_R) { b.x = SAFE_R - b.w; if (b.mode === "charge") { b.face = -1; b.chargeT = Math.min(b.chargeT, 8); } }
 
     // 重力＋着地
     b.vy += GRAVITY * 0.92; if (b.vy > 19) b.vy = 19;
@@ -2722,8 +2733,8 @@
     if (b.warpT > 0) {
       b.warpT--;
       if (b.warpT === 0) {
-        // まるりんから はなれた側に あらわれる
-        b.x = (pcx < W/2) ? W - 120 - b.w : 120;
+        // まるりんから はなれた側に あらわれる（スマホのボタンにかくれない位置で）
+        b.x = (pcx < W/2) ? SAFE_R - b.w : SAFE_L;
         spawnParticles(b.x + b.w/2, b.y + b.h/2, "#c9b6ff", 16);
         sfx.power();
       }
@@ -2765,8 +2776,7 @@
     // 空中に すこし浮いている（歩かない・ふわふわ上下する）
     b.y = (BOSS_GROUND - b.h - 16) + Math.sin(b.floatT * 0.045) * 7;
     b.onGround = false;
-    if (b.x < 12) b.x = 12;
-    if (b.x + b.w > W - 12) b.x = W - 12 - b.w;
+    b.x = safeBossX(b.x, b.w);   // スマホの操作ボタンの下に入りこまない
 
     if (b.hidden) return;
 
