@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 4.16 (2026-08-02)";
+  const GAME_VERSION = "異世界編 ver 4.17 (2026-08-02)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -681,7 +681,7 @@
       // 死神スキル
       scythe: 0, scytheCd: 0, scytheDir: 1, scyHit: [], scyBuf: 0,
       hook: 0, hookX: 0, hookY: 0, hookD: 0, hookUsed: false, hookJump: false,
-      hookHang: false, hookHangT: 0,
+      hookHang: false, hookHangT: 0, hookGrace: 0,
       shadow: 0, shadowCd: 0, shadowDir: 1, shadowBackX: 0, shadowBackY: 0,
       storm: 0, stormCd: 0, graveCd: 0, climbLock: 0
     };
@@ -1070,7 +1070,7 @@
       moves: [
         ["B", "かまふり", "大がまを 頭の上から ふりおろす。おそいが 刀の 3ばい とどく"],
         ["B ながおし", "かまあらし", "その場で かまを ふりまわす。まえも うしろも まとめて 斬る"],
-        ["空中で B", "かまフック", "かまを なげる。かべに ささったら そこまで とぶ。B を おしたまま ぶら下がり、A で 上に よじのぼれる"],
+        ["空中で B", "かまフック", "かまを なげる。かべに ささったら そこまで とぶ。ささった ところで A を おすと 上に よじのぼる（B を おしたままなら ずっと ぶら下がれる）"],
         ["ダッシュ中に B", "かげわたり", "かげに なって 前へ すりぬける。てき・たま・かべを 通れる"],
         ["↓ ＋ B", "おはか", "目のまえに おはかを 立てる。足場に なり、てきも とおれない"],
         ["（じどう）", "たましい", "たおすと 出る。3つで おともゴーストが 出て かわりに 戦う"]
@@ -1478,7 +1478,7 @@
     // 死神スキルの技も止める（かげわたり中に 切りかえて かべの中で 止まらないように）
     if (p.shadow > 0) endShadow(p);
     p.scythe = 0; p.scyHit = []; p.scyBuf = 0; p.hook = 0; p.storm = 0;
-    p.hookJump = false; p.hookHang = false; p.hookHangT = 0;
+    p.hookJump = false; p.hookHang = false; p.hookHangT = 0; p.hookGrace = 0;
     if (p.carry) { dropCarried(p); }        // 持っていた石は落とす
   }
   // 持っていたものを、その場にそっと落とす（被弾・スキル切替のとき）
@@ -1974,6 +1974,13 @@
   // ★Bを おしている あいだ、ひっかけた ところに ぶら下がったまま でいられる。
   //   ずっとは むりに して、時間が すぎたら 自動で 手を はなす。
   const HOOK_HANG_MAX = 300;   // 5びょう
+  // ★ver4.17：Bを はなすのが 早いと、ぶら下がりに ならず そのまま 落ちてしまい
+  //   「天じょうの 上に のぼれない」に なっていた（B を おしっぱなしに するのは むずかしい）。
+  //   のぼれる 天じょうに ひっかけた ときだけ、Bを はなしていても このあいだは ぶら下がって
+  //   A を まってあげる。のぼれない ところでは 0フレーム＝いままで どおり すぐ ひとはね。
+  //   ★とくに スマホは A も B も 右がわに あるので、おなじ 親ゆびで
+  //     「B を おしたまま A」は できない。だから「B を はなしてから A」で のぼれる ように する。
+  const HOOK_GRACE = 40;       // 0.66びょう（ゆびを もちかえる 時間）
   function stepHook(p) {
     if (p.hookHang) {
       p.vx = 0; p.vy = 0;
@@ -1987,7 +1994,9 @@
         jumpBuffer = 0;
         if (climbFromHook(p)) return;
       }
-      if (!abilityBtn() || p.hookHangT > HOOK_HANG_MAX) endHook(p);
+      if (p.hookGrace > 0) p.hookGrace--;
+      // B を おしている あいだ／おまけの まちじかんの あいだは ぶら下がったまま
+      if ((!abilityBtn() && p.hookGrace <= 0) || p.hookHangT > HOOK_HANG_MAX) endHook(p);
       return;
     }
     p.hook++;
@@ -2006,7 +2015,11 @@
     p.hookD = d;
     if (d <= HOOK_SPD + 2 || stalled || p.hook > HOOK_MAX_T) {
       // ★Bを おしたままなら、そこで ぶら下がる（はなすまで 落ちない）
-      if (abilityBtn()) { p.hookHang = true; p.hookHangT = 0; p.vx = 0; p.vy = 0; }
+      if (abilityBtn()) { p.hookHang = true; p.hookHangT = 0; p.hookGrace = 0; p.vx = 0; p.vy = 0; }
+      // ★はなしていても、よじのぼれる 天じょうなら 少しだけ ぶら下がって A を まつ
+      else if (climbTargetFromHook(p)) {
+        p.hookHang = true; p.hookHangT = 0; p.hookGrace = HOOK_GRACE; p.vx = 0; p.vy = 0;
+      }
       else endHook(p);
     }
   }
@@ -2022,26 +2035,37 @@
   // ひっかけた ところの「まうえの 面」に よじのぼる。
   // ★ぶあつい 足場（たてに 何マスも ある）でも、いちばん上まで さがして そこに 乗せる。
   //   乗る すきまが 無ければ false を返す（＝よじのぼれない。ふつうに はなす）。
-  function climbFromHook(p) {
+  // よじのぼった さきの いちを かえす（のぼれない ときは null）。
+  // ★「のぼれるか どうか」だけ 先に 知りたい ばあいが あるので、判定と 実行を 分けてある。
+  function climbTargetFromHook(p) {
     // ★hookX/hookY は「かべに ささった 手まえ」＝かべの すぐ 外がわの 点。
     //   その点の マスは からっぽなので、まわりを さがして 本物の かべの マスを 見つける。
     //   じゅんばんは 上 → 右 → 左 → 下（天じょうに ひっかける ことが いちばん 多いので 上から）。
+    //   ★ななめの 4つは 予備。かべの「かど」に ひっかかった ときは、たて・よこの どちらにも
+    //     すこしずつ ずれて いるので、上下左右だけでは 見つからない。
     let gx = null, gy = null;
-    const probes = [[0, -5], [5, 0], [-5, 0], [0, 5]];
+    const probes = [[0, -5], [5, 0], [-5, 0], [0, 5],
+                    [5, -5], [-5, -5], [5, 5], [-5, 5]];
     for (const pr of probes) {
       const qx = p.hookX + pr[0], qy = p.hookY + pr[1];
       if (solidPointAt(qx, qy)) { gx = Math.floor(qx / TILE) * TILE; gy = Math.floor(qy / TILE) * TILE; break; }
     }
-    if (gx === null) return false;                                   // そもそも かべじゃない
+    if (gx === null) return null;                                    // そもそも かべじゃない
     // ★汽車の 天じょうには のぼれない。のぼれると 屋根の 上を 走って
     //   ボスまで まっすぐ 行けてしまう（ステージが 成立しなく なる）。
-    if (solidTypeAt(gx + TILE / 2, gy + TILE / 2) === "trainceil") return false;
+    if (solidTypeAt(gx + TILE / 2, gy + TILE / 2) === "trainceil") return null;
     let guard = 0;
     while (guard++ < 40 && solidPointAt(gx + TILE / 2, gy - TILE / 2)) gy -= TILE;   // てっぺんまで
-    if (solidTypeAt(gx + TILE / 2, gy + TILE / 2) === "trainceil") return false;   // 上まで たどって 天じょうに 当たった
+    if (solidTypeAt(gx + TILE / 2, gy + TILE / 2) === "trainceil") return null;   // 上まで たどって 天じょうに 当たった
     const tx = gx + TILE / 2 - p.w / 2;
     const ty = gy - p.h;
-    if (playerStuckAt(p, tx, ty)) return false;                      // 乗る すきまが ない
+    if (playerStuckAt(p, tx, ty)) return null;                       // 乗る すきまが ない
+    return { x: tx, y: ty };
+  }
+  function climbFromHook(p) {
+    const t = climbTargetFromHook(p);
+    if (!t) return false;
+    const tx = t.x, ty = t.y;
     p.x = tx; p.y = ty;
     p.vx = 0; p.vy = 0; p.onGround = true; p.coyote = 0; jumpBuffer = 0;
     // ★おなじ フレームの うちに ジャンプまで 出ないように 少しだけ ふうじる。
@@ -2058,7 +2082,7 @@
 
   function endHook(p) {
     if (p.hook <= 0) return;
-    p.hook = 0; p.hookD = 0; p.hookHang = false; p.hookHangT = 0;
+    p.hook = 0; p.hookD = 0; p.hookHang = false; p.hookHangT = 0; p.hookGrace = 0;
     for (const b of boomers) if (b.hooked) b.done = true;   // ささっていた かまは 手に もどる
     // ★ひっかけた ところで ひとはね。かべの よこに ささった とき、
     //   この はねで その かべの 上に のれる ぐらいの 強さに してある。
@@ -3070,7 +3094,7 @@
     // 着地したら滑空・はばたきをリセット（次のジャンプでまた飛べる）
     if (p.onGround) {
       p.gliding = false; p.glideUsed = false; p.flaps = 0; p.tsubameUsed = false; p.tsubaKick = 0;
-      p.hookUsed = false; p.hookJump = false; p.hookHang = false;   // かまフックも 1ジャンプ 1回（着地で もどる）
+      p.hookUsed = false; p.hookJump = false; p.hookHang = false; p.hookGrace = 0;   // かまフックも 1ジャンプ 1回（着地で もどる）
       if (p.dive > 0) endDive(p);          // かぶとわりは 着地で 地面を たたき割る
     }
 
@@ -6990,6 +7014,10 @@
     if (isReaperForm() && scythePhase(player) === "hit") drawScytheArc(player);   // かまふりの弧
     if (player.storm > 0) drawStormFx(player);                                   // かまあらしの弧
     if (isReaperForm() && abilCharging && player.storm <= 0) drawStormCharge(player);   // ためゲージ
+    // ★ぶら下がっていて 上に のぼれる ときの「A」の 案内。
+    //   まるりんより 手前に えがく（うしろだと フードに かくれて 見えない）。
+    if (player.hookHang && climbTargetFromHook(player))
+      drawKeyBubble(player.x + player.w / 2, player.y - 22, "A");
     if (player.diveFx > 0) drawDiveShock();        // かぶとわりの 着地しょうげき
     if (isSamuraiForm()) drawChargeGauge();        // しゅくちぎりの ためゲージ
 
@@ -8251,6 +8279,22 @@
     ctx.setLineDash([6, 4]);
     ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(p.hookX, p.hookY); ctx.stroke();
     ctx.setLineDash([]);
+    ctx.restore();
+  }
+  // ボタンの 案内（小さな ふきだし）
+  function drawKeyBubble(cx, ty, label) {
+    ctx.save();
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = "bold 13px 'Yu Gothic','Hiragino Kaku Gothic ProN',sans-serif";
+    const tw = ctx.measureText(label).width + 18;
+    ctx.fillStyle = "rgba(24,16,44,0.85)";
+    ctx.fillRect(cx - tw / 2, ty - 11, tw, 22);
+    ctx.strokeStyle = "#c8b6ff"; ctx.lineWidth = 1.6;
+    ctx.strokeRect(cx - tw / 2, ty - 11, tw, 22);
+    ctx.fillStyle = "#ffe38a"; ctx.fillText(label, cx, ty);
+    ctx.fillStyle = "rgba(24,16,44,0.85)";                      // ふきだしの しっぽ
+    ctx.beginPath(); ctx.moveTo(cx - 5, ty + 10); ctx.lineTo(cx + 5, ty + 10); ctx.lineTo(cx, ty + 17); ctx.closePath(); ctx.fill();
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
     ctx.restore();
   }
 
