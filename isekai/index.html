@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 6.6 (2026-08-06)";
+  const GAME_VERSION = "異世界編 ver 6.7 (2026-08-06)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -675,6 +675,8 @@
   function bestTotal() { return bestScores.reduce((a, b) => a + (b || 0), 0); }
   function loadStage(i) {
     stageIndex = i;
+    warmForStage(i);   // ★ver6.7：あそんで いる あいだに つぎの 曲を 先読み
+
     cpReached = null; cpFx = 0;   // ★ステージが かわったら 中間地点は リセット
     // ★スコアは **ステージごと**（ver6.5）。
     //   とびらの間から まえの ステージも 遊べる ように なったので、通しで ためると
@@ -4025,29 +4027,114 @@
   function watchBGM() {
     if (++bgmWatchT < 30) return;   // 0.5秒に1回だけ確認
     bgmWatchT = 0;
+    warmStep();                     // ★つぎの 曲の 先読みも ここで 1本ずつ すすめる
     if (!desiredBgm || !desiredBgm.paused) return;
     try { const pr = desiredBgm.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
   }
 
   // iOS等で最初のタッチ/クリック時に音声を解禁しておく
+  // ★STORY3_BGM を 入れ わすれて いた（ユーザー報告 ver6.5）。
+  //   ステージ3の まえの 紙芝居は **まいが じどうで めくれる**ので、
+  //   曲を かけ直す ところが「タップの 中」では なく、
+  //   iPhone / Android では 解禁して いない 音は そこで ブロックされて **むおん**に なる。
+  //   だから「さいしょの タップで ぜんぶの 音を さわって おく」のは 正しい。
+  //
+  // ★ver6.7：さわりかたを 直した（ユーザー報告
+  //   「はじめから に すると まず 氷が われた ような 音が して、
+  //     紙芝居が はじまっても なかなか 音楽が ながれない」）。
+  //   まえは「ミュートで 鳴らし はじめて、**鳴りだしてから** 止める」だったので、
+  //     ① 70個ちかい 音が ほんとうに 再生を はじめて しまう ＝ プツッと ノイズが 出る
+  //     ② そのとき 曲 13本（16MBぶん）を いっせいに ダウンロード しはじめて、
+  //        いま ほしい オープニングの 曲（1.7MB）が その うしろに ならんで しまう
+  //   の 2つが おきていた。
+  //   いまは **play() した その場で すぐ pause()** する。
+  //   ブラウザは「タップの 中で play() を よんだ」ことだけ 見て 解禁して くれるので、
+  //   音も 出ないし、曲も ダウンロードされない。
   let audioPrimed = false;
-  function primeAudio() {
-    if (audioPrimed) return;
-    audioPrimed = true;
-    // ステージ2以降のBGM＋ボスBGMも先に解禁（ステージ1は開始時に鳴るので除外）
-    // ミュートしたまま一瞬だけ再生して解禁 → 他の曲が一瞬鳴る二重再生を防ぐ
-    // 技の効果音も 最初のタップで 解禁しておく（iPhoneは 音を さわる前に 鳴らせない）
-    // ★STORY3_BGM を 入れ わすれて いた（ユーザー報告 ver6.5）。
-    //   ステージ3の まえの 紙芝居は **まいが じどうで めくれる**ので、
-    //   曲を かけ直す ところが「タップの 中」では なく、
-    //   iPhone / Android では 解禁して いない 音は そこで ブロックされて **むおん**に なる。
-    [VOICE.get, VOICE.sad, STAGE_JINGLE].concat(SE_ALL, BGM.slice(1), BOSS_BGM.filter(Boolean), [OPENING_BGM, STORY3_BGM]).forEach(a => {
-      try {
-        a.muted = true;
-        a.play().then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; });
-      } catch (e) { a.muted = false; }
-    });
+  const primeRetry = [];            // ほんとうに ブロックされた 音（つぎの タップで もういちど）
+  function primeStop(a, vol) {
+    // いま 鳴らす べき 曲だけは ぜったいに 止めない。
+    // （さわった 直後に 紙芝居が その曲を かけはじめる ことが ある＝ver6.6までは
+    //   あとから この しまつが 走って、鳴りはじめた 曲を 止めて しまって いた）
+    if (a !== desiredBgm) {
+      try { a.pause(); a.currentTime = 0; } catch (e) {}
+    }
+    a.muted = false; a.volume = vol;
   }
+  function primeOne(a) {
+    const vol = a.volume;
+    try {
+      a.muted = true; a.volume = 0;   // 二重に 消す（一瞬でも 音が もれない ように）
+      const pr = a.play();
+      if (pr && pr.then) pr.then(function () { primeStop(a, vol); },
+                                 function (err) {
+        primeStop(a, vol);
+        if (err && err.name === "NotAllowedError" && primeRetry.indexOf(a) < 0) primeRetry.push(a);
+      });
+      primeStop(a, vol);              // ★その場で すぐ 止める
+    } catch (e) { a.muted = false; a.volume = vol; }
+  }
+  const PRIME_ALL = [VOICE.get, VOICE.sad, STAGE_JINGLE]
+    .concat(SE_ALL, BGM, BOSS_BGM.filter(Boolean), [TITLE_BGM, OPENING_BGM, STORY3_BGM]);
+  function primeAudio() {
+    // ★ver6.7：タップの **中で**「いま 鳴らす べき 曲」を もういちど けとばす。
+    //   タップの 外から の 鳴らし直し（watchBGM）は スマホに ブロックされる ことが あるので、
+    //   ここが いちばん たしかな タイミング。紙芝居の 曲が むおんの ままに ならない ための 保険。
+    if (desiredBgm && desiredBgm.paused) {
+      try { const pr = desiredBgm.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
+    }
+    if (audioPrimed) {
+      if (primeRetry.length) primeRetry.splice(0).forEach(primeOne);
+      return;
+    }
+    audioPrimed = true;
+    PRIME_ALL.forEach(primeOne);
+  }
+
+  // ★ver6.7：曲の「先読み」（ユーザー報告「タイトルの 曲が なかなか 鳴らない／
+  //   画面が かわっても 曲が かわるまで ラグが ある」）。
+  //   曲は 1本 0.8〜2MB。いままでは「使う ときに はじめて 落とす」だったので、
+  //   スマホの 回線だと 画面が かわった あと しばらく むおんに なって いた。
+  //   → **いま 鳴っている あいだに、つぎに 使いそうな 曲を 1本ずつ** こっそり 落として おく。
+  //   ・かならず 1本ずつ（いちどに たくさんだと おたがい じゃまを して かえって おそい）
+  //   ・いま 鳴らす べき 曲が まだ 読めて いない あいだは 先読みを 止める（じゃまを しない）
+  //   ・load() は よばない。preload を "auto" に する だけで 読みこみが はじまるし、
+  //     load() は iPhoneの「音の 解禁」を もどして しまう おそれが ある。
+  const warmQueue = [];
+  let warming = null;
+  function warmBgm(a) {
+    try {
+      if (!a || a === warming || a.readyState >= 4) return;
+      if (warmQueue.indexOf(a) < 0) warmQueue.push(a);
+    } catch (e) {}
+  }
+  function warmStep() {
+    if (warming || !warmQueue.length) return;
+    if (desiredBgm && desiredBgm.readyState < 3) return;   // 鳴らす べき 曲を さきに とおす
+    const a = warmQueue.shift();
+    if (!a || a === desiredBgm || a.readyState >= 4) { warmStep(); return; }
+    warming = a;
+    const done = () => { if (warming === a) warming = null; };
+    try {
+      a.addEventListener("canplaythrough", done, { once: true });
+      a.addEventListener("error", done, { once: true });
+      a.preload = "auto";             // ← これだけで 読みこみが はじまる
+    } catch (e) { warming = null; return; }
+    setTimeout(done, 25000);          // つながらない ときも つぎへ すすむ
+  }
+  // つぎに 使いそうな 曲を ならべる（ステージ i を あそんで いる とき）
+  function warmForStage(i) {
+    // ★loadStage(0) は この 行より **まえ**（ページを ひらいた すぐ）にも 走るので、
+    //   まだ 曲が つくられて いない ことが ある。その ときは 何も しない。
+    try {
+      warmBgm(BOSS_BGM[i]);             // まず その ステージの ボス
+      if (i === 1) warmBgm(STORY3_BGM); // ステージ2の あとは 本能寺の 紙芝居
+      warmBgm(BGM[i + 1]);              // つぎの ステージ
+      warmBgm(BOSS_BGM[i + 1]);
+    } catch (e) {}
+  }
+  // 立ちあげ直後：タイトルで まっている あいだに オープニング → ステージ1 の じゅんで
+  setTimeout(() => { warmBgm(OPENING_BGM); warmBgm(BGM[0]); }, 2000);
 
   // ---------- 物理ヘルパー ----------
   function rectHit(a, b) {
@@ -21812,6 +21899,7 @@
 
   // ゲームオーバー/クリア時は画面タップでメニューへ（もう一度／つづきを選べる）
   canvas.addEventListener("pointerdown", (e) => {
+    ac(); primeAudio();   // ★ver6.7：画面タップも 音の 解禁／曲の かけ直しの チャンスに つかう
     if (state === "pause") { e.preventDefault(); togglePause(); return; }
     if (state === "stagename") { e.preventDefault(); skipStageName(); return; }
     if (state === "story") { e.preventDefault(); advanceStory(); return; }
