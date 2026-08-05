@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 6.5 (2026-08-05)";
+  const GAME_VERSION = "異世界編 ver 6.6 (2026-08-06)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -545,9 +545,6 @@
       //   ・3かいの われた ゆか（144〜146／154〜156列）は こおりのはしで わたる
       //   ・高い ところの ハートのうつわ（55列）は 氷の 足場で とどく
       // ★たき火オバケ（5）には 氷が きかない＝こおりの よわい ところ。
-  // ★1UP（71列・24行）は **氷のかたまり（*）で とじこめて ある**。
-  //   ドラゴンに かえて 火で とかすと 取れる＝ドラゴンだけの ごほうび。
-  //   空中に うかんで いる ので、とかせなくても 先には 進める（本すじは ふさがない）。
       name: "ステージ6 こおりのお城",
       theme: "ice",
       boss: "frostdragon",
@@ -577,12 +574,12 @@
         "--------------------------------------------------------------------------------------------------------------------------------RRRR------------------------------------RR",
         "--------------------------------------------------------------------------------------------------------------------------------RR--------------4-----------------------RR",
         "----------------------------------------------------o-oVo--------------*--------------------------------------------------------RR--RR------------------------?---------RR",
-        "----------------------------------------------------RRRRRR------------*U*---------------------4---------------------------------RR----J-----o-o-o---J---5-------N-------RR",
+        "----------------------------------------------------RRRRRR------------*U*---------------------4---------------------------------RR----J-----o-o-o-T-J---5-------N-------RR",
         "----------------------4-----------------4------------------------4--o-o*o------------o-N-o-----------------------4--------------RRRRRRRRRR%%%%%%%%%%%%%%%%%%%RRRRRRR----RR",
         "--------------------------------------------o-o-o------------------------------------RRRRR------o-o-o---------------------------RR------------------------------------RRRR",
         "--------------------------------------------------------------------------------------------------------------------------------RR--------------------------------------RR",
         "--------------------------?------ooo----------------------------------------------?---------------------------?------------------------------------?----------------RR--RR",
-        "--P-----S-----ooo-J---------J-----5---N-------------T-T---5---J-------------5--J------------T-----------J-5---------J-----N---!-------5---ooo--J--------J-----N-T-------RR",
+        "--P-----S-----ooo-J-----T---J-----5---N-------------T-T---5---J---T---------5--J------T-----T---------T-J-5-----T---J-----N---!-------5---ooo--J--------J-----N-T-------RR",
         "XXXXXXXXXXXXXXXXXXXXXX%%%%%%%%%XXXXXXXXXXXXX-----XXXXX%%%%%%%%%XXXXX------XXXXXX%%%%%%%%%%%XXXXX-----XXXXXXX%%%%%%%%%%%%%XXXXXXXXXXXXXXXXXXXXXXXXXXXXX%%%%%%%%XXXXXXXXXX--",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX-----XXXXXXXXXXXXXXXXXXX------XXXXXXXXXXXXXXXXXXXXXX-----XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--"
       ]
@@ -609,18 +606,41 @@
   let replayStage = false;
   // ★とびらは「おくの だん」の 上、まるりんは「手まえの ゆか」に 立つ。
   //   同じ 高さに すると まるりんが とびらの 中に 浮いて 見えた。
+  // ★ステージは ぜんぶで **9つ** の よてい（ユーザー確定）。
+  //   1〜8＝ふつうの 異世界＝**下の だん**に よこ 1れつ。
+  //   9  ＝ようせいとの さいしゅうけっせん＝**いちばん おくの 高い だん**（ユーザー案）。
+  //   まだ 作って いない ぶんも「岩で ふさがった まど」として ならべる ので、
+  //   子どもが「あと なんこ あるか」を ひと目で わかる。
+  const HUB_SLOTS = 9;                 // ならべる まどの 数
+  const HUB_LOW_N = 8;                 // 下の だんに ならべる 数（のこりは 上の だん）
   const HUB_GROUND = 382;              // 手まえの ゆか（まるりんの 足もと）
-  const HUB_STEP = 318;                // おくの だんの 上（とびらの 下べり）
+  const HUB_STEP = 330;                // 下の だんの 上（下れつの まどの 下べり）
+  const HUB_LEDGE = 218;               // いちばん おくの 高い だん（ステージ9の たな）
   // ★「とびら」ではなく **異世界の まど**（たまご形）。色は そのまま（ユーザー指定）。
-  const HUB_DOOR_W = 74, HUB_DOOR_H = 104;
-  const HUB_RX = 37, HUB_RY = 53;          // まどの 半けい
-  function hubDoorCy() { return HUB_STEP - HUB_RY - 6; }   // まどの まん中の y
-  function hubDoorX(i) {               // i ばんめの とびらの まん中の x
-    const n = STAGES.length;
-    const span = Math.min(700, n * 118);
-    return W / 2 - span / 2 + span / (n * 2) + (span / n) * i;
+  const HUB_RX = 33, HUB_RY = 46;          // 下れつの まどの 半けい（8こ ならぶので すこし 小さく）
+  const HUB_RX9 = 40, HUB_RY9 = 56;        // ステージ9は さいしゅうけっせんなので すこし 大きい
+  function hubUpper(i) { return i >= HUB_LOW_N; }
+  function hubDoorRX(i) { return hubUpper(i) ? HUB_RX9 : HUB_RX; }
+  function hubDoorRY(i) { return hubUpper(i) ? HUB_RY9 : HUB_RY; }
+  function hubDoorCy(i) {              // まどの まん中の y
+    return hubUpper(i) ? (HUB_LEDGE - HUB_RY9 - 4) : (HUB_STEP - HUB_RY - 4);
   }
-  function hubOpenMax() { return Math.min(STAGES.length - 1, hasSave ? continueStage : 0); }
+  function hubDoorX(i) {               // i ばんめの まどの まん中の x
+    if (hubUpper(i)) return W / 2;     // 上の だんは まん中に 1つだけ
+    const span = 740;                  // 左右に すこし よゆう
+    return W / 2 - span / 2 + span / (HUB_LOW_N * 2) + (span / HUB_LOW_N) * i;
+  }
+  // ★入れる のは「クリアした ステージ＋つぎの 1つ」まで。
+  //   まだ 作って いない ステージ（STAGES に ない）は ぜったいに 開かない。
+  function hubOpenMax() {
+    return Math.min(HUB_SLOTS - 1, STAGES.length - 1, hasSave ? continueStage : 0);
+  }
+  // ★ステージ9（ようせいとの さいしゅうけっせん）は
+  //   **ステージ8を クリアするまで「?」でも 出さない**（ユーザー指定）。
+  //   あるか どうかも 見せない ほうが 「まだ 先が ある」おどろきが のこる。
+  //   たなも いっしょに かくす。
+  function hubShowUpper() { return hubOpenMax() >= HUB_SLOTS - 1; }
+  function hubShown(i) { return !hubUpper(i) || hubShowUpper(); }
 
   let checkpoints = [];   // {cx, base, id, on, t, fx}
   let cpReached = null;   // いま ゆうこうな はたの id（ステージが かわると null）
@@ -768,6 +788,15 @@
     //   とびらの間から まえの ステージを 遊び直しても、開いた とびらは 閉じない。
     continueStage = Math.max(continueStage || 0, i); hasSave = true;
     try { localStorage.setItem("maruring_isekai_stage", String(continueStage)); } catch (e) {}
+    updateContinueUI();
+  }
+  // ★「はじめから」＝とちゅうまでの きろくも 消す。
+  //   消さないと、まえの プレイの ぶんまで とびらの間の まどが 開いた ままに なる
+  //   （ステージ1を クリアした だけなのに 1〜4が えらべた：ユーザー報告）。
+  //   ベストスコアは「きろく」なので 消さない。
+  function resetProgress() {
+    continueStage = 0; hasSave = false;
+    try { localStorage.removeItem("maruring_isekai_stage"); } catch (e) {}
     updateContinueUI();
   }
 
@@ -1648,6 +1677,11 @@
   //   どの スキルの こうげきでも ここを 通る（damageEnemy が 入口）。
   //   まほうの テレキネシスは これとは べつに「つかんで 投げる」ままなので、
   //   まほうだけは 好きな タイミングで 投げられる＝とくいな スキルの ままに なる。
+  // ★ver6.6：どの スキルでも 打ち返せる のは のこす が、
+  //   **ゲドルフに 当たるのは 3回に 1回**（ユーザー指摘「なんでも 跳ね返せると 楽すぎた」）。
+  //   まほうの テレキネシス（↓＋B で つかんで 投げる）は じぶんで ねらう ので
+  //   ここを 通らない＝**ねらえば かならず 当たる**。それが 本すじの たおしかた。
+  let crystalHitRate = 1 / 3;
   function returnCrystal(e) {
     if (!e.alive || e.knocked) return false;
     const b = bosses.find(bb => bb.alive && bb.guard) || bosses[0];
@@ -1655,14 +1689,18 @@
     e.knocked = true; e.alive = true;
     const cx = e.x + e.w / 2, cy = e.y + e.h / 2;
     const dx = (b.x + b.w / 2) - cx, dy = (b.y + b.h / 2) - cy;
-    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+    const hit = Math.random() < crystalHitRate;
+    // はずれる ときは ねらいを 大きく そらす（近くても かすらない ぐらい）
+    let ang = Math.atan2(dy, dx);
+    if (!hit) ang += (Math.random() < 0.5 ? -1 : 1) * (0.40 + Math.random() * 0.30);
     e.alive = false;                       // てきとしては 消して、投げものに つくりかえる
     thrown.push({ x: e.x, y: e.y, w: e.w, h: e.h,
-                  vx: dx / d * 11, vy: dy / d * 11,
-                  ekind: "crystal", aim: true, t: 0, land: false, dead: false, hitT: 0 });
+                  vx: Math.cos(ang) * 11, vy: Math.sin(ang) * 11,
+                  ekind: "crystal", aim: true, t: 0, land: false, dead: false, hitT: 0,
+                  wild: !hit });
     score += 100;
-    playSE("reflect"); screenShake = Math.max(screenShake, 6);
-    spawnParticles(cx, cy, "#ffffff", 12);
+    playSE("reflect"); screenShake = Math.max(screenShake, hit ? 6 : 3);
+    spawnParticles(cx, cy, hit ? "#ffffff" : "#9aa6c8", 12);
     spawnParticles(cx, cy, "#bfe9ff", 8);
     return true;
   }
@@ -2833,6 +2871,70 @@
     }
     return true;
   }
+  // ★ver6.6：氷づけの てきは **まるりんが よこから ぶつかると すべって いく**
+  //   （ユーザー要望・カービィ方式）。すべって いる 氷が ほかの てきに 当たると
+  //   **どちらも こわれる**。トゲトゲは どの こうげきでも 倒せない ので、
+  //   「こおらせる → おす → ぶつける」が トゲトゲを 消す ゆいいつの 方法に なる。
+  const ICE_SLIDE_SPD = 6.4;
+  function iceBoxBlocked(e, nx) {           // よこに すすんだ 先が かべか どうか
+    const box = { x: nx + 2, y: e.y + 5, w: e.w - 4, h: e.h - 10 };
+    for (const s of solids) {
+      if (s.dead || s.type === "lowgate") continue;
+      if (rectHit(box, s)) return true;
+    }
+    return false;
+  }
+  function iceBlockShatter(e) {             // 氷が こなごなに なる（中の てきも 消える）
+    e.alive = false; e.iced = false; e.frozen = 0; e.slideVx = 0;
+    spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#dff6ff", 14);
+    spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#7fd6ff", 8);
+    playSE("ice");
+    score += 100;
+  }
+  function killByIce(o) {                   // ぶつけられた ほうの てき（トゲトゲも 消える）
+    o.alive = false; o.frozen = 0; o.iced = false;
+    spawnParticles(o.x + o.w / 2, o.y + o.h / 2, "#dff6ff", 12);
+    spawnParticles(o.x + o.w / 2, o.y + o.h / 2, "#ffffff", 6);
+    sfx.stomp();
+    score += 200;
+  }
+  function pushIceBlock(e, dir) {           // まるりんが よこから おした
+    if (!e.iced || e.slideVx) return false;
+    e.slideVx = dir * ICE_SLIDE_SPD;
+    e.frozen = Math.max(e.frozen, 240);     // すべって いる とちゅうで とけない ように
+    playSE("ice");
+    spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#dff6ff", 6);
+    return true;
+  }
+  // すべって いる 1コマぶん。こわれたら true（よび出しもとは continue する）
+  function updateIceSlide(e) {
+    const nx = e.x + e.slideVx;
+    if (iceBoxBlocked(e, nx)) { iceBlockShatter(e); return true; }   // かべで くだける
+    e.x = nx;
+    // 足もとに ゆかが なければ 落ちる
+    e.vy = Math.min(16, (e.vy || 0) + GRAVITY * 0.8);
+    let ny = e.y + e.vy;
+    if (e.vy >= 0) {
+      const foot = { x: e.x + 4, y: ny, w: e.w - 8, h: e.h };
+      for (const s of solids) {
+        if (s.dead || s.type === "lowgate") continue;
+        if (rectHit(foot, s) && e.y + e.h <= s.y + 8) { ny = s.y - e.h; e.vy = 0; break; }
+      }
+    }
+    e.y = ny;
+    if (e.y > LEVEL_H + 160) { e.alive = false; return true; }       // あなに おちた
+    // ほかの てきに 当たったら どちらも こわれる
+    for (const o of enemies) {
+      if (o === e || !o.alive || o.iced) continue;
+      if (rectHit(e, o)) { killByIce(o); iceBlockShatter(e); return true; }
+    }
+    if (e.t % 3 === 0) particles.push({ x: e.x + e.w / 2 + (Math.random() - 0.5) * e.w,
+                                        y: e.y + e.h - 2, vx: -e.slideVx * 0.1, vy: -0.5,
+                                        life: 14, color: "#dff6ff" });
+    e.slideVx *= 0.997;
+    if (Math.abs(e.slideVx) < 0.7) e.slideVx = 0;                    // 止まれば また ただの かたまり
+    return false;
+  }
   function updateFrosts() {
     if (!frosts.length) return;
     for (const f of frosts) {
@@ -3935,7 +4037,11 @@
     // ステージ2以降のBGM＋ボスBGMも先に解禁（ステージ1は開始時に鳴るので除外）
     // ミュートしたまま一瞬だけ再生して解禁 → 他の曲が一瞬鳴る二重再生を防ぐ
     // 技の効果音も 最初のタップで 解禁しておく（iPhoneは 音を さわる前に 鳴らせない）
-    [VOICE.get, VOICE.sad, STAGE_JINGLE].concat(SE_ALL, BGM.slice(1), BOSS_BGM.filter(Boolean), [OPENING_BGM]).forEach(a => {
+    // ★STORY3_BGM を 入れ わすれて いた（ユーザー報告 ver6.5）。
+    //   ステージ3の まえの 紙芝居は **まいが じどうで めくれる**ので、
+    //   曲を かけ直す ところが「タップの 中」では なく、
+    //   iPhone / Android では 解禁して いない 音は そこで ブロックされて **むおん**に なる。
+    [VOICE.get, VOICE.sad, STAGE_JINGLE].concat(SE_ALL, BGM.slice(1), BOSS_BGM.filter(Boolean), [OPENING_BGM, STORY3_BGM]).forEach(a => {
       try {
         a.muted = true;
         a.play().then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; });
@@ -4934,6 +5040,11 @@
         }
         e.squash += (1 - e.squash) * 0.2;
         if (e.hurtT > 0) e.hurtT--;
+        // ★すべって いる あいだ（ver6.6）
+        if (e.iced && e.slideVx) {
+          if (updateIceSlide(e)) continue;
+          continue;                     // すべって いる 氷には ふれても 何も おきない
+        }
         if (p.burrow <= 0 && p.shadow <= 0 && rectHit(p, e)) {
           if (p.spin > 0 || p.tackle > 0 || p.roll > 0 || p.broom > 0 || ramming(p)) {
             damageEnemy(e, e.iced ? "#dff6ff" : "#bba6ff");
@@ -4951,9 +5062,11 @@
                 p.y = e.y + e.h; if (p.vy < 0) p.vy = 0;   // 下から 頭を ぶつける
               }
             } else {
-              if (p.x + p.w / 2 < e.x + e.w / 2) p.x = e.x - p.w;
-              else p.x = e.x + e.w;
+              const fromLeft = p.x + p.w / 2 < e.x + e.w / 2;
+              if (fromLeft) p.x = e.x - p.w; else p.x = e.x + e.w;
               p.vx = 0;
+              // ★こおりスキルで 氷づけに した ぶん だけ すべって いく（ver6.6）
+              pushIceBlock(e, fromLeft ? 1 : -1);
             }
           }
         }
@@ -8767,6 +8880,19 @@
     hubX = hubDoorX(hubSel);
     hubT = 0; hubEnter = 0;
     inBoss = false; bosses = []; pk = null;
+    // ★とびらの間の まるりんは「play」と 同じ 描きかたを する（口が 笑う ように した ver6.5）。
+    //   その ため、ステージから 持ちこした 状態を ここで きれいに して おかないと おかしく なる。
+    //   とくに endStory は **invuln = 90 を のこす** ので、
+    //   点滅の「消えて いる ほう」で 止まり、**まるりんが ずっと 見えなく なる**（ユーザー報告 ver6.5）。
+    //   updateHub は invuln を へらさない ので、じぶんでは 直らない。
+    {
+      const p = player;
+      resetTechs(p);          // もぐる・かげわたり中だと すがたが 消える
+      endDragonMode();        // 飛ぶ すがたの まま 立たない ように
+      p.invuln = 0; p.stun = 0; p.powerAnim = 0; p.warpIn = 0;
+      p.vx = 0; p.vy = 0; p.onGround = true; p.squash = 1;
+      p.gliding = false; p.glideUsed = false; p.flaps = 0;
+    }
     document.body.classList.add("playing");
     document.body.classList.remove("storymode");
     state = "hub";
@@ -19281,7 +19407,10 @@
     ["#c0522e", "#ffb06a"],   // 3 本能寺
     ["#2f5a8f", "#9fd0f0"],   // 4 あの世ゆきの汽車
     ["#a8348a", "#ff9be2"],   // 5 ネオ・ハムシティ
-    ["#3d8fb8", "#bfeaff"]    // 6 こおりのお城
+    ["#3d8fb8", "#bfeaff"],   // 6 こおりのお城
+    ["#8a7a3a", "#e7d79a"],   // 7 （これから）
+    ["#5a2b3a", "#e59ab4"],   // 8 （これから）
+    ["#c9a227", "#fff3c0"]    // 9 ようせいとの さいしゅうけっせん（金）
   ];
   function drawHub() {
     // かべ（うすむらさきの 石）
@@ -19304,10 +19433,23 @@
     ctx.globalAlpha = 1;
     // おくの くぼみ（まどの うしろ）＝おなじ たまご形を ひとまわり 大きく
     const openMax0 = hubOpenMax();
-    for (let i = 0; i < STAGES.length; i++) {
-      const ax = hubDoorX(i);
+    for (let i = 0; i < HUB_SLOTS; i++) {
+      if (!hubShown(i)) continue;
+      const ax = hubDoorX(i), ay = hubDoorCy(i);
       ctx.fillStyle = i <= openMax0 ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.022)";
-      ctx.beginPath(); ctx.ellipse(ax, hubDoorCy(), HUB_RX + 14, HUB_RY + 14, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(ax, ay, hubDoorRX(i) + 12, hubDoorRY(i) + 12, 0, 0, 7); ctx.fill();
+    }
+    // ★いちばん おくの 高い だん（ステージ9の まどが のって いる たな）
+    if (hubShowUpper()) {
+      const lw = 170;
+      ctx.fillStyle = "#241b40"; ctx.fillRect(W / 2 - lw, HUB_LEDGE, lw * 2, 15);
+      ctx.fillStyle = "#3a2d63"; ctx.fillRect(W / 2 - lw, HUB_LEDGE, lw * 2, 5);
+      ctx.fillStyle = "rgba(0,0,0,0.30)"; ctx.fillRect(W / 2 - lw, HUB_LEDGE + 15, lw * 2, 7);
+      // 石の めじ（だんらしく）
+      ctx.strokeStyle = "rgba(255,255,255,0.05)"; ctx.lineWidth = 1;
+      for (let x = W / 2 - lw + 34; x < W / 2 + lw; x += 34) {
+        ctx.beginPath(); ctx.moveTo(x, HUB_LEDGE + 5); ctx.lineTo(x, HUB_LEDGE + 15); ctx.stroke();
+      }
     }
     // おくの だん（とびらが のって いる ところ）
     ctx.fillStyle = "#221a3a"; ctx.fillRect(0, HUB_STEP, W, HUB_GROUND - HUB_STEP);
@@ -19320,49 +19462,52 @@
 
     const openMax = hubOpenMax();
     // 異世界の まど（たまご形）
-    for (let i = 0; i < STAGES.length; i++) {
-      const dx = hubDoorX(i), dy = hubDoorCy();
+    for (let i = 0; i < HUB_SLOTS; i++) {
+      if (!hubShown(i)) continue;
+      const dx = hubDoorX(i), dy = hubDoorCy(i);
+      const rx = hubDoorRX(i), ry = hubDoorRY(i);
+      const up = hubUpper(i);
       const open = i <= openMax, sel = i === hubSel;
       const col = HUB_DOOR_COL[i] || ["#666", "#aaa"];
-      // 石の わく（まわりの ふちどり）
-      ctx.fillStyle = "#3b2c5c";
-      ctx.beginPath(); ctx.ellipse(dx, dy, HUB_RX + 6, HUB_RY + 6, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = "#4a3a70";
-      ctx.beginPath(); ctx.ellipse(dx, dy, HUB_RX + 3, HUB_RY + 3, 0, 0, 7); ctx.fill();
+      // 石の わく（まわりの ふちどり）※ステージ9だけ 金の わく
+      ctx.fillStyle = up ? "#6b5424" : "#3b2c5c";
+      ctx.beginPath(); ctx.ellipse(dx, dy, rx + 6, ry + 6, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = up ? "#a98b3d" : "#4a3a70";
+      ctx.beginPath(); ctx.ellipse(dx, dy, rx + 3, ry + 3, 0, 0, 7); ctx.fill();
       if (open) {
         // 中に その せかいが 見えて いる
-        const dg = ctx.createLinearGradient(dx, dy - HUB_RY, dx, dy + HUB_RY);
+        const dg = ctx.createLinearGradient(dx, dy - ry, dx, dy + ry);
         dg.addColorStop(0, col[1]); dg.addColorStop(1, col[0]);
         ctx.save();
-        ctx.beginPath(); ctx.ellipse(dx, dy, HUB_RX, HUB_RY, 0, 0, 7); ctx.clip();
-        ctx.fillStyle = dg; ctx.fillRect(dx - HUB_RX, dy - HUB_RY, HUB_RX * 2, HUB_RY * 2);
+        ctx.beginPath(); ctx.ellipse(dx, dy, rx, ry, 0, 0, 7); ctx.clip();
+        ctx.fillStyle = dg; ctx.fillRect(dx - rx, dy - ry, rx * 2, ry * 2);
         // ゆらぐ ひかりの おび（まどの 中を 流れる）
         ctx.globalAlpha = 0.22 + 0.18 * Math.abs(Math.sin(hubT * 0.04 + i));
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(dx - HUB_RX, dy - 12 + Math.sin(hubT * 0.03 + i) * 16, HUB_RX * 2, 11);
+        ctx.fillRect(dx - rx, dy - 11 + Math.sin(hubT * 0.03 + i) * 15, rx * 2, 10);
         ctx.globalAlpha = 1;
         ctx.restore();
         // ガラスの てかり（左上）
         ctx.globalAlpha = 0.16;
         ctx.fillStyle = "#ffffff";
-        ctx.beginPath(); ctx.ellipse(dx - 12, dy - 20, 11, 22, -0.35, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(dx - rx * 0.33, dy - ry * 0.38, rx * 0.31, ry * 0.42, -0.35, 0, 7); ctx.fill();
         ctx.globalAlpha = 1;
         // ステージ番号
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.font = "bold 26px 'Segoe UI', sans-serif";
+        ctx.font = "bold " + (up ? 30 : 24) + "px 'Segoe UI', sans-serif";
         ctx.fillStyle = "rgba(0,0,0,0.35)"; ctx.fillText(String(i + 1), dx + 1, dy + 1);
         ctx.fillStyle = "#ffffff"; ctx.fillText(String(i + 1), dx, dy);
       } else {
         // まだ ひらいて いない＝岩で ふさがって いる
         ctx.save();
-        ctx.beginPath(); ctx.ellipse(dx, dy, HUB_RX, HUB_RY, 0, 0, 7); ctx.clip();
+        ctx.beginPath(); ctx.ellipse(dx, dy, rx, ry, 0, 0, 7); ctx.clip();
         ctx.fillStyle = "#2b2340";
-        ctx.fillRect(dx - HUB_RX, dy - HUB_RY, HUB_RX * 2, HUB_RY * 2);
+        ctx.fillRect(dx - rx, dy - ry, rx * 2, ry * 2);
         ctx.fillStyle = "#453c60";
         for (let k = 0; k < 5; k++) {
           const rw = 26 + (k * 13) % 22, rh = 16 + (k * 7) % 10;
           ctx.beginPath();
-          ctx.ellipse(dx - 16 + ((k * 29) % 34), dy - 36 + k * 19, rw / 2, rh / 2, 0, 0, 7);
+          ctx.ellipse(dx - 16 + ((k * 29) % 34), dy - ry * 0.8 + k * (ry * 0.42), rw / 2, rh / 2, 0, 0, 7);
           ctx.fill();
         }
         ctx.restore();
@@ -19374,14 +19519,17 @@
       if (sel) {
         ctx.strokeStyle = "#ffd85e"; ctx.lineWidth = 3;
         ctx.globalAlpha = 0.6 + 0.4 * Math.abs(Math.sin(hubT * 0.09));
-        ctx.beginPath(); ctx.ellipse(dx, dy, HUB_RX + 10, HUB_RY + 10, 0, 0, 7); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(dx, dy, rx + 9, ry + 9, 0, 0, 7); ctx.stroke();
         ctx.globalAlpha = 1;
       }
     }
-    // つぎに 行く とびらの 上に ようせい
+    // ★ようせいは まるりんの となりで ふわふわ ついて くる（案内やく）。
+    //   まえは「つぎに 行く まどの 上」に 出して いたが、
+    //   ステージ9の たなが 上に できて 場所が ぶつかる ように なった。
     {
-      const nx = hubDoorX(openMax), ny = hubDoorCy() - HUB_RY - 30 + Math.sin(hubT * 0.05) * 5;
-      storyFairy(nx, ny, hubT, 0.85);
+      const fx = Math.max(34, Math.min(W - 34, hubX + 54));
+      const fy = HUB_GROUND - 52 + Math.sin(hubT * 0.05) * 5;   // まどに かぶらない 高さ
+      storyFairy(fx, fy, hubT, 0.8);
     }
     // まるりん（えらんで いる とびらの 前に 歩いて いく）
     {
@@ -21543,14 +21691,65 @@
   }
 
   // ---------- ループ ----------
+  // ★「ときどき カクつく」の しらべ用（ユーザー報告 ver6.5）。
+  //   URL の うしろに **?fps=1** を つけた ときだけ、左下に コマ数を 出す。
+  //   いま／さいあく／おそい コマの 数（1秒に 何回 30コマを 切ったか）が わかる。
+  const SHOW_FPS = /[?&]fps=1/.test(location.search);
+  let fpsPrev = 0, fpsAcc = 0, fpsCnt = 0, fpsNow = 0, fpsWorst = 999, fpsSlow = 0, fpsSlowShown = 0;
+  function fpsTick(t, steps) {
+    if (!fpsPrev) { fpsPrev = t; return; }
+    const dt = t - fpsPrev; fpsPrev = t;
+    if (dt <= 0 || dt > 2000) return;
+    if (steps === 0) return;                      // 描いて いない コマは かぞえない
+    fpsAcc += dt; fpsCnt++;
+    if (dt > 33) fpsSlow++;                       // 30コマを 切った＝カクついた コマ
+    if (fpsAcc >= 500) {
+      fpsNow = Math.round(1000 / (fpsAcc / fpsCnt));
+      if (fpsNow < fpsWorst) fpsWorst = fpsNow;
+      fpsSlowShown = fpsSlow; fpsSlow = 0;
+      fpsAcc = 0; fpsCnt = 0;
+    }
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.fillRect(4, H - 42, 168, 38);
+    ctx.fillStyle = fpsNow >= 50 ? "#8fe08f" : (fpsNow >= 35 ? "#ffd85e" : "#ff8a8a");
+    ctx.font = "bold 15px 'Segoe UI', monospace"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.fillText("fps " + fpsNow + "  worst " + (fpsWorst > 900 ? "-" : fpsWorst), 10, H - 25);
+    ctx.fillStyle = "#cbb8ff";
+    ctx.font = "12px 'Segoe UI', monospace";
+    ctx.fillText("slow/s " + fpsSlowShown, 10, H - 10);
+    ctx.restore();
+  }
+  // ★★ 処理落ち対さく（ユーザー報告「スマホで ときどき カクつく／ひどい」）★★
+  //   まえは requestAnimationFrame が よばれる たびに 1コマ すすめて、まいかい 描いて いた。
+  //   これだと——
+  //     ・**120Hz の スマホ**（いまは ふつう）では 1秒に 120回 うごいて 120回 描く。
+  //       ＝しごとが 2ばい。おいつけなく なって ガタガタに なる。
+  //       おまけに ゲームの はやさも 画面の Hz しだいで かわって しまう。
+  //     ・1コマ おもく なると、その ぶん ゲームが スローに なる（時間が ずれる）。
+  //   → **時間を ためて、1/60秒 ぶん たまるたびに 1コマ すすめる**（かたい コマ送り）。
+  //     ・120Hz でも うごきは 60コマ／秒 の まま＝はやさが 画面に よらない。
+  //     ・**すすめた ときだけ 描く**ので、120Hz なら 描く 回数が 半分に なる＝かるい。
+  //     ・おくれた ときは まとめて 4コマまで 追いつく（それ以上は すてる）。
+  const STEP = 1000 / 60;
+  let acc = 0, lastT = 0;
   let lastInnerH = 0;
-  function loop() {
+  function loop(t) {
+    const now = t || performance.now();
     // 見えている高さが変わったら追従（回転・アドレスバー開閉に確実に対応）
     // ただし一時的な異常値は無視して、まれなレイアウト崩れを防ぐ
     const ih = window.innerHeight;
     if (ih > 120 && ih !== lastInnerH) { lastInnerH = ih; fitViewport(); }
-    update();
-    draw();
+    if (!lastT) lastT = now - STEP;
+    let dt = now - lastT;
+    lastT = now;
+    if (dt < 0 || dt > 250) dt = STEP;   // タブを 切りかえて 戻った ときなどは 1コマ あつかい
+    acc += dt;
+    let steps = 0;
+    while (acc >= STEP && steps < 4) { update(); acc -= STEP; steps++; }
+    if (acc > STEP) acc = 0;             // 追いつけない ぶんは すてる（雪だるま式を ふせぐ）
+    if (steps > 0) draw();               // すすんだ ときだけ 描く
+    if (SHOW_FPS) fpsTick(now, steps);
     requestAnimationFrame(loop);
   }
 
@@ -21584,7 +21783,7 @@
     ac(); primeAudio(); // ユーザー操作でオーディオ解禁
     overlay.classList.add("hidden");
     document.body.classList.add("playing");
-    if (withOpening) resetAbilities();   // はじめから＝スキルもリセット（またステージ1で手に入れる）
+    if (withOpening) { resetAbilities(); resetProgress(); }   // はじめから＝スキルも とちゅうきろくも リセット
     // オープニングを見せるときは、ステージ名の画面（＋ジングル）をとばして紙芝居から始める
     resetGameAt(startIndex, withOpening);
     if (withOpening) startStory("opening");   // ステージ1のまえにオープニング
@@ -21622,9 +21821,12 @@
       // 同じ とびらを もう一度 タップ＝入る。
       const r = canvas.getBoundingClientRect();
       const cx = (e.clientX - r.left) * (W / r.width);
+      const cy = (e.clientY - r.top) * (H / r.height);
+      // ★ステージ9は 上の だんに ある ので、よこだけでは なく **たてにも** 近さを 見る。
       let best = 0, bd = 1e9;
       for (let i = 0; i <= hubOpenMax(); i++) {
-        const d = Math.abs(hubDoorX(i) - cx);
+        const ddx = hubDoorX(i) - cx, ddy = hubDoorCy(i) - cy;
+        const d = ddx * ddx + ddy * ddy * 0.55;
         if (d < bd) { bd = d; best = i; }
       }
       if (best === hubSel) hubEnterDoor(); else { hubSel = best; beep(560, 0.04, "square", 0.05); }
