@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 6.12 (2026-08-06)";
+  const GAME_VERSION = "異世界編 ver 6.13 (2026-08-06)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -971,7 +971,13 @@
     };
     // ステージ開始＝ワープから登場（演出）
     warpFx = { x: player.x + player.w/2, y: player.y + player.h/2 + 4, t: 100 };
-    camX = 0; camY = Math.max(0, LEVEL_H - H); elapsed = 0; particles = [];
+    // ★ver6.13：カメラを まるりんに 合わせて はじめる。
+    //   まえは いつも レベルの いちばん 下（camY = LEVEL_H - H）だった ので、
+    //   **上から はじまる ステージ5** では まるりんが 画面の 外（上）に いて、
+    //   カメラが 追いつくまで 約1びょう 見えなかった。
+    camX = Math.max(0, Math.min(Math.max(0, LEVEL_W - W), player.x + player.w / 2 - W / 2));
+    camY = Math.max(0, Math.min(Math.max(0, LEVEL_H - H), player.y + player.h / 2 - H * 0.55));
+    elapsed = 0; particles = [];
     skillFreeze = 0;
     hazards = []; cukes = []; barrels = [];
     hp = maxHp;   // ステージ開始・やり直しはハート満タンから
@@ -3794,25 +3800,47 @@
   function bindTouch() {
     // どのポインタ（指/マウス）がどのボタンを押しているか記録
     const active = new Map();   // pointerId -> element
+    const rects = new Map();    // pointerId -> そのボタンの 位置（すべらせの ときだけ 使う）
     document.querySelectorAll("#touch-controls [data-act]").forEach(el => {
       const act = el.dataset.act;
       el.addEventListener("pointerdown", (e) => {
         e.preventDefault();
         active.set(e.pointerId, el);
+        rects.set(e.pointerId, el.getBoundingClientRect());   // ★ver6.13：すべらせの ためだけ
         applyTouch(act, true); el.classList.add("pressed"); ac(); primeAudio();
       });
       el.addEventListener("contextmenu", (e) => e.preventDefault());
     });
+    // ★ver6.13：十字キーは **ゆびを すべらせて となりへ 移れる** ように する。
+    //   ブラウザは pointerdown した ボタンに ゆびを しばりつける ので、
+    //   なにも しないと「◀ を おした まま 右へ すべらす」と 左が おされた ままに なる。
+    //   ・十字キーの 中だけ（A/B/C は そのまま。すべって 技が 出ると こまる）
+    //   ・ボタンの すきま では 持ちかえない（ゆびの ブレで 止まらない ように）
+    window.addEventListener("pointermove", (e) => {
+      const cur = active.get(e.pointerId);
+      if (!cur || cur.parentElement.id !== "dpad") return;
+      // ★ゆびが いまの ボタンの 中に いる あいだは 何も しない（ふだんは ここで 帰る）。
+      const r = rects.get(e.pointerId);
+      if (r && e.clientX >= r.left && e.clientX <= r.right &&
+               e.clientY >= r.top && e.clientY <= r.bottom) return;
+      const t = document.elementFromPoint(e.clientX, e.clientY);
+      const nb = (t && t.closest) ? t.closest("#dpad [data-act]") : null;
+      if (!nb || nb === cur) return;
+      applyTouch(cur.dataset.act, false); cur.classList.remove("pressed");
+      active.set(e.pointerId, nb);
+      rects.set(e.pointerId, nb.getBoundingClientRect());
+      applyTouch(nb.dataset.act, true); nb.classList.add("pressed");
+    }, { passive: true });
     // 指/マウスをどこで離しても確実に解除（ボタン外で離しても押しっぱなしにならない）
     const clear = (e) => {
       const el = active.get(e.pointerId);
-      if (el) { applyTouch(el.dataset.act, false); el.classList.remove("pressed"); active.delete(e.pointerId); }
+      if (el) { applyTouch(el.dataset.act, false); el.classList.remove("pressed"); active.delete(e.pointerId); rects.delete(e.pointerId); }
     };
     window.addEventListener("pointerup", clear);
     window.addEventListener("pointercancel", clear);
     // 保険：タブ切替やフォーカス喪失で全ボタンを解除
     const clearAll = () => {
-      active.clear();
+      active.clear(); rects.clear();
       touch.left = touch.right = touch.up = touch.upd = touch.down = touch.abil = false;
       dashLatch = 0;
       document.querySelectorAll("#touch-controls .pressed").forEach(e => e.classList.remove("pressed"));
@@ -9964,19 +9992,26 @@
       // 氷の れんが（カメラで ゆっくり 動く＝おくの かべ）
       const bw = 96, bh = 48;
       const ox = (camX * 0.25) % (bw * 2), oy = (camY * 0.25) % bh;
+      // ★ver6.13：まえは れんが 1つ ずつ strokeRect して いた（1コマ 110〜130回）。
+      //   ぜんぶ 1つの みちすじに まとめて、stroke は **1回**に する。
       ctx.strokeStyle = "rgba(120,180,215,0.28)"; ctx.lineWidth = 2;
+      ctx.beginPath();
       for (let yy = -bh; yy < H + bh; yy += bh) {
         const row = Math.floor((yy + oy) / bh);
         const sx = (row % 2 ? bw / 2 : 0) - ox;
         for (let xx = sx - bw; xx < W + bw; xx += bw) {
-          ctx.strokeRect(xx, yy - oy, bw, bh);
+          ctx.rect(xx, yy - oy, bw, bh);
         }
       }
+      ctx.stroke();
       // とがった まど（外の ふぶきが 見える）
+      // ★ver6.13：wy も グラデーションも 4まい ぜんぶ 同じ なので、ループの 外で 1回だけ 作る。
+      const wy = 60 - (camY * 0.35) % 260;
+      const wg = ctx.createLinearGradient(0, wy, 0, wy + 190);
+      wg.addColorStop(0, "#8fb6d8"); wg.addColorStop(1, "#cfe4f2");
       for (let i = 0; i < 4; i++) {
         const wx = 90 + i * 210 - (camX * 0.35) % 840;
         const px = ((wx % 840) + 840) % 840 - 60;
-        const wy = 60 - (camY * 0.35) % 260;
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(px, wy + 190); ctx.lineTo(px, wy + 46);
@@ -9984,15 +10019,15 @@
         ctx.lineTo(px + 68, wy + 190);
         ctx.closePath();
         ctx.clip();
-        const wg = ctx.createLinearGradient(0, wy, 0, wy + 190);
-        wg.addColorStop(0, "#8fb6d8"); wg.addColorStop(1, "#cfe4f2");
         ctx.fillStyle = wg; ctx.fillRect(px, wy - 20, 68, 220);
+        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        ctx.beginPath();
         for (let k = 0; k < 16; k++) {
           const sx2 = ((k * 37 + elapsed * 3.4) % 100) - 16;
           const sy2 = ((k * 61 + elapsed * 1.1) % 210) - 10;
-          ctx.fillStyle = "rgba(255,255,255,0.7)";
-          ctx.fillRect(px + 68 - sx2, wy + sy2, 2, 2);
+          ctx.rect(px + 68 - sx2, wy + sy2, 2, 2);
         }
+        ctx.fill();
         ctx.restore();
         ctx.strokeStyle = "rgba(200,232,248,0.55)"; ctx.lineWidth = 4;
         ctx.beginPath();
@@ -11635,12 +11670,18 @@
       ctx.strokeStyle = col; ctx.lineWidth = 2;
       const fl = (i % 4 === 1 && Math.sin(elapsed * 0.09 + i) < -0.75) ? 0.25 : 1;   // ときどき チカチカ
       ctx.globalAlpha = fl; ctx.stroke();
+      // ★ver6.13：まえは 文字 1つ ずつに shadowBlur を かけて いた。
+      //   shadowBlur は **iPhone/iPad で とびきり 重い**（ぼかしを まいかい 作りなおす）。
+      //   うしろに うすい 色の ふだを 1まい 置く だけに かえた（見た目は ほぼ 同じ）。
+      ctx.globalAlpha = fl * 0.22;
+      ctx.fillStyle = col;
+      roundRectPath(sx + 2, top - 4, 42, bh + 8, 8); ctx.fill();
+      ctx.globalAlpha = fl;
       ctx.fillStyle = col;
       ctx.font = "bold 21px 'Yu Gothic','Hiragino Kaku Gothic ProN',sans-serif";
       ctx.textAlign = "center"; ctx.textBaseline = "top";
-      ctx.shadowColor = col; ctx.shadowBlur = 12;
       for (let k = 0; k < label.length; k++) ctx.fillText(label[k], sx + 23, top + 8 + k * 25);
-      ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+      ctx.globalAlpha = 1;
       ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
       ctx.restore();
     }
@@ -12236,6 +12277,7 @@
   function drawSigns() {
     for (const sg of signs) {
       sg.t++;
+      if (sg.x + TILE < camX - 60 || sg.x > camX + W + 60) continue;   // ★ver6.13
       const cx = sg.x + TILE / 2, by = sg.y + TILE;
       ctx.save();
       // ポール
@@ -12266,6 +12308,7 @@
   // でんげんスイッチ と 電動シャッター
   function drawSwitches() {
     for (const sw of switches) {
+      if (sw.x + sw.w < camX - 40 || sw.x > camX + W + 40) continue;   // ★ver6.13
       ctx.save();
       ctx.fillStyle = "#3a4560";
       roundRectPath(sw.x, sw.y, sw.w, sw.h, 5); ctx.fill();
@@ -12307,6 +12350,7 @@
       // 開ききったら もう 描かない（引きこまれて 消えた）
       const k = sh.open ? Math.max(0, 1 - sh.openT / 24) : 1;
       if (k <= 0) continue;
+      if (sh.x + sh.w < camX - 40 || sh.x > camX + W + 40) continue;   // ★ver6.13
       const h = sh.h * k;
       ctx.save();
       ctx.fillStyle = "#59647d"; ctx.fillRect(sh.x, sh.y, sh.w, h);
@@ -12586,6 +12630,9 @@
     for (const c of coins) {
       if (c.got) continue;
       c.t += 0.1;
+      // ★ver6.13：画面の 外の コインは 描かない。
+      //   ステージ5は コインが 112こ あって、これだけで 1コマの 52% を つかって いた。
+      if (c.x + c.w < camX - 40 || c.x > camX + W + 40) continue;
       const wob = Math.abs(Math.cos(c.t)) ;
       const cx = c.x + c.w/2, cy = c.y + c.h/2;
       ctx.save();
@@ -12689,6 +12736,11 @@
   }
 
   function drawGoal(gl) {
+    // ★ver6.13：画面から とおい ゴールは 描かない。
+    //   まえは ステージ5で カメラが x=4700 の ときにも x=9900 の ゴールを 描いて いた。
+    //   ゴールは 大きい（お城・タワー）ので よゆうを **画面 1つぶん より 広く** とる。
+    //   （ゴールの 絵の 大きさを 測ったら よこ 120〜310px だった ので 1200px なら たっぷり）
+    if (gl.x < camX - 1200 || gl.x > camX + W + 1200) return;
     if (theme === "town") { drawGate(gl); return; }
     if (theme === "narita") { drawAirport(gl); return; }
     if (theme === "hawaii") { drawHawaiiGoal(gl); return; }
