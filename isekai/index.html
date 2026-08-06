@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 6.8 (2026-08-06)";
+  const GAME_VERSION = "異世界編 ver 6.10 (2026-08-06)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -2546,17 +2546,22 @@
       if (solidPointAt(qx, qy)) { gx = Math.floor(qx / TILE) * TILE; gy = Math.floor(qy / TILE) * TILE; break; }
     }
     if (gx === null) return null;                                    // そもそも かべじゃない
-    // ★汽車の 天じょうには のぼれない。のぼれると 屋根の 上を 走って
-    //   ボスまで まっすぐ 行けてしまう（ステージが 成立しなく なる）。
-    if (solidTypeAt(gx + TILE / 2, gy + TILE / 2) === "trainceil") return null;
+    // ★天じょうには のぼれない。
+    //   ・汽車の 屋根（trainceil）＝のぼれると ボスまで まっすぐ 行けてしまう
+    //   ・ボス部屋の 天じょう（bossceil・iceceil）＝のぼると 上は 1マスしか なく、
+    //     下は 天じょうで ふさがれて **どこにも 行けなく なる**（ユーザー報告：
+    //     ケルベロス戦で 天じょうの 上に のぼると 詰む）
+    if (isCeilType(solidTypeAt(gx + TILE / 2, gy + TILE / 2))) return null;
     let guard = 0;
     while (guard++ < 40 && solidPointAt(gx + TILE / 2, gy - TILE / 2)) gy -= TILE;   // てっぺんまで
-    if (solidTypeAt(gx + TILE / 2, gy + TILE / 2) === "trainceil") return null;   // 上まで たどって 天じょうに 当たった
+    if (isCeilType(solidTypeAt(gx + TILE / 2, gy + TILE / 2))) return null;   // 上まで たどって 天じょうに 当たった
     const tx = gx + TILE / 2 - p.w / 2;
     const ty = gy - p.h;
     if (playerStuckAt(p, tx, ty)) return null;                       // 乗る すきまが ない
     return { x: tx, y: ty };
   }
+  // ★のぼれない／上に 立てない「天じょう」の しゅるい（ver6.10）
+  function isCeilType(t) { return t === "trainceil" || t === "bossceil" || t === "iceceil"; }
   function climbFromHook(p) {
     const t = climbTargetFromHook(p);
     if (!t) return false;
@@ -4016,14 +4021,22 @@
   let desiredBgm = null;
   function playTrack(track) {
     desiredBgm = track;
-    ALL_BGM.forEach(a => { if (a !== track) { try { a.pause(); } catch (e) {} } });
+    // ★ver6.9：先読み（ミュートで 落として いる とちゅう）だった 曲を そのまま
+    //   本ばんに する ときの あとしまつ。ミュートと 音量を かならず もどす。
+    //   これを わすれると「鳴って いる ことに なって いるのに むおん」に なる。
+    if (warming === track) { warming = null; try { track.currentTime = 0; } catch (e) {} }
+    track.muted = false;
+    if (track._vol !== undefined) track.volume = track._vol;
+    // ★解禁の とちゅうの 曲は 止めない（ミュートなので 聞こえない・すぐ 自分で 止まる）
+    ALL_BGM.forEach(a => { if (a !== track && priming.indexOf(a) < 0) { try { a.pause(); } catch (e) {} } });
     bgm = track;
     try { const pr = track.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
   }
   function startBGM() { playTrack(currentBgm()); }
   function stopBGM()  {
     desiredBgm = null;
-    ALL_BGM.forEach(a => { try { a.pause(); } catch (e) {} });
+    // ★解禁の とちゅうの 曲は 止めない（ver6.9）
+    ALL_BGM.forEach(a => { if (priming.indexOf(a) < 0) { try { a.pause(); } catch (e) {} } });
   }
   // タイトル画面の曲（メニューに戻ったときも鳴らす）
   function startTitleBGM() { playTrack(TITLE_BGM); }
@@ -4034,6 +4047,8 @@
     bgmWatchT = 0;
     warmStep();                     // ★つぎの 曲の 先読みも ここで 1本ずつ すすめる
     if (!desiredBgm || !desiredBgm.paused) return;
+    desiredBgm.muted = false;       // ★ver6.9：先読みの ミュートが のこって いたら 消す
+    if (desiredBgm._vol !== undefined) desiredBgm.volume = desiredBgm._vol;
     try { const pr = desiredBgm.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
   }
 
@@ -4057,7 +4072,14 @@
   //   音も 出ないし、曲も ダウンロードされない。
   let audioPrimed = false;
   const primeRetry = [];            // ほんとうに ブロックされた 音（つぎの タップで もういちど）
-  function primeStop(a, vol) {
+  // ★ver6.9：いま 解禁の とちゅう（ミュートで 鳴らしはじめて いる）曲。
+  //   「はじめから」の タップでは 解禁と 同時に オープニングの 曲も かかる ので、
+  //   playTrack / stopBGM の「ほかの 曲を 止める」が **解禁を 横から 止めて しまって いた**。
+  //   （ブラウザで 実さいに 見た：ステージ1の 曲が 0バイトの まま＝鳴りはじめて いない
+  //     ＝iPhoneが 解禁して くれない → ステージ1が むおん、が これ）
+  const priming = [];
+  function primeStop(a) {
+    const vol = a._vol !== undefined ? a._vol : 1;
     // いま 鳴らす べき 曲だけは ぜったいに 止めない。
     // （さわった 直後に 紙芝居が その曲を かけはじめる ことが ある＝ver6.6までは
     //   あとから この しまつが 走って、鳴りはじめた 曲を 止めて しまって いた）
@@ -4066,41 +4088,64 @@
     }
     a.muted = false; a.volume = vol;
   }
+  // ★ver6.9：解禁は「ミュートで **ほんとうに 鳴りはじめて から** 止める」。
+  //   ver6.7〜6.8は その場で すぐ 止めて いた が、**iPhoneは それでは 解禁して くれない**。
+  //   （タップの 外から かける ステージの 曲が 鳴らなく なって いた＝ユーザー報告）
+  //   ver6.6は これで 正しかったが、69コを いちどに さわって いた ので
+  //   ノイズと 16MBの いっき読みが おきた。**1回の タップで 6コまで**に して 両立させる。
   function primeOne(a) {
-    const vol = a.volume;
+    if (!a) return;
     try {
       a.muted = true; a.volume = 0;   // 二重に 消す（一瞬でも 音が もれない ように）
+      if (priming.indexOf(a) < 0) priming.push(a);
+      let stopped = false;
+      const stop = () => {
+        if (stopped) return; stopped = true;
+        const i = priming.indexOf(a); if (i >= 0) priming.splice(i, 1);
+        primeStop(a);
+      };
+      a.addEventListener("playing", stop, { once: true });   // 鳴りだした しゅんかんに 止める
       const pr = a.play();
-      if (pr && pr.then) pr.then(function () { primeStop(a, vol); },
-                                 function (err) {
-        primeStop(a, vol);
+      if (pr && pr.then) pr.then(stop, function (err) {
+        stop();
         if (err && err.name === "NotAllowedError" && primeRetry.indexOf(a) < 0) primeRetry.push(a);
       });
-      primeStop(a, vol);              // ★その場で すぐ 止める
-    } catch (e) { a.muted = false; a.volume = vol; }
+      setTimeout(stop, 4000);         // 鳴りださない ときの ほけん
+    } catch (e) { a.muted = false; if (a._vol !== undefined) a.volume = a._vol; }
   }
-  // ★ver6.8：さいしょの タップで さわるのは これ（42コ）。
-  //   のこりの SEの コピー（PRIME_EXTRA・27コ）は **つぎの タップ**で さわる。
-  //   69コ ぜんぶを いちどに さわると、「はじめから」を おした しゅんかんに
-  //   0.2〜0.4びょう 止まって「なかなか きりかわらない」ように 見える。
-  const PRIME_ALL = [VOICE.get, VOICE.sad, STAGE_JINGLE]
-    .concat(SE_FIRST, BGM, BOSS_BGM.filter(Boolean), [TITLE_BGM, OPENING_BGM, STORY3_BGM]);
-  const PRIME_EXTRA = SE_REST;
-  let primeExtraLeft = true;
+  // ★ver6.9：さわる じゅんばん＝「すぐ 要る もの」から。
+  //   1回の タップで さわるのは **6コまで**（iPhoneは <audio> を さわるのが とても おそく、
+  //   まとめて さわると「はじめから」を おした あと 画面が 止まって 見える）。
+  //   ステージ1の 曲は **2ばんめ**＝さいしょの タップで かならず 解禁される。
+  //   ★さいしょの 6コに 大きな 曲を つめこまない こと。曲は 1本 1〜2MB あって、
+  //     解禁の あいだ ダウンロードが はしる ので、いちばん こみあう
+  //     「はじめから」の しゅんかんに 何本も 走らせると かえって おそく なる。
+  //     ＝1ばん（いま かける オープニング）＋2ばん（すぐ 要る ステージ1）だけ。
+  const PRIME_ALL = [OPENING_BGM, BGM[0], VOICE.get, VOICE.sad, STAGE_JINGLE]
+    .concat(SE_FIRST, [TITLE_BGM, STORY3_BGM], BGM.slice(1), BOSS_BGM.filter(Boolean), SE_REST);
+  // ★ver6.9：解禁は「ほんとうに 鳴りはじめて から 止める」ので、1コ あたり 数ミリびょう かかる。
+  //   ＝「はじめから」の タップは **2コだけ**（オープニングの 曲＋ステージ1の 曲）。
+  //   そのあとは ボタンを おす たびに 3コずつ。ゲーム中に カクつかない ように 小さくする。
+  const PRIME_BATCH_FIRST = 2;
+  const PRIME_BATCH = 3;
+  let primeTaps = 0;
+  const primeQueue = PRIME_ALL.slice();
+  // それぞれの「ほんとうの 音量」を おぼえて おく（解禁・先読みで 0 に する ため）
+  PRIME_ALL.forEach(a => { if (a) a._vol = a.volume; });
   function primeAudio() {
     // ★ver6.7：タップの **中で**「いま 鳴らす べき 曲」を もういちど けとばす。
     //   タップの 外から の 鳴らし直し（watchBGM）は スマホに ブロックされる ことが あるので、
     //   ここが いちばん たしかな タイミング。紙芝居の 曲が むおんの ままに ならない ための 保険。
     if (desiredBgm && desiredBgm.paused) {
+      desiredBgm.muted = false;
+      if (desiredBgm._vol !== undefined) desiredBgm.volume = desiredBgm._vol;
       try { const pr = desiredBgm.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
     }
-    if (audioPrimed) {
-      if (primeExtraLeft) { primeExtraLeft = false; PRIME_EXTRA.forEach(primeOne); }
-      if (primeRetry.length) primeRetry.splice(0).forEach(primeOne);
-      return;
-    }
     audioPrimed = true;
-    PRIME_ALL.forEach(primeOne);
+    if (primeRetry.length) primeRetry.splice(0).forEach(primeOne);
+    // ★ver6.9：さいしょの タップは 2コ、そのあとは 3コずつ
+    const lim = (primeTaps++ === 0) ? PRIME_BATCH_FIRST : PRIME_BATCH;
+    for (let n = 0; n < lim && primeQueue.length; n++) primeOne(primeQueue.shift());
   }
 
   // ★ver6.7：曲の「先読み」（ユーザー報告「タイトルの 曲が なかなか 鳴らない／
@@ -4120,18 +4165,34 @@
       if (warmQueue.indexOf(a) < 0) warmQueue.push(a);
     } catch (e) {}
   }
+  // ★ver6.10：先読みは **fetch で ファイルを 落とす だけ**に する。
+  //   ver6.8は preload="auto" に する だけ＝**iPhoneは preload を 見ない**ので 何も しなかった。
+  //   ver6.9は「ミュートで 鳴らして 落とす」に した が、**iPhoneで 音が 一瞬 もれた**
+  //   （ユーザー報告：ボスを たおして 紙芝居の 前に 一瞬 音楽が 鳴る）。
+  //   iPhoneは volume を 変えられない（読みとり せんよう）ので たよれるのは muted だけ で、
+  //   muted が きくまでの ほんの 一瞬が もれる。
+  //   → **音の しくみを いっさい 使わない**。fetch で 落として おけば、
+  //     あとで <audio> が おなじ URLを よむ ときに ブラウザの キャッシュから すぐ 出る。
+  //   ※「解禁」（さいしょの タップで さわる ぶん）は primeAudio が やる ので、
+  //     ここでは 落とす ことだけ かんがえれば よい。
   function warmStep() {
     if (warming || !warmQueue.length) return;
+    // ★ボス戦の あいだは 先読みを 止める（ユーザー報告：マザーAI戦・フロストドラゴン戦が
+    //   処理落ちで 戦いに ならない）。ボスの 曲は ステージを あそんで いる あいだに
+    //   もう 落として ある ので、ここで 休んでも こまらない。
+    if (inBoss || state === "boss") return;
     if (desiredBgm && desiredBgm.readyState < 3) return;   // 鳴らす べき 曲を さきに とおす
     const a = warmQueue.shift();
-    if (!a || a === desiredBgm || a.readyState >= 4) { warmStep(); return; }
+    if (!a || a === desiredBgm || a.readyState >= 4 || a._warmed) { warmStep(); return; }
     warming = a;
     const done = () => { if (warming === a) warming = null; };
     try {
-      a.addEventListener("canplaythrough", done, { once: true });
-      a.addEventListener("error", done, { once: true });
-      a.preload = "auto";             // ← これだけで 読みこみが はじまる
-    } catch (e) { warming = null; return; }
+      a.preload = "auto";
+      // blob で うけとる（arrayBuffer だと 1〜2MBの コピーが JS がわに できて ゴミが 出る）
+      fetch(a.src, { cache: "force-cache" })
+        .then(r => r.blob())
+        .then(() => { a._warmed = true; done(); }, done);
+    } catch (e) { done(); return; }
     setTimeout(done, 25000);          // つながらない ときも つぎへ すすむ
   }
   // つぎに 使いそうな 曲を ならべる（ステージ i を あそんで いる とき）
@@ -4139,7 +4200,8 @@
     // ★loadStage(0) は この 行より **まえ**（ページを ひらいた すぐ）にも 走るので、
     //   まだ 曲が つくられて いない ことが ある。その ときは 何も しない。
     try {
-      warmBgm(BOSS_BGM[i]);             // まず その ステージの ボス
+      warmBgm(BGM[i]);                  // ★ver6.9：いま あそぶ ステージの 曲（入れ わすれて いた）
+      warmBgm(BOSS_BGM[i]);             // つぎに その ステージの ボス
       if (i === 1) warmBgm(STORY3_BGM); // ステージ2の あとは 本能寺の 紙芝居
       warmBgm(BGM[i + 1]);              // つぎの ステージ
       warmBgm(BOSS_BGM[i + 1]);
@@ -4328,6 +4390,10 @@
       //   「その ブロックの 上に 立つ」あつかいに なって **1マス 持ちあがって いた**
       //   （こわす → 持ちあがる → その上の かべも こわす、で 3マスも のぼって しまった）。
       if (s.dead) continue;
+      // ★ボス部屋の 天じょうの **上には 立てない**（ver6.10）。
+      //   どんな 行きかた（ジェット・ドラゴン・氷のはし・かべジャンプ）で 上に 出ても、
+      //   すとんと 落ちて もどれる ように する＝ぜったいに 詰まない。
+      if (p.vy > 0 && isCeilType(s.type)) continue;
       if (rectHit(p, s)) {
         if (p.vy > 0) { p.y = s.y - p.h; p.vy = 0; p.onGround = true; }
         else if (p.vy < 0) {
@@ -10877,6 +10943,29 @@
     ctx.fillRect(s.x + 5, s.y + 5, 8, 3);
   }
 
+  // ★ver6.10：まいコマ 作りなおして いた グラデーションを おぼえて おく。
+  //   ざひょうを (0,0)-(0,TILE) に して おいて、使う ときに translate で ずらす。
+  //   （キャンバスの グラデーションは 使う しゅんかんの ざひょう系で 塗られる ので、
+  //     ずらして から 塗れば ちゃんと その マスに かかる）
+  const _tileGrad = {};
+  function tileGrad(key, stops) {
+    let g = _tileGrad[key];
+    if (!g) {
+      g = ctx.createLinearGradient(0, 0, 0, TILE);
+      for (let i = 0; i < stops.length; i += 2) g.addColorStop(stops[i], stops[i + 1]);
+      _tileGrad[key] = g;
+    }
+    return g;
+  }
+  // 1マスぶん、ずらして ぬる（グラデーションを 作りなおさない）
+  function fillTileGrad(s, key, stops) {
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.fillStyle = tileGrad(key, stops);
+    ctx.fillRect(0, 0, s.w, s.h);
+    ctx.restore();
+  }
+
   function drawSolids() {
     for (const s of solids) {
       if (s.x + s.w < camX - 40 || s.x > camX + W + 40) continue;
@@ -10886,9 +10975,7 @@
       if (s.type === "bossceil") {
         // ケルベロス戦の 天じょう（あの世の えきの はり）。
         // かまフックで ひっかけられる ことが 見て わかる ように、下べりを 明るくする。
-        const g = ctx.createLinearGradient(s.x, s.y, s.x, s.y + s.h);
-        g.addColorStop(0, "#171326"); g.addColorStop(1, "#3a2f4e");
-        ctx.fillStyle = g; ctx.fillRect(s.x, s.y, s.w, s.h);
+        fillTileGrad(s, "bossceil", [0, "#171326", 1, "#3a2f4e"]);   // ★ver6.10：作りなおさない
         ctx.fillStyle = "rgba(150,120,200,0.30)"; ctx.fillRect(s.x, s.y + s.h - 5, s.w, 5);
         ctx.strokeStyle = "rgba(0,0,0,0.35)"; ctx.lineWidth = 1;
         ctx.strokeRect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);
@@ -10896,9 +10983,7 @@
       }
       if (s.type === "iceceil") {
         // フロストドラゴン戦の 天じょう（つららが ぶら下がる ところ）
-        const g = ctx.createLinearGradient(s.x, s.y, s.x, s.y + s.h);
-        g.addColorStop(0, "#3d7ea6"); g.addColorStop(1, "#9ed4ec");
-        ctx.fillStyle = g; ctx.fillRect(s.x, s.y, s.w, s.h);
+        fillTileGrad(s, "iceceil", [0, "#3d7ea6", 1, "#9ed4ec"]);    // ★ver6.10：作りなおさない
         ctx.fillStyle = "rgba(255,255,255,0.35)"; ctx.fillRect(s.x, s.y + s.h - 5, s.w, 5);
         continue;
       }
@@ -10990,11 +11075,10 @@
         // 雪の 山：あおい 岩＋上に つもった 雪。つるつるの ゆか（slipice）は
         // ★見た目で わかる ように「まっ白で つやつや」に する（ふつうの 雪より 光る）。
         const slip = s.type === "slipice";
-        const g = ctx.createLinearGradient(s.x, s.y, s.x, s.y + s.h);
-        if (slip) { g.addColorStop(0, "#e8fbff"); g.addColorStop(1, "#8fc9e4"); }
-        else if (s.type === "stone") { g.addColorStop(0, "#7f9bb4"); g.addColorStop(1, "#5b7690"); }
-        else { g.addColorStop(0, "#95b2c8"); g.addColorStop(1, "#6b8aa4"); }
-        ctx.fillStyle = g; ctx.fillRect(s.x, s.y, s.w, s.h);
+        // ★ver6.10：まえは マス 1つごとに グラデーションを 作って いた（1コマ 50回いじょう）
+        if (slip) fillTileGrad(s, "ice_slip", [0, "#e8fbff", 1, "#8fc9e4"]);
+        else if (s.type === "stone") fillTileGrad(s, "ice_stone", [0, "#7f9bb4", 1, "#5b7690"]);
+        else fillTileGrad(s, "ice_ground", [0, "#95b2c8", 1, "#6b8aa4"]);
         if (!isSolidAt(s.x, s.y - TILE)) {
           // いちばん 上だけ 雪が つもる
           ctx.fillStyle = slip ? "#ffffff" : "#f4fbff";
