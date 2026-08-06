@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 6.7 (2026-08-06)";
+  const GAME_VERSION = "異世界編 ver 6.8 (2026-08-06)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -3914,6 +3914,10 @@
   };
   const SE = {};
   const SE_ALL = [];
+  // ★ver6.8：さいしょの タップで さわる 数を へらす ため 2つに わける。
+  //   SE_FIRST＝音ごとの 1つめ（かならず これから 鳴る）／SE_REST＝2つめ いこうの コピー。
+  const SE_FIRST = [];
+  const SE_REST = [];
   for (const key in SE_DEFS) {
     const d = SE_DEFS[key];
     const pool = [];
@@ -3924,6 +3928,7 @@
       if (d.loop) a.loop = true;
       pool.push(a);
       SE_ALL.push(a);
+      (i === 0 ? SE_FIRST : SE_REST).push(a);
     }
     SE[key] = { pool, i: 0 };
   }
@@ -4074,8 +4079,14 @@
       primeStop(a, vol);              // ★その場で すぐ 止める
     } catch (e) { a.muted = false; a.volume = vol; }
   }
+  // ★ver6.8：さいしょの タップで さわるのは これ（42コ）。
+  //   のこりの SEの コピー（PRIME_EXTRA・27コ）は **つぎの タップ**で さわる。
+  //   69コ ぜんぶを いちどに さわると、「はじめから」を おした しゅんかんに
+  //   0.2〜0.4びょう 止まって「なかなか きりかわらない」ように 見える。
   const PRIME_ALL = [VOICE.get, VOICE.sad, STAGE_JINGLE]
-    .concat(SE_ALL, BGM, BOSS_BGM.filter(Boolean), [TITLE_BGM, OPENING_BGM, STORY3_BGM]);
+    .concat(SE_FIRST, BGM, BOSS_BGM.filter(Boolean), [TITLE_BGM, OPENING_BGM, STORY3_BGM]);
+  const PRIME_EXTRA = SE_REST;
+  let primeExtraLeft = true;
   function primeAudio() {
     // ★ver6.7：タップの **中で**「いま 鳴らす べき 曲」を もういちど けとばす。
     //   タップの 外から の 鳴らし直し（watchBGM）は スマホに ブロックされる ことが あるので、
@@ -4084,6 +4095,7 @@
       try { const pr = desiredBgm.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
     }
     if (audioPrimed) {
+      if (primeExtraLeft) { primeExtraLeft = false; PRIME_EXTRA.forEach(primeOne); }
       if (primeRetry.length) primeRetry.splice(0).forEach(primeOne);
       return;
     }
@@ -4139,6 +4151,48 @@
   // ---------- 物理ヘルパー ----------
   function rectHit(a, b) {
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  // ★ver6.8：ゆか・かべの「ます目の さくいん」。
+  //   てきは 1ぴき ごとに solids（700コ ぐらい）を ぜんぶ しらべて いたので、
+  //   てきが 30〜48ひき いる ステージでは **1コマに 6万回**も くらべて いた
+  //   （update の 9わりが これ だった）。よこ 160px ごとに まとめて おいて、
+  //   「じぶんの まわりの ます」だけ しらべる ように する。
+  //   さくいんは **まいコマ 作りなおす**ので、うごく ゆかや、あとから ふえる
+  //   氷の はし・おはか・はこ でも ずれない。
+  const SOLID_COL = 160;
+  let solidGrid = null, solidGridT = -1, solidGridN = -1;
+  const SOLID_NONE = [];
+  function solidGridNow() {
+    if (solidGrid && solidGridT === elapsed && solidGridN === solids.length) return solidGrid;
+    solidGridT = elapsed; solidGridN = solids.length;
+    solidGrid = [];
+    for (let i = 0; i < solids.length; i++) {
+      const s = solids[i];
+      let a = Math.floor(s.x / SOLID_COL);
+      let b = Math.floor((s.x + s.w - 1) / SOLID_COL);
+      if (b < 0) continue;
+      if (a < 0) a = 0;
+      for (let c = a; c <= b; c++) (solidGrid[c] || (solidGrid[c] = [])).push(s);
+    }
+    return solidGrid;
+  }
+  // x〜x+w の あたりに ある ゆか・かべ だけを かえす。
+  // ※かえって きた 配列は 中身を 変えない こと（さくいんの じっけんを そのまま かえす）
+  function solidsNear(x, w) {
+    const g = solidGridNow();
+    let a = Math.floor((x - 4) / SOLID_COL);
+    const b = Math.floor((x + w + 4) / SOLID_COL);
+    if (b < 0) return SOLID_NONE;
+    if (a < 0) a = 0;
+    if (a === b) return g[a] || SOLID_NONE;
+    const out = [];
+    for (let c = a; c <= b; c++) {
+      const col = g[c];
+      if (!col) continue;
+      for (let i = 0; i < col.length; i++) if (out.indexOf(col[i]) < 0) out.push(col[i]);
+    }
+    return out;
   }
 
   // ★つるつるの 氷の ゆかの 上に 立って いるか。
@@ -5238,17 +5292,26 @@
       } else {
         e.x += e.vx;
         // 敵の床判定（簡易）：ブロックに当たったら反転
+        // ★ver6.8：まわりの ます目に ある ぶん だけ しらべる（ぜんぶ 見ると おそい）
         let hitWall = false, hasFloor = false;
-        for (const s of solids) {
-          if (rectHit({x:e.x,y:e.y,w:e.w,h:e.h}, s)) {
-            if (e.vx > 0) { e.x = s.x - e.w; hitWall = true; }
-            else if (e.vx < 0) { e.x = s.x + s.w; hitWall = true; }
+        {
+          const near = solidsNear(e.x, e.w);
+          const box = { x: e.x, y: e.y, w: e.w, h: e.h };
+          for (let i = 0; i < near.length; i++) {
+            const s = near[i];
+            if (rectHit(box, s)) {
+              if (e.vx > 0) { e.x = s.x - e.w; hitWall = true; box.x = e.x; }
+              else if (e.vx < 0) { e.x = s.x + s.w; hitWall = true; box.x = e.x; }
+            }
           }
         }
         // 足元に床があるか（端で落ちないように反転）
         const footX = e.vx > 0 ? e.x + e.w + 2 : e.x - 2;
         const footProbe = { x: footX, y: e.y + e.h + 2, w: 2, h: 4 };
-        for (const s of solids) { if (rectHit(footProbe, s)) { hasFloor = true; break; } }
+        {
+          const near = solidsNear(footProbe.x, footProbe.w);
+          for (let i = 0; i < near.length; i++) if (rectHit(footProbe, near[i])) { hasFloor = true; break; }
+        }
         if (hitWall || !hasFloor) e.vx *= -1;
       }
       if (e.canHop) {
@@ -5257,8 +5320,15 @@
         if (e.onGround && e.hopCd <= 0) { e.vy = (e.kind === "sardine" ? -7.5 : e.kind === "slime" ? -5.2 : -6.5); e.onGround = false; e.hopCd = 50 + Math.floor(Math.random()*60); }
         e.vy = (e.vy || 0) + GRAVITY; if (e.vy > 14) e.vy = 14;
         e.y += e.vy; e.onGround = false;
-        for (const s of solids) {
-          if (rectHit({ x: e.x, y: e.y, w: e.w, h: e.h }, s) && e.vy > 0 && (e.y + e.h) - s.y < 26) { e.y = s.y - e.h; e.vy = 0; e.onGround = true; }
+        {
+          const near = solidsNear(e.x, e.w);                      // ★ver6.8：まわりだけ
+          const box = { x: e.x, y: e.y, w: e.w, h: e.h };
+          for (let i = 0; i < near.length; i++) {
+            const s = near[i];
+            if (rectHit(box, s) && e.vy > 0 && (e.y + e.h) - s.y < 26) {
+              e.y = s.y - e.h; e.vy = 0; e.onGround = true; box.y = e.y;
+            }
+          }
         }
       }
       e.squash += (1 - e.squash) * 0.2;
@@ -9902,30 +9972,8 @@
       ctx.beginPath(); ctx.arc(mx, my, 62, 0, 7); ctx.fill();
       ctx.strokeStyle = "rgba(160,235,255,0.45)"; ctx.lineWidth = 2.4;
       ctx.beginPath(); ctx.arc(mx, my, 44, 0, 7); ctx.stroke();
-      // ビル群（3そう：奥ほど くらく・ゆっくり）
-      for (const L of [[0.14, "#0d1230", 0.34, 150], [0.30, "#151a44", 0.50, 120], [0.52, "#1d2456", 0.66, 96]]) {
-        const par = L[0], col = L[1], base = L[2], span = L[3];
-        const off = (camX * par) % span;
-        ctx.fillStyle = col;
-        for (let i = -1; i < Math.ceil(W / span) + 2; i++) {
-          const bx = i * span - off;
-          const bh = 60 + ((i * 37 + span) % 5) * 26;
-          const bw = span * 0.7;
-          ctx.fillRect(bx, H * base - bh, bw, bh + H);
-          // まど（ネオン）
-          for (let wy = H * base - bh + 10; wy < H * base - 8; wy += 15) {
-            for (let wx = bx + 7; wx < bx + bw - 8; wx += 13) {
-              const k = (Math.floor(wx * 0.7) + Math.floor(wy * 1.3) + i) % 7;
-              if (k > 3) continue;
-              ctx.fillStyle = k === 0 ? "rgba(255,120,210,0.55)"
-                            : k === 1 ? "rgba(70,224,255,0.55)"
-                            : k === 2 ? "rgba(255,225,140,0.45)" : "rgba(150,255,210,0.40)";
-              ctx.fillRect(wx, wy, 5, 7);
-            }
-            ctx.fillStyle = col;
-          }
-        }
-      }
+      // ビル群（3そう：奥ほど くらく・ゆっくり）＝焼いた 絵を はりつける（ver6.8）
+      drawNeonBuildings();
       // 空とぶ車（小さな ひかりが 何本か 横切る）
       for (let i = 0; i < 5; i++) {
         const sp = 0.9 + i * 0.35;
@@ -10059,6 +10107,52 @@
     if (state === "gameover")   drawGameOver();
     if (state === "clear")      drawClear();
     if (state === "stageclear") drawStageClear();
+  }
+
+  // ★ver6.8：ネオン街の ビルは まいコマ 900回ちかく 四かくを 描いて いた。
+  //   とくに まどの 色を まいかい 文字（"rgba(...)"）で 入れなおすのが 重い。
+  //   ビルの ならびは **5けんで くりかえす** ので、5けんぶんを 1まいの 絵に 焼いて
+  //   それを 3〜4回 はりつける だけに する（えがき方の 数 約900 → 約10）。
+  //   おまけ：まえは スクロールの たびに まどの 色が ちらちら 変わって いたが、
+  //   焼いた 絵に した ことで **ちらつきも なくなる**。
+  const NEON_LAYERS = [[0.14, "#0d1230", 0.34, 150],
+                       [0.30, "#151a44", 0.50, 120],
+                       [0.52, "#1d2456", 0.66, 96]];
+  let neonTiles = null;
+  function buildNeonTiles() {
+    neonTiles = NEON_LAYERS.map(L => {
+      const par = L[0], col = L[1], base = L[2], span = L[3];
+      const tw = span * 5;                 // 5けんで ひとまわり
+      const cv = document.createElement("canvas");
+      cv.width = tw; cv.height = H;
+      const c = cv.getContext("2d");
+      for (let j = 0; j < 5; j++) {
+        const bx = j * span;
+        const bh = 60 + ((j * 37 + span) % 5) * 26;
+        const bw = span * 0.7;
+        const top = H * base - bh;
+        c.fillStyle = col;
+        c.fillRect(bx, top, bw, H - top);
+        for (let wy = top + 10; wy < H * base - 8; wy += 15) {
+          for (let wx = bx + 7; wx < bx + bw - 8; wx += 13) {
+            const k = (Math.floor(wx * 0.7) + Math.floor(wy * 1.3) + j) % 7;
+            if (k > 3) continue;
+            c.fillStyle = k === 0 ? "rgba(255,120,210,0.55)"
+                        : k === 1 ? "rgba(70,224,255,0.55)"
+                        : k === 2 ? "rgba(255,225,140,0.45)" : "rgba(150,255,210,0.40)";
+            c.fillRect(wx, wy, 5, 7);
+          }
+        }
+      }
+      return { cv, span, par, tw };
+    });
+  }
+  function drawNeonBuildings() {
+    if (!neonTiles) buildNeonTiles();
+    for (const t of neonTiles) {
+      const off = (camX * t.par) % t.span;
+      for (let x = -off - t.tw; x < W; x += t.tw) ctx.drawImage(t.cv, Math.round(x), 0);
+    }
   }
 
   function drawClouds() {
@@ -21782,17 +21876,29 @@
   //   URL の うしろに **?fps=1** を つけた ときだけ、左下に コマ数を 出す。
   //   いま／さいあく／おそい コマの 数（1秒に 何回 30コマを 切ったか）が わかる。
   const SHOW_FPS = /[?&]fps=1/.test(location.search);
-  let fpsPrev = 0, fpsAcc = 0, fpsCnt = 0, fpsNow = 0, fpsWorst = 999, fpsSlow = 0, fpsSlowShown = 0;
+  let fpsPrev = 0, fpsAcc = 0, fpsCnt = 0, fpsNow = 0, fpsSlow = 0, fpsSlowShown = 0, fpsT0 = 0;
+  // ★ver6.8：worst は **さいきん 10びょうの さいあく**に する。
+  //   まえは「立ちあげてから ずっとの さいあく」だったので、
+  //   ページを ひらいた ときの 読みこみの ひっかかり（fps 2 とか）が
+  //   そのあと ずっと 出つづけて、**いまの ぐあいが わからなかった**。
+  const fpsHist = [];                             // 0.5びょうごとの へいきん（20コ＝10びょう）
+  function fpsWorstNow() {
+    let w = 999;
+    for (let i = 0; i < fpsHist.length; i++) if (fpsHist[i] < w) w = fpsHist[i];
+    return w;
+  }
   function fpsTick(t, steps) {
-    if (!fpsPrev) { fpsPrev = t; return; }
+    if (!fpsPrev) { fpsPrev = t; fpsT0 = t; return; }
     const dt = t - fpsPrev; fpsPrev = t;
     if (dt <= 0 || dt > 2000) return;
     if (steps === 0) return;                      // 描いて いない コマは かぞえない
+    if (t - fpsT0 < 1500) return;                 // 立ちあがって すぐは 読みこみ中＝はからない
     fpsAcc += dt; fpsCnt++;
     if (dt > 33) fpsSlow++;                       // 30コマを 切った＝カクついた コマ
     if (fpsAcc >= 500) {
       fpsNow = Math.round(1000 / (fpsAcc / fpsCnt));
-      if (fpsNow < fpsWorst) fpsWorst = fpsNow;
+      fpsHist.push(fpsNow);
+      if (fpsHist.length > 20) fpsHist.shift();
       fpsSlowShown = fpsSlow; fpsSlow = 0;
       fpsAcc = 0; fpsCnt = 0;
     }
@@ -21801,7 +21907,10 @@
     ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.fillRect(4, H - 42, 168, 38);
     ctx.fillStyle = fpsNow >= 50 ? "#8fe08f" : (fpsNow >= 35 ? "#ffd85e" : "#ff8a8a");
     ctx.font = "bold 15px 'Segoe UI', monospace"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-    ctx.fillText("fps " + fpsNow + "  worst " + (fpsWorst > 900 ? "-" : fpsWorst), 10, H - 25);
+    {
+      const w = fpsWorstNow();
+      ctx.fillText("fps " + fpsNow + "  worst " + (w > 900 ? "-" : w), 10, H - 25);
+    }
     ctx.fillStyle = "#cbb8ff";
     ctx.font = "12px 'Segoe UI', monospace";
     ctx.fillText("slow/s " + fpsSlowShown, 10, H - 10);
@@ -21938,8 +22047,12 @@
   // iPhoneは「タップした関数の中で」play()を呼ばないとブロックされる（setTimeoutで待つと鳴らない）。
   // また1回で成功するとは限らないので、タイトル画面のあいだは毎回そっと試す。
   {
-    const kickTitleBGM = () => {
+    const kickTitleBGM = (e) => {
       ac();
+      // ★ver6.8：メニューの ボタン（はじめから／つづきから）を おした ときは 鳴らさない。
+      //   すぐ オープニングの 曲に きりかわる のに、タイトルの 曲（1.9MB）を
+      //   **いちばん こみあう しゅんかんに** 読みこみはじめて しまって いた。
+      if (e && e.target && e.target.closest && e.target.closest("#overlay button")) return;
       if (state === "menu" && TITLE_BGM.paused) startTitleBGM();   // この場で即再生
     };
     window.addEventListener("pointerdown", kickTitleBGM, true);
