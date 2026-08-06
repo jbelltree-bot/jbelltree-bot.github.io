@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 6.10 (2026-08-06)";
+  const GAME_VERSION = "異世界編 ver 6.12 (2026-08-06)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -803,6 +803,7 @@
   }
 
   function buildLevel() {
+    ceilFloorY = 0;            // ★ver6.11：ふつうの ステージには 天じょうの かべは ない
     solids = [];
     coins = [];
     enemies = [];
@@ -2562,6 +2563,9 @@
   }
   // ★のぼれない／上に 立てない「天じょう」の しゅるい（ver6.10）
   function isCeilType(t) { return t === "trainceil" || t === "bossceil" || t === "iceceil"; }
+  // ★ver6.11：ボス部屋の 天じょうの「下べり」。0 なら 天じょう なし。
+  //   まるりんが これより 上に 出たら まいコマ 下へ もどす＝ぜったいに 詰まない。
+  let ceilFloorY = 0;
   function climbFromHook(p) {
     const t = climbTargetFromHook(p);
     if (!t) return false;
@@ -3884,7 +3888,15 @@
   VOICE.upper.volume = 0.9;
   function playVoice(name) {
     // 1音源につき1要素を使い回す（クローンで大量生成するとBGMが止まるため）
-    try { const a = VOICE[name]; if (!a) return; a.currentTime = 0; a.play().catch(() => {}); } catch (e) {}
+    try { const a = VOICE[name]; if (!a) return; unmuteForPlay(a); a.currentTime = 0; a.play().catch(() => {}); } catch (e) {}
+  }
+
+  // ★ver6.11：解禁ずみの 音は **ミュートの まま** ねかせて ある。
+  //   ほんとうに 鳴らす ときだけ ここで ミュートを 外す。
+  function unmuteForPlay(a) {
+    if (!a) return;
+    if (a.muted) a.muted = false;
+    if (a._vol !== undefined && a.volume !== a._vol) a.volume = a._vol;
   }
 
   // ---------- 技の効果音（SEフォルダの音源。audio/ に se_*.mp3 として置いてある） ----------
@@ -3944,7 +3956,7 @@
     const s = SE[name];
     if (!s) return;
     const a = s.pool[0];
-    try { if (a.paused) { a.currentTime = 0; a.play().catch(() => {}); } } catch (e) {}
+    try { if (a.paused) { unmuteForPlay(a); a.currentTime = 0; a.play().catch(() => {}); } } catch (e) {}
   }
   function stopLoopSE(name) {
     const s = SE[name];
@@ -3959,6 +3971,7 @@
     try {
       const a = s.pool[s.i];
       s.i = (s.i + 1) % s.pool.length;
+      unmuteForPlay(a);
       a.currentTime = 0;
       a.play().catch(() => {});
     } catch (e) {}
@@ -4004,7 +4017,7 @@
   const STAGE_JINGLE = new Audio("audio/jingle_stagename.mp3");
   STAGE_JINGLE.volume = 0.5;
   function playStageJingle() {
-    try { STAGE_JINGLE.currentTime = 0; STAGE_JINGLE.play().catch(() => {}); } catch (e) {}
+    try { unmuteForPlay(STAGE_JINGLE); STAGE_JINGLE.currentTime = 0; STAGE_JINGLE.play().catch(() => {}); } catch (e) {}
   }
   // 曲の二重再生を防ぐために「全部の曲」をまとめて持っておく
   // 同じ曲を2つのステージで使い回すことがあるので、重複を取りのぞいておく
@@ -4025,8 +4038,7 @@
     //   本ばんに する ときの あとしまつ。ミュートと 音量を かならず もどす。
     //   これを わすれると「鳴って いる ことに なって いるのに むおん」に なる。
     if (warming === track) { warming = null; try { track.currentTime = 0; } catch (e) {} }
-    track.muted = false;
-    if (track._vol !== undefined) track.volume = track._vol;
+    unmuteForPlay(track);
     // ★解禁の とちゅうの 曲は 止めない（ミュートなので 聞こえない・すぐ 自分で 止まる）
     ALL_BGM.forEach(a => { if (a !== track && priming.indexOf(a) < 0) { try { a.pause(); } catch (e) {} } });
     bgm = track;
@@ -4047,8 +4059,7 @@
     bgmWatchT = 0;
     warmStep();                     // ★つぎの 曲の 先読みも ここで 1本ずつ すすめる
     if (!desiredBgm || !desiredBgm.paused) return;
-    desiredBgm.muted = false;       // ★ver6.9：先読みの ミュートが のこって いたら 消す
-    if (desiredBgm._vol !== undefined) desiredBgm.volume = desiredBgm._vol;
+    unmuteForPlay(desiredBgm);      // ★ねかせて ある ミュートを ここで 外す
     try { const pr = desiredBgm.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
   }
 
@@ -4081,12 +4092,14 @@
   function primeStop(a) {
     const vol = a._vol !== undefined ? a._vol : 1;
     // いま 鳴らす べき 曲だけは ぜったいに 止めない。
-    // （さわった 直後に 紙芝居が その曲を かけはじめる ことが ある＝ver6.6までは
-    //   あとから この しまつが 走って、鳴りはじめた 曲を 止めて しまって いた）
-    if (a !== desiredBgm) {
-      try { a.pause(); a.currentTime = 0; } catch (e) {}
-    }
-    a.muted = false; a.volume = vol;
+    if (a === desiredBgm) { unmuteForPlay(a); return; }
+    try { a.pause(); a.currentTime = 0; } catch (e) {}
+    // ★ver6.11：**ミュートは そのまま のこす**。
+    //   pause() の すぐ あとに ミュートを 外すと、まだ 音の パイプラインに
+    //   のこって いた ぶんが 一瞬 鳴って しまう（iPhoneは volume を 変えられない ので
+    //   ミュートだけが たより）。ユーザー報告「うごく たびに いろんな 音が 鳴りまくる」の 正体。
+    //   ミュートを 外すのは **ほんとうに 鳴らす とき**だけ（unmuteForPlay）。
+    a.volume = vol;
   }
   // ★ver6.9：解禁は「ミュートで **ほんとうに 鳴りはじめて から** 止める」。
   //   ver6.7〜6.8は その場で すぐ 止めて いた が、**iPhoneは それでは 解禁して くれない**。
@@ -4129,6 +4142,23 @@
   const PRIME_BATCH_FIRST = 2;
   const PRIME_BATCH = 3;
   let primeTaps = 0;
+  // ★ver6.12：解禁は 1個 さわるのに 数ミリびょう かかる（ほんとうに 鳴りはじめるまで 待つ ため）。
+  //   ボタンの pointerdown ごとに 3個 さわると、ボス戦の 連打で まいかい コマ落ちする
+  //   （ユーザー報告「マザーAI戦・フロストドラゴン戦が カクカクして 戦いに ならない」）。
+  //   → ボス戦は 0個、ふつうの プレイ中は 0.4びょうに 1個まで、
+  //     止まって いる 画面（メニュー・紙芝居・とびらの間・ステージ名）では まとめて。
+  const PRIME_PLAY_GAP = 400;      // プレイ中の あいだかく（ミリびょう）
+  let primeLastT = 0;
+  function primeBudget() {
+    if (inBoss || state === "boss") return 0;             // ボス戦では 手を つけない
+    if (state === "play") {
+      const now = (window.performance && performance.now) ? performance.now() : 0;
+      if (now - primeLastT < PRIME_PLAY_GAP) return 0;
+      primeLastT = now;
+      return 1;                                           // プレイ中は 1個ずつ
+    }
+    return (primeTaps === 0) ? PRIME_BATCH_FIRST : PRIME_BATCH;
+  }
   const primeQueue = PRIME_ALL.slice();
   // それぞれの「ほんとうの 音量」を おぼえて おく（解禁・先読みで 0 に する ため）
   PRIME_ALL.forEach(a => { if (a) a._vol = a.volume; });
@@ -4137,14 +4167,14 @@
     //   タップの 外から の 鳴らし直し（watchBGM）は スマホに ブロックされる ことが あるので、
     //   ここが いちばん たしかな タイミング。紙芝居の 曲が むおんの ままに ならない ための 保険。
     if (desiredBgm && desiredBgm.paused) {
-      desiredBgm.muted = false;
-      if (desiredBgm._vol !== undefined) desiredBgm.volume = desiredBgm._vol;
+      unmuteForPlay(desiredBgm);
       try { const pr = desiredBgm.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
     }
     audioPrimed = true;
     if (primeRetry.length) primeRetry.splice(0).forEach(primeOne);
-    // ★ver6.9：さいしょの タップは 2コ、そのあとは 3コずつ
-    const lim = (primeTaps++ === 0) ? PRIME_BATCH_FIRST : PRIME_BATCH;
+    // ★ver6.12：どこで さわるかで 数を かえる（ボス戦は 0）
+    const lim = primeBudget();
+    primeTaps++;
     for (let n = 0; n < lim && primeQueue.length; n++) primeOne(primeQueue.shift());
   }
 
@@ -4411,7 +4441,19 @@
     // 場外・落下
     if (p.x < 0) { p.x = 0; p.vx = 0; }
     if (p.x + p.w > LEVEL_W) { p.x = LEVEL_W - p.w; p.vx = 0; }
+    // ★ver6.11：ボス部屋の 天じょうより 上には 出さない。
+    //   （かまフックの よじのぼりは ふさいだ が、ほかにも 入り口が あった。
+    //     ユーザー報告：ケルベロス戦で 天じょうの 上に のぼると 詰む）
+    keepBelowCeiling(p);
     if (p.y > LEVEL_H + 80) killPlayer();
+  }
+  // 天じょうより 上に 出て いたら、天じょうの すぐ 下へ もどす
+  function keepBelowCeiling(p) {
+    if (!ceilFloorY || !inBoss) return;
+    if (p.y >= ceilFloorY) return;
+    p.y = ceilFloorY;
+    if (p.vy < 0) p.vy = 0;
+    p.onGround = false;
   }
 
   // レンガをこわす（頭突き・火の玉・タックル・かじる で こわせる）
@@ -5667,6 +5709,7 @@
 
   // 1画面の平らな闘技場を作り、プレイヤーとボスを配置
   function setupBossArena() {
+    ceilFloorY = 0;            // ★ver6.11：天じょうの ある ボスだけ あとで 入れなおす
     LEVEL_W = W; LEVEL_H = H; camX = 0; camY = 0;
     solids = []; coins = []; nuts = []; flowers = []; feathers = []; breads = [];
     frosts = []; iceWalls = []; falls = []; pucks = [];
@@ -5717,6 +5760,7 @@
       // ★y=0 に 置くと HUD（ハート・ボスの 名まえ）の 下に かくれて 見えない。
       //   1マス 下げて、天じょうが ある ことが 目で わかる ように する。
       for (let x = 0; x < W; x += TILE) solids.push({ x, y: TILE, w: TILE, h: TILE, type: "bossceil" });
+      ceilFloorY = TILE * 2;   // ★ver6.11：ここより 上には 出られない
     } else if (type === "penguins") {
       // にせぺぎ（左・投げ役）＋ ペギ（右・すばやい体当たり役）で挟み撃ち
       bosses = [ makeBoss("nisepegi", 120), makeBoss("pegi", W - 170) ];
@@ -5745,6 +5789,7 @@
       bosses = [ makeBoss("frostdragon", W - 230) ];
       // 天じょう（つららを ぶら下げる ため。ここが あるので 上へは にげられない）
       for (let x = 0; x < W; x += TILE) solids.push({ x, y: 0, w: TILE, h: TILE, type: "iceceil" });
+      ceilFloorY = TILE;       // ★ver6.11：ここより 上には 出られない
       setupCeilIce();
     } else if (type === "dramp") {
       bosses = [ makeBoss("dramp", W/2 - 30) ];
