@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 6.13 (2026-08-06)";
+  const GAME_VERSION = "異世界編 ver 7.0 (2026-08-07)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -313,7 +313,7 @@
   const FRICTION = 0.80;
   const JUMP = 14.2;
   const COYOTE = 6;           // ジャンプ猶予フレーム
-  // ステージ4「あの世ゆきの汽車」の 走っている はやさ（けしきが 流れる はやさの もと）。
+  // ステージ4「あの世行きの汽車」の 走っている はやさ（けしきが 流れる はやさの もと）。
   // ★足場は 動かさない。まるりんは 汽車の上に 立っているので、汽車と いっしょに 動いている＝
   //   まるりんから 見たら 足場は 止まっていて、外の けしきだけが 流れる。それが 本当の 見えかた。
   const TRAIN_SPD = 7.0;
@@ -339,7 +339,7 @@
   // 行数は自由（16行なら縦スクロールになる）。列数も自由（ステージ1は300列=世界編の2倍）
   const STAGES = [
     {
-      name: "ステージ1 はじまりのそうげん",
+      name: "ステージ1 はじまりの草原",
       theme: "rpg",
       boss: "kingslime",
       skill: "dragon",
@@ -365,7 +365,7 @@
     {
       // 縦にのぼるステージ。ひかりのたま（上の敵を追う）・まほうじん（上下いっぱいに止める）
       // ふわふわ・ほうきダッシュ が生きるように作ってある。ボス＝大まどうし ゲドルフ。
-      name: "ステージ2 まほうの塔",
+      name: "ステージ2 魔法の塔",
       theme: "tower",
       boss: "wizard",
       skill: "magic",
@@ -453,7 +453,7 @@
       // 死神スキルの ステージ。汽車は 右へ 走っていて、屋根（足場）は 止まって見え、
       // 外の けしきだけが 流れる。車両の つなぎ目が 穴に なっている。
       // ガイコツは ふんでも 起きあがるので、かまで 斬るのが 本当の かたづけかた。
-      name: "ステージ4 あの世ゆきの汽車",
+      name: "ステージ4 あの世行きの汽車",
       theme: "train",
       boss: "cerberus",
       skill: "reaper",
@@ -479,7 +479,7 @@
     {
       // ステージ5「ネオ・ハムシティ」＝ロボットスキルの ステージ（近未来）。
       // ★たてに 26行＝**地上 → 地下1階 → 地上 → 地下2階 → 地上** と もぐって いく つくり。
-      //   ステージ2（まほうの塔）が「ずっと 上へ」なので、こちらは「下へ もぐる」で 対に した。
+      //   ステージ2（魔法の塔）が「ずっと 上へ」なので、こちらは「下へ もぐる」で 対に した。
       // ★謎解きの すじみち：
       //   ① 地上を 進むと シャッター①（col44）で 止まる
       //      → 道路の あな（col34〜36）から 地下1階へ おりる
@@ -527,7 +527,7 @@
       ]
     },
     {
-      // ステージ6「こおりの お城（雪の山）」＝こおりスキルの ステージ。
+      // ステージ6「氷のお城（雪の山）」＝こおりスキルの ステージ。
       // ★ver6.3で お城を 作り直した（ユーザー指摘「左右が 長すぎる・単調・高さが せまい」）。
       //   【前半 0〜127列】ふぶきの 雪原。谷3つ・つるつるの 氷の ゆか・トゲトゲ。
       //   【後半 128〜169列】お城の 中を 上へ。よこはばは 42列だけ（まえは 122列）。
@@ -545,7 +545,7 @@
       //   ・3かいの われた ゆか（144〜146／154〜156列）は こおりのはしで わたる
       //   ・高い ところの ハートのうつわ（55列）は 氷の 足場で とどく
       // ★たき火オバケ（5）には 氷が きかない＝こおりの よわい ところ。
-      name: "ステージ6 こおりのお城",
+      name: "ステージ6 氷のお城",
       theme: "ice",
       boss: "frostdragon",
       skill: "ice",
@@ -582,6 +582,38 @@
         "--P-----S-----ooo-J-----T---J-----5---N-------------T-T---5---J---T---------5--J------T-----T---------T-J-5-----T---J-----N---!-------5---ooo--J--------J-----N-T-------RR",
         "XXXXXXXXXXXXXXXXXXXXXX%%%%%%%%%XXXXXXXXXXXXX-----XXXXX%%%%%%%%%XXXXX------XXXXXX%%%%%%%%%%%XXXXX-----XXXXXXX%%%%%%%%%%%%%XXXXXXXXXXXXXXXXXXXXXXXXXXXXX%%%%%%%%XXXXXXXXXX--",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX-----XXXXXXXXXXXXXXXXXXX------XXXXXXXXXXXXXXXXXXXXXX-----XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX--"
+      ]
+    },
+    {
+      // ステージ7「星の天文台」＝じゅうりょくスキルの ステージ。
+      // ★この ステージだけ「その スキルが 主役」＝**さかさまが ないと きびしい** 作りに して ある。
+      //   （最後の スキルなので、それが ふさわしい。ほかの スキルでも C ボタンで もどせるので 詰まない）
+      // ★たての 決めごと：
+      //     r4  ＝ 天じょう「^」。さかさま中は その **下がわ**（r5）に 立つ
+      //     r11 ＝ ふつうの ときに 立つ 行／r12,r13 ＝ 地めん
+      //   ふつうの ジャンプは 134px＝r7 までしか とどかない。r5 の コインは さかさま せんよう。
+      // ★詰み ぼうし：**r12・r13 は はしから はしまで 地めん**。
+      //   天じょうから 落ちても ぜったいに 死なない（トゲは いたいだけ）。
+      //   はた（!）も スタート（P）も ふつうの 重力で 立てる ゆかの 上。
+      name: "ステージ7 星の天文台",
+      theme: "stargaze",
+      boss: "graviton",
+      skill: "gravity",
+      level: [
+        "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+        "----------------------o-o-o-o-o-o-o-----------------o-o--Ro-o----o-o-o-oRo-o-o-o-o-oRo-oNo-o----o--Ro-------o---------R-----R------R------R-----o---R---R---o---oNo---o-o-+o$R--oo+-o$R--o----&oR-o&--R&-RR-o$-R-o--$o--------oo---R--------",
+        "------------------------------------------------------------------------R--------------------------------RRR-----------@@---R-@@--------------------R---R------------------------------------------------RR-------------------@@---------G--",
+        "------------------------------------?-------------------------------------------------------------~-----~-V---~--------oo-oo--oo------------------------------RR---RR----------~--------~----------------RR-----------?----oo~---oo---------",
+        "--------------------------------------------------------------------------------------------------------------------oo----@@-------------o-----------o--------RR---RR------------------------------------RR----------------@@---------------",
+        "--------------------------------------------------------------------------------------------------------------------@@-----------@@-----RRRR=======RRRR-------RR---RR------------------------------------------------------------@@---------",
+        "-------------------------------------------------------------------------------------------------------------------------------------------R-N-B---R----------RR---RR---------------------------;----;--------------------------------------",
+        "--P---S--oooo-N-----oo----------------oo--N-----o-+-----+----+----T---T---T---T---T---T---T----o-----o---------oA------------+------+o-----R-ooooo-R------o---RR---RR----T----T----T---T--To-o---o--o---N--o--o-$-o-----!-------+---+-A-----",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
       ]
     }
   ];
@@ -711,6 +743,8 @@
   let vesselFx = 0;     // 取ったときの「さいだいハートが ふえた！」表示の残りフレーム
   let vesselLife = false;  // ★そのうつわは「ざんき＋1」だったか（さいだいハートが もう 上げんの とき）
   let warpFx = null;    // ステージ開始のワープ演出 {x,y,t}
+  let gravBalls = [];   // ★ver6.14 じゅうりょくだま（なげた 黒い たま）
+  let holes = [];       // ★ver6.14 ブラックホール
   let skillGetFx = null;   // スキルゲット！の画面演出 {t,icon,name}
   let enemySpawns = [];
   let camX = 0;
@@ -757,6 +791,8 @@
   //   ユーザー指摘「つららの 落としかたが わからない。氷スキルで 落とせますか？」
   //   → 落とせる（どの スキルでも 落とせる）。分からないのは **見せて いない** から。
   let fdHint = 0;
+  let gvHint = 0;        // ★ver6.18 グラビトン戦の 案内（たまが きかない ことを 教える）
+  let gvWarn = 0;        // ★後半の「重力が 反転するぞ」の 予告
   let fdHitFx = 0;   // つららが 頭に あたった しゅんかんの「入った！」えんしゅつ
   let fdCrashFx = 0; // とっしんが かべに ぶつかった しゅんかんの えんしゅつ
 
@@ -900,6 +936,21 @@
         else if (ch === "4") { enemySpawns.push({ x, y, kind: "icebat" }); enemies.push(makeEnemy(x, y, { kind: "icebat" })); }    // こおりコウモリ
         else if (ch === "5") { enemySpawns.push({ x, y, kind: "bonfire" }); enemies.push(makeEnemy(x, y, { kind: "bonfire" })); }  // たき火オバケ（氷がきかない）
         else if (ch === "%") solids.push({ x, y, w: TILE, h: TILE, type: "slipice" });    // つるつるの 氷の ゆか
+        // ★ver6.18 ステージ7の タイル
+        else if (ch === "+") { enemySpawns.push({ x, y, kind: "flipbug" }); enemies.push(makeEnemy(x, y, { kind: "flipbug" })); }   // さかさムシ
+        else if (ch === "~") { enemySpawns.push({ x, y, kind: "starjelly" }); enemies.push(makeEnemy(x, y, { kind: "starjelly" })); } // ほしくらげ
+        else if (ch === "&") { enemySpawns.push({ x, y, kind: "meteor" }); enemies.push(makeEnemy(x, y, { kind: "meteor" })); }       // いんせき（落ちてくる）
+        else if (ch === ";") { enemySpawns.push({ x, y, kind: "meteor", up: true }); enemies.push(makeEnemy(x, y, { kind: "meteor", up: true })); } // いんせき（昇っていく）
+        else if (ch === "$") {
+          // ほしのみはり：**まうえに ブロックが あれば 天じょうづき**（下へ 撃つ）、
+          //   なければ 床づき（上へ 撃つ）。ここまでに 上の 行は もう solids に 入って いる。
+          const onCeil = !!solidTypeAt(x + TILE / 2, y - TILE / 2);
+          enemySpawns.push({ x, y, kind: "stareye", ceil: onCeil });
+          enemies.push(makeEnemy(x, y, { kind: "stareye", ceil: onCeil }));
+        }
+        else if (ch === "^") solids.push({ x, y, w: TILE, h: TILE, type: "starceil" });    // 天じょう（さかさまで 立てる）
+        else if (ch === "=") solids.push({ x, y, w: TILE, h: TILE, type: "glassfloor" });  // 星の ガラス床（おもりで 割れる）
+        else if (ch === "@") solids.push({ x, y, w: TILE, h: TILE, type: "gearblock", t: (c * 37 + r * 53) % 360 });  // 回る 歯車
         else if (ch === "*") solids.push({ x, y, w: TILE, h: TILE, type: "iceblock", t: Math.random() * 6 });  // ドラゴンの火で とける 氷
         else if (ch === "I") solids.push({ x, y, w: TILE, h: TILE, type: "steel" });     // てつのかべ（ドリルダッシュ専用）
         else if (ch === "D") signs.push({ x, y, w: TILE, h: TILE, t: 0 });                // 「ちかへ」の 案内板（ただの かざり）
@@ -946,6 +997,8 @@
       wing: false, gliding: false, glideTimer: 0, glideT: 0, glideUsed: false,
       shield: false, shieldT: 0, stun: 0,
       warpIn: 55, fireCool: 0,
+      gdir: 1,          // ★ver6.14：重力の 向き。1＝ふつう／-1＝さかさま（じゅうりょくスキル）
+      flipCd: 0, flipFx: 0, slam: 0, hoverT: 0, hoverLeft: 0, pull: 0,
       spin: 0, spinCd: 0, tackle: 0, tackleCd: 0, flaps: 0, flapT: 0, mouthOpen: 0,
       roll: 0, rollCd: 0, gnaw: 0, gnawTarget: null, gnawBoss: null, burrow: 0, burrowCd: 0, slow: 0,
       orbCool: 0, circleCd: 0, carry: null, carryCd: 0, broom: 0, broomCd: 0,
@@ -980,6 +1033,7 @@
     elapsed = 0; particles = [];
     skillFreeze = 0;
     hazards = []; cukes = []; barrels = [];
+    gravBalls = []; holes = [];        // ★ver6.14
     hp = maxHp;   // ステージ開始・やり直しはハート満タンから
     dragonMode = false; dragonGauge = DRAGON_MAX;
     robotMode = false;
@@ -1101,6 +1155,42 @@
       return { kind, x: x + 4, y: y + TILE - 34, w: 32, h: 34, vx: opts.slow ? 0 : -0.9,
                alive: true, t: Math.random()*6, squash: 1, hot: true, noStomp: true };
     }
+    if (kind === "flipbug") {
+      // さかさムシ：真鍮の 体に 大きな 一つ目。**まるりんの 重力の むきに したがう**。
+      //   さかさまに なると こいつも 天じょうへ 落ちて いって、天じょうを 歩いて ついてくる。
+      //   ＝「いま どっちが 下か」を 目で 教える 役。ふめる。
+      return { kind, x: x + 4, y: y + TILE - 26, w: 32, h: 26, vx: opts.slow ? -0.7 : -1.15,
+               alive: true, t: Math.random()*6, squash: 1, flipbug: true,
+               vy: 0, onGround: false, eg: 1, face: -1 };
+    }
+    if (kind === "starjelly") {
+      // ほしくらげ：星の かさを もつ すきとおった くらげ。**重力に したがわない**＝ふめない。
+      //   ちょうじゅうりょく／じゅうりょくだまで 面に たたきつけると たおせる。
+      //   つぶれた あと **3びょうだけ 足場**に なる（まほうじんの frozen と 同じ しくみ）。
+      const baseY = y + 2;
+      return { kind, x: x + 3, y: baseY, w: 34, h: 36, vx: opts.slow ? -0.25 : -0.4,
+               alive: true, t: Math.random()*6, squash: 1, fly: true, noStomp: true,
+               jelly7: true, pullT: 0, baseY, homeX: x + 3, range: 72 };
+    }
+    if (kind === "meteor") {
+      // いんせき：こげ茶の ごつごつした 岩。上から 落ちてくる（mdir=1）／下から 昇っていく（mdir=-1）。
+      //   ふめない。ぶつかると 土けむりを あげて 消え、しばらくして また 出てくる。
+      //   ★ブラックホールで 吸うと **コインに なる**。
+      const dir = opts.up ? -1 : 1;
+      return { kind, x: x + 4, y: y + 4, w: 32, h: 32, vx: 0, vy: 0,
+               alive: true, t: Math.random()*6, squash: 1, noStomp: true, meteor: true,
+               mdir: dir, baseY: y + 4, spd: 3.5, harmless: true,
+               wait: 20 + Math.floor(Math.random()*90) };
+    }
+    if (kind === "stareye") {
+      // ほしのみはり：大きな 一つ目の 真鍮の 像。動かない。**床にも 天じょうにも** くっつく。
+      //   2びょう ためて 1びょう ビームを 撃つ。ふめない。ハート3（どの スキルの 技でも こわせる）。
+      const up = !!opts.ceil;
+      return { kind, x: x + 2, y: up ? y + 2 : (y + TILE - 38), w: 36, h: 36, vx: 0,
+               alive: true, t: Math.random()*6, squash: 1, noStomp: true, stareye: true,
+               hp: 3, edir: up ? 1 : -1, chargeT: 0, fireT: 0, beam: null,
+               cd: 50 + Math.floor(Math.random()*70) };
+    }
     if (kind === "spiky") {
       // トゲトゲ：上から踏むとイタい。技で倒すしかない
       return { kind, x: x + 4, y: y + TILE - 30, w: 32, h: 30, vx: -1.25,
@@ -1183,7 +1273,7 @@
                baseY, homeX: x + 2, range: 170 };
     }
     if (kind === "bone") {
-      // ガイコツ：あの世ゆきの汽車に 乗っている てき。ゆっくり 歩いてくる。
+      // ガイコツ：あの世行きの汽車に 乗っている てき。ゆっくり 歩いてくる。
       // ★ふんでも バラバラに なるだけで、しばらくすると 組みあがって また 歩きだす。
       //   技（とくに 死神の かま）で たおせば 二度と 起きあがらない。
       //   ＝「ふむだけでは かたづかない。スキルを つかえ」を 体で おぼえる ための てき。
@@ -1369,7 +1459,7 @@
       downAtk(p) { startTailSpin(p); },        // 下＋B：しっぽスピン（左右の敵をまとめて吹き飛ばす）
       dashAtk(p) { startTackle(p); },          // ダッシュ中B：ドラゴンタックル（炎をまとって突進）
     },
-    // ステージ2「まほうの国」：とんがり帽子のまほうまるりん。
+    // ステージ2「魔法の国」：とんがり帽子のまほうまるりん。
     // 「こわす」でも「飛ぶ」でもなく、"止める・動かす" が得意なスキル。
     magic: {
       name: "まほう", icon: "🔮", form: "magic", chargeFrames: 36, float: 96,
@@ -1412,7 +1502,7 @@
       },
       // かまえ（うけながし）は guardHold の仕組みで毎フレーム処理する
     },
-    // ステージ4「あの世ゆきの汽車」：黒いフードに 大がまの しにがみまるりん。
+    // ステージ4「あの世行きの汽車」：黒いフードに 大がまの しにがみまるりん。
     // さむらいが「はやい・近い・自分で 受けながす」なら、こちらは
     // 「おそい・とどく・まわりに 助けてもらう」スキル。
     // ・B は 連打が きかない かわりに とどく きょりが 刀の 2ばい
@@ -1457,7 +1547,7 @@
       hold(p) { fireMissiles(p); },
       downAtk(p) { startRobotMode(p); },
     },
-    // ステージ6「こおりの お城」：水いろの マントと つららの かんむりの こおりまるりん。
+    // ステージ6「氷のお城」：水いろの マントと つららの かんむりの こおりまるりん。
     // ★ほかの スキルが「たおす」ぶきなのに たいして、こおりは **「道を つくる」** スキル。
     //   ・こおりのいき  … てきを 氷づけに して **足場**に する（トゲトゲも 足場に できる）
     //   ・こおりのはし  … 何も ない ところに 3まいの 足場。ただし **3びょうで 消える**
@@ -1479,6 +1569,26 @@
       downAtk(p) { startBlizzard(p); },
       air(p) { dropIcicle(p); },
       dashAtk(p) { shootPuck(p); },
+    },
+    // ステージ7「星の天文台」：うちゅう服の じゅうりょくまるりん。
+    // ★7つ目＝さいごの スキル。このスキルの すべては「さかさま」。
+    //   上下が 入れかわる のは これ だけ（ほかの 6つと まったく かぶらない）。
+    gravity: {
+      name: "じゅうりょく", icon: "🪐", form: "gravity", chargeFrames: 30, hover: 120, pullHold: true,
+      moves: [
+        ["B", "じゅうりょくだま", "黒い たまを 投げる。あたった てきは うきあがって から **地面に たたきつけられる**"],
+        ["B ながおし", "さかさま", "**上下が 入れかわる。**天じょうを 歩ける。もう一度 おすと もどる"],
+        ["↓ ＋ B おしっぱなし", "ちょうじゅうりょく", "おしている あいだ ずっと、まわりの **てきと たまを「自分の下」へ 引きずり落とす**"],
+        ["空中で B", "おもり", "ずしんと 重くなって 急降下。着地の しょうげきで まわりの てきを たおす。ヒビ床は ふみぬく"],
+        ["空中で A おしっぱなし", "むじゅうりょく", "落ちはじめると **ふわふわ うかぶ**。左右に 動ける。↓で ゆっくり おりる（2びょう）"],
+        ["ダッシュ中に B", "ブラックホール", "まえに 小さな 穴。**てき・たま・コインを 吸いこむ**"],
+        ["（じどう）", "ひきよせ", "近くの コインと アイテムが **ひとりでに よってくる**"]
+      ],
+      tap(p) { castGravBall(p); },
+      hold(p) { toggleFlip(p); },
+      downAtk(p) { startHeavyPull(p); },
+      air(p) { startSlam(p); },
+      dashAtk(p) { castBlackHole(p); },
     },
   };
   function isMagicForm() { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return !!(ab && ab.form === "magic"); }
@@ -1957,9 +2067,558 @@
     spawnParticles(p.x + p.w/2, p.y + p.h, "#dcd0ff", 8);
   }
 
+  // ===== ver6.14：さかさま（重力の 向き）=====
+  //   まるりん だけ 上下が 入れかわる。てきと ものは ふつうの まま。
+  function gdirOf(p) { return (p && p.gdir) || 1; }
+  // 向きを セットする。かわった ときは true。
+  function setGdir(p, g) {
+    if (!p) return false;
+    g = (g < 0) ? -1 : 1;
+    if ((p.gdir || 1) === g) return false;
+    p.gdir = g;
+    p.onGround = false;
+    p.coyote = 0; p.flaps = 0; p.wallT = 0; p.wallDir = 0;
+    return true;
+  }
+  // ===== ver6.14：じゅうりょくスキルの 技 =====
+  const FLIP_CD = 10;        // 反転して つぎに 反転できるまで
+  const SLAM_SPD = 15;       // おもりの 落ちる はやさ
+  const HOVER_DOWN = 1.7;    // むじゅうりょく中に ↓で おりる はやさ
+  const HOVER_DRIFT = 0.22;  // ★ver6.15 むじゅうりょく中に そっと 沈む はやさ（ふわふわ感）
+
+  // 【さかさま】B ながおし。上下を 入れかえる。
+  function toggleFlip(p) {
+    if (p.flipCd > 0) return;
+    if (!setGdir(p, gdirOf(p) > 0 ? -1 : 1)) return;
+    p.flipCd = FLIP_CD; p.flipFx = 22;
+    p.vy = 0;                       // 反転した しゅんかんは いったん 止まってから 落ちはじめる
+    p.slam = 0; p.hoverT = 0;
+    playSE("flip");                 // ★ver6.21（重力魔法2）：ほんとうに 反転した ときだけ
+    // ★ちいさな「ピッ」は のこす。**上むきと 下むきで 高さが ちがう**＝
+    //   いま どっちが 下に なったかが 耳でも わかる（mp3 だけでは 区別が つかない）。
+    beep(gdirOf(p) < 0 ? 170 : 120, 0.22, "sine", 0.045);
+    for (let i = 0; i < 10; i++) spawnParticles(p.x + p.w / 2, p.y + p.h / 2, "#8fd8ff", 1);
+  }
+  // 【おもり】空中で B。自分の 下へ まっすぐ 落ちる。
+  function startSlam(p) {
+    if (p.slam > 0 || p.onGround) return;
+    p.slam = 1;
+    beep(150, 0.1, "square", 0.06);
+  }
+  function endSlam(p) {
+    if (p.slam <= 0) return;
+    p.slam = 0;
+    const g = gdirOf(p);
+    screenShake = Math.max(screenShake, 6);
+    playSE("slam");   // ★ver6.21（打撃8）：**落ちはじめでは なく 着地の しゅんかん**に 鳴らす
+    const fy = (g > 0) ? (p.y + p.h) : p.y;
+    for (let i = 0; i < 14; i++) {
+      spawnParticles(p.x + p.w / 2 + (Math.random() - 0.5) * 100, fy, "#ffd08a", 1);
+    }
+    // まわりの てきを たおす（着地の しょうげき）
+    for (const e of enemies) {
+      if (!e.alive) continue;
+      if (Math.abs((e.x + e.w / 2) - (p.x + p.w / 2)) > 130) continue;
+      if (Math.abs((e.y + e.h / 2) - (p.y + p.h / 2)) > 95) continue;
+      damageEnemy(e, "#ffd08a");
+    }
+    // 足もとの ヒビ床を ふみぬく
+    const px = p.x + p.w / 2, py = (g > 0) ? (p.y + p.h + 6) : (p.y - 6);
+    for (const s of solids.slice()) {
+      if (s.dead || (s.type !== "crack" && s.type !== "glassfloor")) continue;
+      if (px < s.x - 8 || px > s.x + s.w + 8) continue;
+      if (py < s.y - 10 || py > s.y + s.h + 10) continue;
+      if (s.type === "glassfloor") breakGlass(s); else breakCrack(s);
+    }
+  }
+  // ★ver6.18：星の ガラス床。**おもり（空中B）でだけ** 割れる。
+  //   下（さかさま中は 上）へ おりる ための みち。
+  function breakGlass(s) {
+    if (!s || s.dead || s.type !== "glassfloor") return false;
+    s.dead = true; score += 50;
+    beep(1200, 0.06, "triangle", 0.05); beep(760, 0.12, "triangle", 0.04);
+    spawnParticles(s.x + TILE / 2, s.y + TILE / 2, "#bfe4ff", 12);
+    spawnParticles(s.x + TILE / 2, s.y + TILE / 2, "#ffffff", 6);
+    return true;
+  }
+  // 【じゅうりょくだま】B。あたった てきは うきあがって から たたきつけられる。
+  function castGravBall(p) {
+    if (p.gravCd > 0) return;
+    p.gravCd = 15;
+    const dir = p.face;
+    gravBalls.push({ x: p.x + p.w / 2 + dir * 16 - 7, y: p.y + p.h / 2 - 9, w: 14, h: 14, vx: dir * 7.4, t: 0 });
+    playSE("gball");   // ★ver6.21（重力魔法1）
+  }
+  function updateGravBalls() {
+    for (const b of gravBalls) {
+      if (b.t > 900) continue;
+      b.t++; b.x += b.vx;
+      for (const e of enemies) {
+        if (!e.alive || !rectHit(b, e)) continue;
+        liftEnemy(e);                       // ★ver6.16：ここでは たおさない。まず うかせる
+        spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#a06bff", 8);
+        b.t = 999; break;
+      }
+      if (b.t > 900) continue;
+      // ★ver6.18：グラビトンは 金の わっかで **飛び道具を ぜんぶ はじく**。
+      //   「きかない」ことを 目と 音で はっきり 見せる（子どもが 何度も 撃ちつづけない ように）。
+      if (inBoss) {
+        let bounced = false;
+        for (const bo of bosses) {
+          if (!bo.alive || bo.kind !== "graviton" || !rectHit(b, bo)) continue;
+          bo.guardHit = 14; sfx.block();
+          spawnParticles(b.x + 7, b.y + 7, "#ffe8b0", 8);
+          gvHint = Math.max(gvHint, 200);
+          bounced = true; break;
+        }
+        if (bounced) { b.t = 999; continue; }
+      }
+      for (const s of solids) {
+        if (s.dead || passable(s, player)) continue;
+        if (rectHit(b, s)) { spawnParticles(b.x + 7, b.y + 7, "#7a4fd0", 5); b.t = 999; break; }
+      }
+    }
+    gravBalls = gravBalls.filter(b => b.t <= 130);
+  }
+  function drawGravBalls() {
+    for (const b of gravBalls) {
+      const cx = b.x + 7, cy = b.y + 7;
+      ctx.fillStyle = "rgba(120,60,200,0.30)";
+      ctx.beginPath(); ctx.arc(cx - b.vx * 1.4, cy, 8, 0, 7); ctx.fill();
+      ctx.fillStyle = "#16091f";
+      ctx.beginPath(); ctx.arc(cx, cy, 7.5, 0, 7); ctx.fill();
+      ctx.strokeStyle = "#a06bff"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(cx, cy, 8.6, 0, 7); ctx.stroke();
+    }
+  }
+
+  // ★ver6.16：じゅうりょくだまに あたった てきを **うかせて から たたきつける**。
+  //   まえは あたった しゅんかんに たおして いた ので、「うきあがる」ところが 見えなかった。
+  const GLIFT = 26;         // うきあがって いる ながさ
+  function liftEnemy(e) {
+    if (!e || !e.alive) return;
+    e.gLift = GLIFT; e.gSlam = 0;
+    e.vy = -6.6; e.onGround = false;
+    beep(520, 0.1, "sine", 0.05);
+  }
+  // ★ver6.17：てきの うごきは kind ごとに まったく べつ。
+  //   `root`（鉄砲隊・キノコン）は y も vy も さわらない、`fly`（カラス）は y を 直に 入れなおす。
+  //   だから「vy を 入れる」だけでは **一部の てきしか 浮かなかった**（ユーザー報告）。
+  //   うかせて いる あいだは **てきの うごきを まるごと 止めて、ここで 場所を 動かす**。
+  // ★ver6.19：てきにも 重力の むきが ある（さかさムシは まるりんと 同じ むき）。
+  //   1＝ふつう（下へ 落ちる）／-1＝さかさま（天じょうへ 落ちる）
+  function egOf(e) { return (e && e.eg) || 1; }
+  function enemyOnSolid(e) {
+    const eg = egOf(e);
+    // 「その てきが 落ちて いく がわ」を しらべる
+    const probe = (eg > 0)
+      ? { x: e.x + 3, y: e.y + e.h, w: e.w - 6, h: 6 }
+      : { x: e.x + 3, y: e.y - 6, w: e.w - 6, h: 6 };
+    const near = solidsNear(e.x, e.w);
+    for (let i = 0; i < near.length; i++) {
+      const s = near[i];
+      if (s.dead) continue;
+      // ふつう向きの てきは 天じょうタイルを すりぬける。さかさまの てきは そこに 立つ
+      if (eg > 0 && isCeilType(s.type)) continue;
+      if (rectHit(probe, s)) return true;
+    }
+    return false;
+  }
+  // うかせて いる てき 1ぴきぶん。updateEnemies の あたまから よばれる（そのあと continue）
+  // ===== ver6.18 ステージ7の てきの うごき =====
+
+  // さかさムシ：**まるりんの 重力の むき**で 落ちる。天じょうにも 立つ。
+  function stepFlipBug(e) {
+    const g = gdirOf(player);
+    if (e.eg !== g) {
+      e.eg = g; e.onGround = false; e.vy = 0;
+      spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#e2be74", 5);
+    }
+    // よこ：近くに いれば まるりんの ほうへ。遠ければ そのまま 行ったり来たり
+    const px = player.x + player.w / 2, cx = e.x + e.w / 2;
+    const spd = Math.abs(e.vx) || 1.15;
+    if (Math.abs(px - cx) < 430) e.vx = (px < cx ? -spd : spd);
+    e.x += e.vx;
+    {
+      const near = solidsNear(e.x, e.w);
+      const box = { x: e.x, y: e.y, w: e.w, h: e.h };
+      for (let i = 0; i < near.length; i++) {
+        const s = near[i];
+        if (s.dead || !rectHit(box, s)) continue;
+        if (e.vx > 0) e.x = s.x - e.w; else e.x = s.x + s.w;
+        e.vx *= -1; box.x = e.x;
+      }
+    }
+    // たて：自分の 重力の むきへ
+    e.vy = (e.vy || 0) + GRAVITY * 0.75 * g;
+    if (Math.abs(e.vy) > 13) e.vy = 13 * g;
+    e.y += e.vy; e.onGround = false;
+    {
+      const near = solidsNear(e.x, e.w);
+      const box = { x: e.x, y: e.y, w: e.w, h: e.h };
+      for (let i = 0; i < near.length; i++) {
+        const s = near[i];
+        if (s.dead) continue;
+        if (g > 0 && isCeilType(s.type)) continue;   // ふつう向きの ときは 天じょうを すりぬける
+        if (!rectHit(box, s)) continue;
+        const land = (g > 0) ? (e.vy > 0) : (e.vy < 0);
+        if (land) {
+          e.y = (g > 0) ? (s.y - e.h) : (s.y + s.h);
+          e.vy = 0; e.onGround = true; box.y = e.y;
+        }
+      }
+    }
+    // ステージの てっぺん／そこ で 止める（落ちつづけない ように）
+    if (g < 0 && e.y < 0) { e.y = 0; e.vy = 0; e.onGround = true; }
+    if (e.y > LEVEL_H + 200) { e.alive = false; }
+    e.face = e.vx < 0 ? -1 : 1;
+  }
+
+  // ほしくらげ：ふわふわ ただよう。ちょうじゅうりょくで 引きずられて いる あいだ（pullT）は
+  //   **場所を 直に 動かす**。面に ついたら ぺたんと つぶれて 3びょう 足場に なる。
+  function stepStarJelly(e) {
+    if (e.jellyDown) { e.squash += (1 - e.squash) * 0.2; return; }
+    if (e.pullT > 0) {
+      e.pullT--;
+      const g = gdirOf(player);
+      e.y += 5.2 * g;
+      if (e.t % 3 === 0) spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#8fd8ff", 1);
+      if (e.y > LEVEL_H + 120 || e.y + e.h < -160) { e.alive = false; return; }
+      if (jellyGrounded(e, g)) jellyLand(e, g);
+      return;
+    }
+    e.x += e.vx;
+    if (e.x < e.homeX - e.range) { e.x = e.homeX - e.range; e.vx *= -1; }
+    else if (e.x > e.homeX + e.range) { e.x = e.homeX + e.range; e.vx *= -1; }
+    e.y = e.baseY + Math.sin(e.t * 0.045) * 26;
+  }
+  function jellyGrounded(e, g) {
+    const probe = (g > 0)
+      ? { x: e.x + 5, y: e.y + e.h, w: e.w - 10, h: 7 }
+      : { x: e.x + 5, y: e.y - 7, w: e.w - 10, h: 7 };
+    const near = solidsNear(probe.x, probe.w);
+    for (let i = 0; i < near.length; i++) {
+      const s = near[i];
+      if (s.dead) continue;
+      if (g > 0 && isCeilType(s.type)) continue;
+      if (!rectHit(probe, s)) continue;
+      e.y = (g > 0) ? (s.y - e.h) : (s.y + s.h);
+      return true;
+    }
+    return false;
+  }
+  function jellyLand(e, g) {
+    // ★noStomp は **外さない**。外すと、つぶれた その コマに 落ちて きた まるりんが
+    //   ふんで しまい、足場に なった しゅんかんに 消えて いた（ver6.18で 見つけた バグ）。
+    //   つぶれた くらげは「てき」では なく **かたい 足場**（frozen）として あつかう。
+    e.jellyDown = true; e.pullT = 0; e.fly = false;
+    e.frozen = 180;                      // ★3びょうだけ 足場（まほうじんと 同じ しくみ）
+    const bottom = e.y + e.h;
+    e.h = 18;
+    e.y = (g > 0) ? (bottom - e.h) : e.y;   // つぶれても 立って いる 面から はなれない
+    e.squash = 0.4;
+    screenShake = Math.max(screenShake, 4);
+    beep(170, 0.14, "sine", 0.06);
+    spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#9fe6ff", 12);
+    spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#ffffff", 6);
+    score += 200;
+  }
+
+  // いんせき：まっすぐ 落ちる／昇る。ぶつかったら 土けむりを あげて、しばらく 休んで また 出てくる。
+  function stepMeteor(e) {
+    if (e.wait > 0) {
+      e.wait--; e.harmless = true;
+      if (e.wait === 0) {
+        e.harmless = false; e.y = e.baseY;
+        spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#e8b878", 6);
+        beep(200, 0.08, "triangle", 0.04);
+      }
+      return;
+    }
+    e.y += e.spd * e.mdir;
+    if (e.t % 3 === 0) spawnParticles(e.x + e.w / 2, e.y + e.h / 2 - e.mdir * 14, "#c98a4a", 1);
+    let hit = false;
+    {
+      const near = solidsNear(e.x, e.w);
+      const box = { x: e.x + 6, y: e.y + 6, w: e.w - 12, h: e.h - 12 };
+      for (let i = 0; i < near.length; i++) {
+        const s = near[i];
+        if (s.dead) continue;
+        if (rectHit(box, s)) { hit = true; break; }
+      }
+    }
+    if (hit || e.y > LEVEL_H + 60 || e.y + e.h < -60 || Math.abs(e.y - e.baseY) > 1000) {
+      spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#b98a52", 10);
+      spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#f0d9a8", 5);
+      if (hit) { screenShake = Math.max(screenShake, 3); beep(110, 0.1, "sawtooth", 0.05); }
+      e.y = e.baseY; e.harmless = true;
+      e.wait = 80 + Math.floor(Math.random() * 70);
+    }
+  }
+
+  // ほしのみはり：2びょう ためて 1びょう 撃つ。ビームは 自分の つく 面と 直角に まっすぐ。
+  function stepStarEye(e) {
+    e.beam = null;
+    if (e.fireT > 0) {
+      e.fireT--;
+      const box = eyeBeamBox(e);
+      e.beam = box;
+      // 出はじめ／消えぎわは 当たらない（見てから よけられる ように）
+      if (e.fireT < 52 && e.fireT > 6 && player.invuln <= 0 && rectHit(player, box)) hurtPlayer();
+      if (e.fireT === 0) e.cd = 70 + Math.floor(Math.random() * 40);
+      return;
+    }
+    if (e.chargeT > 0) {
+      e.chargeT--;
+      if (e.chargeT % 10 === 0) {
+        spawnParticles(e.x + e.w / 2, e.y + e.h / 2 + e.edir * 14, "#ffd9a0", 1);
+      }
+      if (e.chargeT === 0) {
+        e.fireT = 60;
+        beep(220, 0.45, "sawtooth", 0.06);
+        screenShake = Math.max(screenShake, 3);
+      }
+      return;
+    }
+    e.cd--;
+    const px = player.x + player.w / 2;
+    if (e.cd <= 0 && Math.abs(px - (e.x + e.w / 2)) < 560) {
+      e.chargeT = 120;                    // 2びょう ためる
+      beep(520, 0.18, "sine", 0.04);
+    }
+  }
+  // ビームの とどく ところ（ブロックに 当たるまで）
+  function eyeBeamBox(e) {
+    const cx = e.x + e.w / 2;
+    const MAX = TILE * 18;
+    let len = 8;
+    while (len < MAX) {
+      const ty = (e.edir > 0) ? (e.y + e.h + len) : (e.y - len);
+      if (solidTypeAt(cx, ty)) break;
+      len += 8;
+    }
+    const top = (e.edir > 0) ? (e.y + e.h) : (e.y - len);
+    return { x: cx - 9, y: top, w: 18, h: len };
+  }
+
+  function stepLifted(e) {
+    e.t++;
+    if (e.hurtT > 0) e.hurtT--;
+    e.squash += (1 - e.squash) * 0.2;
+    e.onGround = false;
+    if (e.gLift > 0) {
+      e.gLift--;
+      const k = e.gLift / GLIFT;                 // だんだん おそく なって てっぺんで ふわっと 止まる
+      // ★ver6.19：「うかせる」＝**その てきが 落ちる むきの ぎゃく**。
+      //   さかさムシは 天じょうに 立って いるので、下へ うかせるのが 正しい。
+      //   （まえは いつも 上へ うかせて いたので、天じょうへ めりこんで 死んで いた）
+      e.y -= 6.6 * k * egOf(e);
+      e.x += (e.vx || 0);
+      e.vx = (e.vx || 0) * 0.86;
+      e.vy = 0;
+      if (e.gLift % 3 === 0) spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#a06bff", 1);
+      if (e.gLift === 0) { e.gSlam = 48; beep(120, 0.08, "square", 0.05); }
+      return;
+    }
+    // たたきつけ：その てきが 落ちる むきへ まっすぐ
+    e.gSlam--;
+    e.y += 15 * egOf(e);
+    e.vy = 0;
+    if (enemyOnSolid(e) || e.gSlam <= 0 || e.y > LEVEL_H || e.y + e.h < 0) {
+      e.gSlam = 0;
+      // ★ver6.18：ほしくらげは たおれる かわりに **つぶれて 足場**に なる
+      if (e.jelly7 && !e.jellyDown) { jellyLand(e, 1); return; }
+      screenShake = Math.max(screenShake, 5);
+      const fy = (egOf(e) > 0) ? (e.y + e.h) : e.y;
+      spawnParticles(e.x + e.w / 2, fy, "#a06bff", 12);
+      spawnParticles(e.x + e.w / 2, fy, "#ffffff", 5);
+      beep(90, 0.16, "sawtooth", 0.07);
+      damageEnemyN(e, "#a06bff", 2);             // たたきつけ＝2ダメージ
+    }
+  }
+
+  // 【ちょうじゅうりょく】↓＋B。まわりの てきと たまを 自分の下へ 引きずり落とす。
+  const PULL_R = 150;
+  function startHeavyPull(p) {
+    if (p.pull > 0) return;
+    p.pull = 10;                 // ★ver6.17：おしっぱなし中は まいコマ のばす。はなすと 10コマで きれる
+    p.pullHit = 0;
+    startLoopSE("pull");         // ★ver6.21（オーラ1）：おしている あいだ ずっと 鳴らす
+    pullDamage(p);
+  }
+  // ↓＋B を おしている あいだ まいコマ よばれる
+  function holdHeavyPull(p) {
+    p.pull = 10;
+    if (p.pullHit <= 0) { p.pullHit = 44; pullDamage(p); beep(110, 0.18, "sine", 0.03); }
+  }
+  function pullDamage(p) {
+    const cx = p.x + p.w / 2, cy = p.y + p.h / 2;
+    for (const e of enemies) {
+      if (!e.alive) continue;
+      if (Math.abs((e.x + e.w / 2) - cx) > PULL_R || Math.abs((e.y + e.h / 2) - cy) > PULL_R) continue;
+      // ★ver6.18：ほしくらげは ここで たおさない。**引きずり落として 面に ぶつける**のが 倒しかた。
+      //   （その場で 消して しまうと「落ちて つぶれて 足場に なる」が ぜんぶ 見えなく なる）
+      //   つぶれた あとも 消さない＝3びょうの あいだ ちゃんと 足場で いられる。
+      if (e.jelly7) continue;
+      damageEnemy(e, "#8fd8ff");
+    }
+  }
+  function stepHeavyPull(p) {
+    if (p.pullHit > 0) p.pullHit--;
+    if (p.pull <= 0) { stopLoopSE("pull"); return; }   // ★ver6.21：はなしたら 音も 止める
+    p.pull--;
+    const g = gdirOf(p), cx = p.x + p.w / 2, cy = p.y + p.h / 2;
+    for (const e of enemies) {
+      if (!e.alive) continue;
+      if (Math.abs((e.x + e.w / 2) - cx) > PULL_R || Math.abs((e.y + e.h / 2) - cy) > PULL_R) continue;
+      e.vy = (e.vy || 0) + 1.15 * g;      // 自分の 下へ 引きずり落とす
+      e.onGround = false;
+      // ★ver6.18：ほしくらげは vy を つかって いない（ふわふわは y を 直に 入れて いる）。
+      //   しるしを 立てて、くらげ じしんの step で 場所を 直に 動かす。
+      if (e.jelly7 && !e.jellyDown) e.pullT = 8;
+    }
+    // ★ver6.16：てきの たまは **hazards** にも いる（鉄砲隊の たま・ほうしだま・氷・火の玉…）。
+    //   しかも たいはんは vy を つかって いない ので、**場所を 直に 下げる**。
+    const DRAG = 3.2;
+    const sink = (o) => {
+      if (o.dead) return;
+      if (Math.abs(o.x - cx) > PULL_R || Math.abs(o.y - cy) > PULL_R) return;
+      o.y += DRAG * g;                       // ← これが 「沈んで いる」に 見える もと
+      o.vy = (o.vy || 0) + 1.2 * g;
+      o.vx = (o.vx || 0) * 0.86;
+      if (p.pull % 4 === 0) spawnParticles(o.x, o.y, "#8fd8ff", 1);
+      // 自分の 足もとを こえて 沈みきったら 消える
+      const foot = (g > 0) ? (p.y + p.h + 26) : (p.y - 26);
+      if ((g > 0 && o.y > foot) || (g < 0 && o.y < foot)) {
+        o.dead = true;
+        spawnParticles(o.x, o.y, "#8fd8ff", 6);
+      }
+    };
+    for (const cu of cukes) sink(cu);
+    for (const h of hazards) sink(h);
+    if (p.pull % 3 === 0) {
+      spawnParticles(cx + (Math.random() - 0.5) * 110, cy + (Math.random() - 0.5) * 90, "#8fd8ff", 1);
+    }
+  }
+  function drawHeavyPull(p) {
+    if (p.pull <= 0) return;
+    const cx = p.x + p.w / 2, cy = p.y + p.h / 2, k = p.pull / 40;
+    ctx.save();
+    ctx.strokeStyle = "rgba(143,216,255," + (0.25 + k * 0.4) + ")"; ctx.lineWidth = 2.4;
+    for (let i = 0; i < 3; i++) {
+      const r = PULL_R * (0.35 + i * 0.3) * (0.9 + Math.sin(elapsed * 0.2 + i) * 0.06);
+      ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.72, 0, 0, 7); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // 【ブラックホール】ダッシュ中B。てき・たま・コインを 吸いこむ。
+  function castBlackHole(p) {
+    if (holes.length >= 2) return;
+    holes.push({ x: p.x + p.w / 2 + p.face * 84, y: p.y + p.h / 2, r: 6, t: 0, life: 110 });
+    playSE("hole");   // ★ver6.21（暗黒魔法）
+  }
+  function updateHoles() {
+    for (const h of holes) {
+      h.t++;
+      const inT = Math.min(1, h.t / 12), outT = Math.min(1, (h.life - h.t) / 14);
+      h.r = 6 + 30 * inT * outT;
+      const R = 36 + h.r * 3.2;
+      // ★ver6.18：グラビトンは ブラックホールでも 吸えない（金の わっかが はじく）
+      if (inBoss) for (const bo of bosses) {
+        if (!bo.alive || bo.kind !== "graviton") continue;
+        if (Math.hypot(h.x - (bo.x + bo.w / 2), h.y - (bo.y + bo.h / 2)) < R) {
+          bo.guardHit = 14; gvHint = Math.max(gvHint, 200);
+        }
+      }
+      for (const e of enemies) {
+        if (!e.alive) continue;
+        const dx = h.x - (e.x + e.w / 2), dy = h.y - (e.y + e.h / 2), d = Math.hypot(dx, dy);
+        if (d > R || d < 0.5) continue;
+        e.x += dx / d * 2.4; e.y += dy / d * 1.9; e.onGround = false;
+        // ★ver6.18：いんせきは 吸いこむと **コインに なる**（よけるだけの てきに ごほうびを つける）
+        if (e.meteor && !e.harmless && d < h.r + 16) {
+          e.alive = false;
+          coins.push({ x: e.x + 4, y: e.y + 4, w: 24, h: 24, got: false, t: 0 });
+          spawnParticles(h.x, h.y, "#ffd34d", 12);
+          beep(880, 0.08, "sine", 0.05);
+          score += 100;
+          continue;
+        }
+        if (d < h.r + 14 && h.t % 22 === 0) damageEnemy(e, "#a06bff");
+      }
+      // ★ver6.16：てきの たまは cukes と **hazards** の 両方に いる。
+      const suck = (o) => {
+        if (o.dead) return;
+        const dx = h.x - o.x, dy = h.y - o.y, d = Math.hypot(dx, dy);
+        if (d > R || d < 0.5) return;
+        const k = 3.0 + (1 - d / R) * 3.4;     // 近いほど 強く 吸う
+        o.x += dx / d * k; o.y += dy / d * k;
+        o.vx = (o.vx || 0) * 0.9; o.vy = (o.vy || 0) * 0.9;
+        if (h.t % 3 === 0) spawnParticles(o.x, o.y, "#a06bff", 1);
+        if (d < h.r + 6) { o.dead = true; spawnParticles(h.x, h.y, "#a06bff", 5); beep(240, 0.05, "sine", 0.04); }
+      };
+      for (const cu of cukes) suck(cu);
+      for (const hz of hazards) suck(hz);
+      // ★ver6.17：コインだけで なく **ドングリ（nuts）・フランスパン（breads）**も 吸う
+      const suckItem = (o) => {
+        if (o.got) return;
+        const dx = h.x - (o.x + o.w / 2), dy = h.y - (o.y + o.h / 2), d = Math.hypot(dx, dy);
+        if (d > R * 1.4 || d < 0.5) return;
+        const k = 3.4 + (1 - d / (R * 1.4)) * 2.6;
+        o.x += dx / d * k; o.y += dy / d * k;
+        if (o.vx !== undefined) { o.vx *= 0.8; o.vy = (o.vy || 0) * 0.8; }
+      };
+      for (const co of coins) suckItem(co);
+      for (const nu of nuts) suckItem(nu);
+      for (const br of breads) suckItem(br);
+    }
+    holes = holes.filter(h => h.t < h.life);
+  }
+  function drawHoles() {
+    for (const h of holes) {
+      const g = ctx.createRadialGradient(h.x, h.y, 1, h.x, h.y, h.r * 3.2 + 8);
+      g.addColorStop(0, "#000000");
+      g.addColorStop(0.32, "#1a0b2e");
+      g.addColorStop(0.72, "rgba(120,70,220,0.32)");
+      g.addColorStop(1, "rgba(120,70,220,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(h.x, h.y, h.r * 3.2 + 8, 0, 7); ctx.fill();
+      ctx.strokeStyle = "rgba(200,160,255,0.75)"; ctx.lineWidth = 1.6;
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        for (let k = 0; k < 22; k++) {
+          const a = h.t * 0.13 + i * 2.1 + k * 0.26, r = 4 + k * (h.r / 16);
+          const px = h.x + Math.cos(a) * r, py = h.y + Math.sin(a) * r * 0.78;
+          k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+        }
+        ctx.stroke();
+      }
+      ctx.fillStyle = "#000";
+      ctx.beginPath(); ctx.arc(h.x, h.y, h.r * 0.62, 0, 7); ctx.fill();
+    }
+  }
+
+  // 【ひきよせ】じどう。近くの コインが ひとりでに よってくる。
+  function gravAttract(p) {
+    if (!isGravForm()) return;
+    const cx = p.x + p.w / 2, cy = p.y + p.h / 2, R = 96;
+    const pull = (o) => {
+      if (o.got) return;
+      const dx = cx - (o.x + o.w / 2), dy = cy - (o.y + o.h / 2), d = Math.hypot(dx, dy);
+      if (d > R || d < 1) return;
+      const k = (1 - d / R) * 2.6;
+      o.x += dx / d * k; o.y += dy / d * k;
+    };
+    for (const co of coins) pull(co);
+    for (const nu of nuts) pull(nu);        // ★ver6.17 ドングリ
+    for (const br of breads) pull(br);      // ★ver6.17 フランスパン
+  }
+
   function resetTechs(p) {
     if (!p) return;
     stopLoopSE("jet");                 // ★ミス・スキル切りかえで ジェットの 音を 止め忘れない
+    stopLoopSE("pull");                // ★ver6.21：ちょうじゅうりょくの オーラも 止め忘れない
     if (p.roll > 0) { p.roll = 0; setLowProfile(p, false); }
     p.spin = 0; p.tackle = 0; p.gnaw = 0; p.gnawTarget = null; p.gnawBoss = null; p.burrow = 0; p.mouthOpen = 0;
     p.broom = 0;
@@ -1973,6 +2632,8 @@
     // ロボットスキルの技も止める（バリアを はったまま／突進したまま 切りかえない）
     p.drill = 0; p.dig = 0; p.jet = 0; p.jetOut = false; p.beamT = 0; p.hatchT = 0; p.vulcan = 0;
     p.bliz = 0;   // こおりスキルの 技も 止める
+    p.slam = 0; p.hoverT = 0; p.pull = 0; p.pullHit = 0; p.gravCd = 0;   // ★ver6.14：じゅうりょくスキルの 技も 止める
+    for (const e of enemies) { e.gLift = 0; e.gSlam = 0; }   // ★ver6.16：うかせた てきも もどす
     if (p.carry) { dropCarried(p); }        // 持っていた石は落とす
   }
   // 持っていたものを、その場にそっと落とす（被弾・スキル切替のとき）
@@ -2056,6 +2717,9 @@
   function isReaperForm()  { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return !!(ab && ab.form === "reaper"); }
   function isRobotForm()   { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return !!(ab && ab.form === "robot"); }
   function isIceForm()     { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return !!(ab && ab.form === "ice"); }
+  function isGravForm()    { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return !!(ab && ab.form === "gravity"); }
+  // むじゅうりょくで うかんで いられる フレーム数（じゅうりょくスキルだけ）
+  function hoverFrames()   { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return (ab && ab.hover) || 0; }
   function canWallJump()   { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return !!(ab && ab.wallJump); }
   // いま しゅくちぎりを ためている最中か（ため中は 足が止まる）
   function chargingHold()  { const ab = abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; return abilCharging && !!(ab && ab.holdRelease); }
@@ -2568,7 +3232,7 @@
     return { x: tx, y: ty };
   }
   // ★のぼれない／上に 立てない「天じょう」の しゅるい（ver6.10）
-  function isCeilType(t) { return t === "trainceil" || t === "bossceil" || t === "iceceil"; }
+  function isCeilType(t) { return t === "trainceil" || t === "bossceil" || t === "iceceil" || t === "starceil"; }
   // ★ver6.11：ボス部屋の 天じょうの「下べり」。0 なら 天じょう なし。
   //   まるりんが これより 上に 出たら まいコマ 下へ もどす＝ぜったいに 詰まない。
   let ceilFloorY = 0;
@@ -2836,7 +3500,7 @@
 
 
   // =====================================================================
-  // ===== こおりスキルの技（ステージ6「こおりの お城」）=====
+  // ===== こおりスキルの技（ステージ6「氷のお城」）=====
   // ★このスキルの しごとは「たおす」では なく **「道を つくる」**。
   //   だから ダメージは どれも 小さめで、そのかわり 足場が 生まれる。
   //   どのステージでも 谷・高い足場・とげは あるので、いつでも 出番が ある。
@@ -3695,6 +4359,7 @@
     if (abilities.length === 0) return;           // 「まだおぼえていない」表示だけ出す
     abilityIndex = (abilityIndex + 1) % abilities.length;
     resetTechs(player);                            // 出しかけの技はキャンセル
+    setGdir(player, 1);                            // ★ver6.14：さかさまは かならず 解除（詰み ぼうし）
     if (!isDragonForm()) endDragonMode();          // ドラゴン以外に変えたら飛行は解除（空に浮いたままにならないように）
     if (!isRobotForm()) endRobotMode();             // ロボット以外に変えたら 変形も とく
     clearArmor(player);                             // ★スキルを かえた しゅんかんも そうこう なし
@@ -3759,6 +4424,16 @@
         return;
       }
       if (p.guardT > 0) { endGuard(p); abilPrev = down; abilCharging = false; abilCharge = 0; return; }
+    }
+    // ★ver6.17 ちょうじゅうりょく：↓と B を おしている あいだ ずっと きく（かまえと 同じ しくみ）
+    if (ab.pullHold) {
+      const want = p.onGround && down && downKey();
+      if (want) {
+        if (p.pull <= 0) startHeavyPull(p); else holdHeavyPull(p);
+        abilPrev = down; abilCharging = false; abilCharge = 0;
+        return;
+      }
+      if (p.pull > 0 && abilPrev) { abilPrev = down; abilCharging = false; abilCharge = 0; return; }
     }
     if (down && !abilPrev) {
       // 押した瞬間：空中技・下技・ダッシュ技があればそちらを優先
@@ -3955,7 +4630,16 @@
     jet:    { file: "se_jet.mp3",     n: 1, vol: 0.45, loop: true },  // ジェット（エアコン・ループ）
     // ---- こおりスキル（ユーザー指定）----
     spray:  { file: "se_spray.mp3",   n: 3, vol: 0.55 },  // こおりのいき／こおりのはし（スプレー）
-    ice:    { file: "se_ice.mp3",     n: 2, vol: 0.55 }   // ふぶき／氷づけに なった しゅんかん（氷魔法1）
+    ice:    { file: "se_ice.mp3",     n: 2, vol: 0.55 },  // ふぶき／氷づけに なった しゅんかん（氷魔法1）
+    // ---- じゅうりょくスキル（ユーザー指定・ver6.21）----
+    gball:  { file: "se_gravball.mp3", n: 3, vol: 0.50 },  // じゅうりょくだま（重力魔法1）
+    flip:   { file: "se_flip.mp3",     n: 2, vol: 0.55 },  // さかさま（重力魔法2）
+    // ★ちょうじゅうりょくは **おしっぱなしの 技**なので ループ（ジェットと 同じ あつかい）。
+    //   オーラ1は 9.4びょう あるので、つなぎ目も 気に ならない。
+    pull:   { file: "se_pull.mp3",     n: 1, vol: 0.45, loop: true },  // ちょうじゅうりょく（オーラ1）
+    slam:   { file: "se_slam.mp3",     n: 2, vol: 0.60 },  // おもり＝**着地の しょうげき**（打撃8）
+    // ★暗黒魔法は 4.1びょう、ブラックホールは 1.8びょう。すこし 速めて ながさを 合わせる。
+    hole:   { file: "se_hole.mp3",     n: 2, vol: 0.50, rate: 1.3 }    // ブラックホール（暗黒魔法）
   };
   const SE = {};
   const SE_ALL = [];
@@ -4007,12 +4691,13 @@
 
   // 異世界編のBGM（甘茶の音楽工房）。ステージが増えたらBGMの配列に足していく。
   const BGM = [
-    new Audio("audio/bgm_isekai1.mp3"),    // ステージ1 はじまりのそうげん（楽しい冒険）
-    new Audio("audio/bgm_isekai2.mp3"),    // ステージ2 まほうの塔（The sacred place）
+    new Audio("audio/bgm_isekai1.mp3"),    // ステージ1 はじまりの草原（楽しい冒険）
+    new Audio("audio/bgm_isekai2.mp3"),    // ステージ2 魔法の塔（The sacred place）
     new Audio("audio/bgm_isekai3.mp3"),    // ステージ3 本能寺の変（hanamatsuri）
-    new Audio("audio/bgm_isekai4.mp3"),     // ステージ4 あの世ゆきの汽車（ghost-dance）
+    new Audio("audio/bgm_isekai4.mp3"),     // ステージ4 あの世行きの汽車（ghost-dance）
     new Audio("audio/bgm_isekai5.mp3"),     // ステージ5 ネオ・ハムシティ（Es-STAGE4）
-    new Audio("audio/bgm_isekai6.mp3")     // ステージ6 こおりのお城（Everlasting-Snow）
+    new Audio("audio/bgm_isekai6.mp3"),    // ステージ6 氷のお城（Everlasting-Snow）
+    new Audio("audio/bgm_isekai7.mp3")     // ステージ7 星の天文台（Moon-ruins）
   ];
   BGM.forEach(a => { a.loop = true; a.volume = 0.15; });  // 小さめ・ループ
   // ボス戦BGM（ステージ別。無いステージはnull＝通常BGMのまま）
@@ -4022,7 +4707,8 @@
     new Audio("audio/bgm_isekai_boss3.mp3"),  // ステージ3ボス 織田信長＆森蘭丸（Battle-YAMATO）
     new Audio("audio/bgm_isekai_boss4.mp3"),  // ステージ4ボス ケルベロス（Battle-HolyBeast）
     new Audio("audio/bgm_isekai_boss5.mp3"),  // ステージ5ボス マザーAI（SYSTEM-BREAKER）
-    new Audio("audio/bgm_isekai_boss6.mp3")   // ステージ6ボス フロストドラゴン（Ariadne-Boss）
+    new Audio("audio/bgm_isekai_boss6.mp3"),  // ステージ6ボス フロストドラゴン（Ariadne-Boss）
+    new Audio("audio/bgm_isekai_boss7.mp3")   // ステージ7ボス グラビトン（Labyrinth-of-Time）
   ];
   BOSS_BGM.forEach(a => { if (a) { a.loop = true; a.volume = 0.2; } });
   // ★曲は「使うときに読みこむ」。ステージが増えて曲が10本20本になっても、
@@ -4409,8 +5095,15 @@
       p.vy = -JET_RISE;             // ジェット：まっすぐ 上へ（ずっと のぼれる）
     } else if (p.dig > 0) {
       p.vy = DIG_SPD;               // したドリル：まっすぐ 下へ
+    } else if (p.slam > 0) {
+      p.vy = SLAM_SPD * gdirOf(p);  // ★ver6.14 おもり：自分の 下へ まっすぐ
+    } else if (p.hoverT > 0) {
+      // ★ver6.15 むじゅうりょく：ぴたっと 止めずに、**ほんの すこしずつ 沈みながら ふわふわ ゆれる**。
+      //   ↓を おすと ゆっくり 自分の 下へ おりる。
+      const bob = Math.sin(p.hoverT * 0.085) * 0.5;
+      p.vy = (downKey() ? HOVER_DOWN : (HOVER_DRIFT + bob)) * gdirOf(p);
     } else if (!p.gliding && p.broom <= 0) {
-      p.vy += GRAVITY;
+      p.vy += GRAVITY * gdirOf(p);              // ★ver6.14：さかさま中は 上へ 落ちる
       // まほうの「ふわふわ」：落ちているあいだ A を押しっぱなしにすると、ゆっくり落ちる
       if (floatFrames() > 0 && !p.onGround && p.vy > FLOAT_FALL && jumpKey()) {
         p.vy = FLOAT_FALL;
@@ -4438,8 +5131,10 @@
       }
     }
     if (p.vy > 18) p.vy = 18;
+    if (gdirOf(p) < 0 && p.vy < -18) p.vy = -18;   // ★ver6.14：さかさま中の 上むきにも かぎりを
     p.y += p.vy;
     p.onGround = false;
+    const g = gdirOf(p);                        // ★ver6.14
     for (const s of solids) {
       if (passable(s, p)) continue;
       // ★こわした ブロックは たて方向でも 当たらない。
@@ -4451,18 +5146,30 @@
       // ★ボス部屋の 天じょうの **上には 立てない**（ver6.10）。
       //   どんな 行きかた（ジェット・ドラゴン・氷のはし・かべジャンプ）で 上に 出ても、
       //   すとんと 落ちて もどれる ように する＝ぜったいに 詰まない。
-      if (p.vy > 0 && isCeilType(s.type)) continue;
+      // ★ver6.14：天じょうタイルの「外がわ」には 立てない。
+      //   ふつうの 重力なら 上の 面が 外がわ。さかさま中は 下の 面（＝部屋がわ）に 立つのが 正しい。
+      if (g > 0 && p.vy > 0 && isCeilType(s.type)) continue;
       if (rectHit(p, s)) {
-        if (p.vy > 0) { p.y = s.y - p.h; p.vy = 0; p.onGround = true; }
-        else if (p.vy < 0) {
-          p.y = s.y + s.h; p.vy = 0;
-          // 下から叩いた
+        // 「重力の 向きに 進んで ぶつかった」＝着地。反対＝頭を ぶつけた。
+        const land = (g > 0) ? (p.vy > 0) : (p.vy < 0);
+        if (land) {
+          p.y = (g > 0) ? (s.y - p.h) : (s.y + s.h);
+          p.vy = 0; p.onGround = true;
+        } else if (p.vy !== 0) {
+          p.y = (p.vy < 0) ? (s.y + s.h) : (s.y - p.h);
+          p.vy = 0;
+          // ★ver6.19：さかさま中でも たたける ように した。
+          //   さかさま中の「あたま」は 体の **上がわ**。ぶつける 面が ちがうだけで、
+          //   やって いる ことは 同じ なので、区別する 理由が なかった
+          //   （オーナー報告：さかさまだと たからばこが たたけない）。
           if (s.type === "question" && !s.used) hitQuestion(s);
           else if (s.type === "brick") breakBrick(s);          // レンガは頭突きでこわせる
           else sfx.block();                                     // 石・ヒビ割れた壁はビクともしない
         }
       }
     }
+    // ★ver6.14 おもり：着地したら しょうげき波
+    if (p.slam > 0 && p.onGround) endSlam(p);
     // 壊れたブロックを除去
     if (solids.some(s => s.dead)) solids = solids.filter(s => !s.dead);
 
@@ -4473,10 +5180,23 @@
     //   （かまフックの よじのぼりは ふさいだ が、ほかにも 入り口が あった。
     //     ユーザー報告：ケルベロス戦で 天じょうの 上に のぼると 詰む）
     keepBelowCeiling(p);
+    // ★ver6.14：さかさま中は **ステージの てっぺんが 天じょう**。
+    //   天じょうの ない ところで さかさまに なっても、上へ ぬけて 死なない。
+    if (g < 0 && p.y < 0) {
+      p.y = 0;
+      if (p.vy < 0) p.vy = 0;
+      p.onGround = true;
+    }
     if (p.y > LEVEL_H + 80) killPlayer();
+    // ★ver6.15：**さかさま中だけ**の ほけん。
+    //   ver6.14では ぜんぶの スキルに きいて いて、ドラゴン／ジェットで
+    //   画面の 上へ 飛ぶと 死ぬ ように なって いた（リグレッション）。
+    if (g < 0 && p.y + p.h < -80) killPlayer();
   }
   // 天じょうより 上に 出て いたら、天じょうの すぐ 下へ もどす
   function keepBelowCeiling(p) {
+    // ★ver6.14：さかさま中は 天じょうの 内がわに 立つのが 正しい ので、この しくみは 止める
+    if (gdirOf(p) < 0) return;
     if (!ceilFloorY || !inBoss) return;
     if (p.y >= ceilFloorY) return;
     p.y = ceilFloorY;
@@ -4564,6 +5284,7 @@
     stopBGM();
     lives--;
     state = "dead";
+    setGdir(player, 1);              // ★ver6.14：やられたら かならず ふつうの 重力に もどす
     player.vy = -10; player.deadT = 0;
   }
 
@@ -4867,8 +5588,8 @@
                    && !(p.climbLock > 0)) {
           // ★かまふり・かまフック・かげわたりの 最中は ジャンプで キャンセルできない
           //   （モーションが 長いことが この スキルの 弱点なので、そこを 消さない）
-          p.vy = -JUMP; p.coyote = 0; p.squash = 0.7; sfx.jump();
-          spawnParticles(p.x + p.w/2, p.y + p.h, "#ffffff", 4);
+          p.vy = -JUMP * gdirOf(p); p.coyote = 0; p.squash = 0.7; sfx.jump();   // ★ver6.14
+          spawnParticles(p.x + p.w/2, gdirOf(p) > 0 ? (p.y + p.h) : p.y, "#ffffff", 4);
         } else if (canWallJumpNow(p)) {
           doWallJump(p);
         } else if (p.wing && !p.onGround && !p.gliding && !p.glideUsed) {
@@ -4887,9 +5608,27 @@
       jumpHeld = true;
     } else {
       // 可変ジャンプ高さ（ただし踏みつけ高ジャンプ中は維持）
-      if (p.bounceLock <= 0 && p.vy < -5) p.vy = -5;
+      // ★ver6.14：さかさま中は 上下が 逆なので、向きを かけてから くらべる
+      if (p.bounceLock <= 0 && p.vy * gdirOf(p) < -5) p.vy = -5 * gdirOf(p);
       jumpHeld = false;
     }
+    // ★ver6.15 むじゅうりょく：**A を おしっぱなしに して いる あいだ** ふわふわ うかぶ。
+    //   ・**落ちはじめてから** きく（のぼって いる とちゅうで ぴたっと 止まると へん）
+    //   ・A を はなす／着地／時間ぎれ で おわり。おなじ ジャンプ中でも おし直せば また うかぶ
+    if (p.hoverT <= 0 && hoverFrames() > 0 && p.hoverLeft > 0 &&
+        !p.onGround && !dragonMode && jumpKey() &&
+        p.slam <= 0 && p.jet <= 0 && p.hook <= 0 && p.shadow <= 0 && p.broom <= 0 &&
+        p.vy * gdirOf(p) > 0.6) {
+      p.hoverT = 1;
+      beep(700, 0.1, "sine", 0.05);
+      spawnParticles(p.x + p.w/2, p.y + p.h/2, "#bfefff", 6);
+    }
+    if (p.hoverT > 0) {
+      if (!jumpKey() || p.onGround || p.hoverLeft <= 0) p.hoverT = 0;
+      else { p.hoverT++; p.hoverLeft--; if (p.hoverT % 8 === 0) spawnParticles(p.x + p.w/2, p.y + p.h/2, "#bfefff", 1); }
+    }
+    if (p.flipCd > 0) p.flipCd--;
+    if (p.flipFx > 0) p.flipFx--;
 
     // かべジャンプの おしゃれな受付：Aを おしてから 8フレームのあいだに かべに ついたら
     // ちゃんと ける（かべに つく“ちょっと前”に おしても 間に合う）。
@@ -4902,6 +5641,7 @@
 
     // 着地したら滑空・はばたきをリセット（次のジャンプでまた飛べる）
     if (p.onGround) {
+      p.hoverLeft = hoverFrames(); p.hoverT = 0;    // ★ver6.14：むじゅうりょくは 着地で 回復
       p.gliding = false; p.glideUsed = false; p.flaps = 0; p.tsubameUsed = false; p.tsubaKick = 0;
       p.icicleUsed = false;                  // つららおとしは 1ジャンプ 1回（着地で 復かつ）
       p.hookUsed = false; p.hookJump = false; p.hookHang = false; p.hookGrace = 0;   // かまフックも 1ジャンプ 1回（着地で もどる）
@@ -5290,6 +6030,9 @@
     // 敵
     for (const e of enemies) {
       if (!e.alive) continue;
+      // ★ver6.17：じゅうりょくだまで うかせて いる あいだは、
+      //   てき じしんの うごき（歩く・撃つ・ふわふわ）を まるごと 止めて こちらで 動かす。
+      if (e.gLift > 0 || e.gSlam > 0) { stepLifted(e); continue; }
       e.t++;
       if (e.noHitT > 0) e.noHitT--;
       // ガイコツ：バラバラに くずれている あいだ。動かないし、ふれても 何も おきない。
@@ -5314,6 +6057,8 @@
           // ★こおりスキルで 氷づけに した ぶんは「とけた」＝ふつうに 動きだす
           spawnParticles(e.x + e.w/2, e.y + e.h/2, e.iced ? "#cfefff" : "#bba6ff", e.iced ? 10 : 5);
           e.iced = false;
+          // ★ver6.18：つぶれた ほしくらげは 3びょうで きえる（足場は そこまで）
+          if (e.jellyDown) { e.alive = false; spawnParticles(e.x + e.w/2, e.y + e.h/2, "#9fe6ff", 10); }
         }
         e.squash += (1 - e.squash) * 0.2;
         if (e.hurtT > 0) e.hurtT--;
@@ -5349,7 +6094,13 @@
         }
         continue;
       }
-      if (e.crystal) {
+      // ★ver6.18 ステージ7の てき。たての 動かしかたが みんな ちがう ので、
+      //   それぞれ 自分の step を もつ（ver6.16/6.17の 教訓）。
+      if (e.flipbug) { stepFlipBug(e); }
+      else if (e.jelly7) { stepStarJelly(e); }
+      else if (e.meteor) { stepMeteor(e); }
+      else if (e.stareye) { stepStarEye(e); }
+      else if (e.crystal) {
         // クリスタル：しばらく その場で浮いてから、まるりんめがけて まっすぐ とんでいく
         if (e.hover > 0) {
           e.hover--;
@@ -5474,6 +6225,7 @@
       if (p.burrow > 0) continue;   // もぐっている間は敵に当たらない
       if (p.shadow > 0) continue;   // かげわたり中は てきの 中を すりぬける
       if (e.crystal && e.hover > 0) continue;   // 浮いているクリスタルは無害（つかむための的）
+      if (e.harmless) continue;                // ★ver6.18：まだ 出てきて いない いんせき
       if (rectHit(p, e)) {
         if (p.shuku > 0) continue;   // しゅくちぎり中：斬るのは shukuHitScan がやる（ここでは無敵）
         if (p.dive > 0) { damageEnemyN(e, "#eaf6ff", 2); continue; }   // かぶとわり中：ふれた てきを 斬る
@@ -5498,7 +6250,11 @@
           damageEnemy(e, p.tackle > 0 ? "#ff9b45" : (p.roll > 0 ? "#e6d6bb" : "#9cd88a"));
           continue;
         }
-        const fromAbove = p.vy > 0 && (p.y + p.h) - e.y < 20;
+        // ★ver6.14：さかさま中は「下から」が ふみつけに なる
+        const _g = gdirOf(p);
+        const fromAbove = (_g > 0)
+          ? (p.vy > 0 && (p.y + p.h) - e.y < 20)
+          : (p.vy < 0 && (e.y + e.h) - p.y < 20);
         if (p.guardT > 0 && !fromAbove) {
           // かまえ中：よこから 体当たりしてきた てきは 刀で はじき返す（上からは ふせげない）
           const dir = (e.x + e.w/2 < p.x + p.w/2) ? -1 : 1;
@@ -5510,25 +6266,25 @@
         }
         if (fromAbove && (e.spiky || e.noStomp)) {
           // トゲトゲ・おにびは踏めない：はね返されてダメージ
-          p.vy = -8; p.vx = -p.face * 3;
+          p.vy = -8 * _g; p.vx = -p.face * 3;
           spawnParticles(e.x + e.w/2, e.y - 4, "#ffffff", 6);
           if (p.invuln <= 0) hurtPlayer();
         } else if (fromAbove && e.kind === "bone") {
           // ガイコツは ふんでも 倒れない。バラバラに なって、また 組みあがる
           boneCollapse(e);
           const timed = jumpKey() || jumpBuffer > 0;
-          if (timed) { p.vy = -16; p.bounceLock = 14; jumpBuffer = 0; p.squash = 0.7; sfx.jump(); }
-          else p.vy = -9;
+          if (timed) { p.vy = -16 * _g; p.bounceLock = 14; jumpBuffer = 0; p.squash = 0.7; sfx.jump(); }
+          else p.vy = -9 * _g;
         } else if (fromAbove) {
           damageEnemy(e, "#8a6d5a");
           // タイミングよくジャンプを押していれば高くジャンプ
           const timed = jumpKey() || jumpBuffer > 0;
           if (timed) {
-            p.vy = -16; p.bounceLock = 14; jumpBuffer = 0; p.squash = 0.7;
+            p.vy = -16 * _g; p.bounceLock = 14; jumpBuffer = 0; p.squash = 0.7;
             sfx.jump();
-            spawnParticles(e.x + e.w/2, e.y - 6, "#ffffff", 6);
+            spawnParticles(e.x + e.w/2, e.y - 6 * _g, "#ffffff", 6);
           } else {
-            p.vy = -9;
+            p.vy = -9 * _g;
           }
         } else if (p.invuln <= 0) {
           hurtPlayer();
@@ -5548,6 +6304,12 @@
 
     // スライムのベトベト：ふむと しばらくスピードが落ちる
     if (p.slow > 0) p.slow--;
+    updateGravBalls();   // ★ver6.14 じゅうりょくだま
+    updateHoles();       // ★ver6.14 ブラックホール
+    stepHeavyPull(p);    // ★ver6.14 ちょうじゅうりょく
+
+    gravAttract(p);      // ★ver6.14 ひきよせ
+    if (p.gravCd > 0) p.gravCd--;
     updateCircles();     // まほうじん（敵を止める）
     updateThrown();      // テレキネシスで投げたもの
     for (const go of goos) {
@@ -5581,7 +6343,10 @@
     const target = p.x + p.w/2 - W/2;
     camX += (target - camX) * 0.12;
     camX = Math.max(0, Math.min(LEVEL_W - W, camX));
-    const targetY = p.y + p.h/2 - H * 0.55;
+    // ★ver6.19：さかさま中は まるりんを **画面の 上より**に 置く。
+    //   そうしないと 天じょうに 立って いる あいだ 地めんが まったく 見えず、
+    //   「重力を もどすと どこに 落ちるか」が わからなくて こわい（オーナー報告）。
+    const targetY = p.y + p.h/2 - H * (gdirOf(p) > 0 ? 0.55 : 0.30);
     camY += (targetY - camY) * 0.12;
     camY = Math.max(0, Math.min(Math.max(0, LEVEL_H - H), camY));
   }
@@ -5699,6 +6464,11 @@
     } else if (stageIndex < STAGES.length - 1) {
       state = "stageclear";     // まだ次のステージがある
       stageClearT = 0;
+    // ★ver6.22：つぎの ステージは まだ 作って いないが、その まえの 紙芝居は もう ある。
+    //   （ステージ7の あと＝「7つ そろった／神殿へ」）
+    //   ステージ8が できたら この 分岐を 消す＝advanceStage が ふつうに 出す ように なる。
+    } else if (STORIES[stageIndex + 1]) {
+      startStory(stageIndex + 1);
     } else {
       state = "clear";          // 全ステージクリア
     }
@@ -5723,7 +6493,7 @@
   // ボス登場時に出す名前
   function bossTitle() {
     const k = STAGES[stageIndex].boss;
-    return k === "cerberus" ? "ケルベロス" : k === "honnoji" ? "織田信長 ＆ 森蘭丸" : k === "kingslime" ? "キングスライム" : k === "wizard" ? "大まどうし ゲドルフ" : k === "penguins" ? "ペギ＆ニセペギ" : k === "sumo" ? "こうよう" : k === "mega" ? "メガロドン" : k === "zagat" ? "ザガット" : k === "clovis" ? "クリウド" : k === "dramp" ? "ドランプ大統領" : k === "motherai" ? "マザーAI" : k === "frostdragon" ? "フロストドラゴン" : "くりだいおう";
+    return k === "cerberus" ? "ケルベロス" : k === "honnoji" ? "織田信長 ＆ 森蘭丸" : k === "kingslime" ? "キングスライム" : k === "wizard" ? "大まどうし ゲドルフ" : k === "penguins" ? "ペギ＆ニセペギ" : k === "sumo" ? "こうよう" : k === "mega" ? "メガロドン" : k === "zagat" ? "ザガット" : k === "clovis" ? "クリウド" : k === "dramp" ? "ドランプ大統領" : k === "motherai" ? "マザーAI" : k === "frostdragon" ? "フロストドラゴン" : k === "graviton" ? "グラビトン" : "くりだいおう";
   }
 
   function startBoss() {
@@ -5743,6 +6513,7 @@
     frosts = []; iceWalls = []; falls = []; pucks = [];
     souls = []; ghosts = []; graves = []; soulCount = 0; boomers = [];
     enemies = []; questionBlocks = []; seeds = []; goal = null; particles = []; cukes = []; hazards = [];
+    gravBalls = []; holes = [];        // ★ver6.14
     sps = []; jets = []; bigBoom = 0;
     pedestals = []; vessels = []; goos = []; flames = [];   // ステージの光の柱やベトベトを闘技場に持ちこまない
     switches = []; shutters = []; beams = []; missiles = []; blasts = []; signs = [];
@@ -5763,6 +6534,7 @@
         : (STAGES[stageIndex].boss === "cerberus") ? SAFE_L
         : (STAGES[stageIndex].boss === "motherai") ? SAFE_L   // ボスは 右の かべ。左から はじめる
         : (STAGES[stageIndex].boss === "frostdragon") ? SAFE_L   // ドラゴンは 右。左から はじめる
+        : (STAGES[stageIndex].boss === "graviton") ? SAFE_L   // ★グラビトンは へやの まん中。かさならない ように 左から
         : (W/2 - p.w/2);
     p.y = BOSS_GROUND - p.h; p.vx = 0; p.vy = 0;
     p.onGround = false; p.face = 1; p.invuln = 50;
@@ -5819,6 +6591,12 @@
       for (let x = 0; x < W; x += TILE) solids.push({ x, y: 0, w: TILE, h: TILE, type: "iceceil" });
       ceilFloorY = TILE;       // ★ver6.11：ここより 上には 出られない
       setupCeilIce();
+    } else if (type === "graviton") {
+      // グラビトン（ステージ7）：**上にも 下にも ゆかが ある** へや。
+      //   ボスは その どちらかに くっつく。まるりんは さかさまを つかって 行き来する。
+      bosses = [ makeBoss("graviton", W / 2 - 38) ];
+      for (let x = 0; x < W; x += TILE) solids.push({ x, y: TILE, w: TILE, h: TILE, type: "starceil" });
+      ceilFloorY = TILE * 2;   // ふつうの 重力の ときは ここより 上に 出られない
     } else if (type === "dramp") {
       bosses = [ makeBoss("dramp", W/2 - 30) ];
       if (drampPhase2) startDrampPhase2(bosses[0]);   // やり直し時はSPをスキップして第2段階から
@@ -5833,6 +6611,8 @@
     // ★開始時の 案内は 出さない（ユーザー要望）。クリスタルを 出した ときだけ 出す。
     wizHint = 0;
     fdHint = STAGES[stageIndex].boss === "frostdragon" ? 420 : 0;   // 7びょう 出す
+    gvHint = STAGES[stageIndex].boss === "graviton" ? 480 : 0;      // 8びょう 出す
+    gvWarn = 0;
     fdHitFx = 0; fdCrashFx = 0;
   }
 
@@ -5985,7 +6765,7 @@
         aaCd: 150, jelly: 0, hidden: false, splitDone: false, jumpCd: 1e9 };
     }
     if (kind === "wizard") {
-      // 大まどうし ゲドルフ（異世界編ステージ2）＝まほうの塔のぬし。
+      // 大まどうし ゲドルフ（異世界編ステージ2）＝魔法の塔のぬし。
       // ふだんは まほうバリアに守られていて、どんな攻撃も はじく。
       // 出してくる「クリスタル」を テレキネシスで つかんで 投げ返すと バリアが割れる。
       // 大まほう（ひかりの柱）のあとも すこしのあいだ バリアが消える＝まほう以外でも勝てる。
@@ -6015,8 +6795,30 @@
         mouth: 0, lunge: 0, howl: 0, breath: -1, breathT: 0, howlCd: 0,
         headT: 0, shake: 0, noStomp: false };   // ★頭の上に 居すわられた ときの ふりはらい
     }
+    if (kind === "graviton") {
+      // グラビトン：天文台の まん中の 大きな 太陽系儀（オーラリー）が 動きだした もの。
+      //   まん中の 真鍮の 球＋金の わっか。まわりを 3つの 小さな 惑星が まわる。
+      const orbs = [];
+      for (let i = 0; i < 3; i++) {
+        orbs.push({ a: i * Math.PI * 2 / 3, r: 66, out: 0, x: 0, y: 0, vx: 0, vy: 0, back: 0 });
+      }
+      return { kind, name: "グラビトン", x, y: BOSS_GROUND - 76, w: 76, h: 76,
+        vx: 0, vy: 0, onGround: true, face: -1,
+        hp: 6, maxHp: 6, stompDmg: 1, seedDmg: 0, hpPerHeart: 1,   // ★ハート6・ふむ6回
+        invuln: 0, hurtFlash: 0, t: Math.random() * 40, squash: 1,
+        alive: true, dyingT: 0,
+        techHit: false,          // ★どの 技も きかない（金の わっかが はじく）
+        side: 1,                 // +1＝ゆかがわ／-1＝天じょうがわ
+        moveT: 0, fromY: 0, toY: 0, arrow: 0,
+        rot: 0, phase2: false, orbs,
+        // ★はじめの 2びょうちょっとは こうげきしない（案内を 読む 時間）。
+        //   ver6.19では 長すぎて「よわい」と 言われた ので みじかく した。
+        beamCd: 210, beamChg: 0, beamT: 0, beamX: 0, beamDir: 1,
+        beamSide: 1, spread: 0,          // ★ver6.20：どちらの 面を なめるか／のびた ながさ
+        rockCd: 170, orbCd: 150, flipCd: 0, guardHit: 0 };
+    }
     if (kind === "frostdragon") {
-      // フロストドラゴン（異世界編ステージ6）＝こおりの お城の ぬし。
+      // フロストドラゴン（異世界編ステージ6）＝氷のお城の ぬし。
       // ★こおりスキルで 入ると「氷が きかない」相手。ここが この ステージの しめくくり。
       //   ・とんでいる あいだ＝氷の よろい（guardAll）で 何も 入らない
       //   ・つかれて おりた とき（rest）だけ ふめる・斬れる（2ダメージ）
@@ -7976,6 +8778,7 @@
       else if (h.kind === "ice") stepIce(h, p);
       else if (h.kind === "frostw") stepFrostW(h, p);
       else if (h.kind === "bolt") stepBolt(h, p);
+      else if (h.kind === "grock") stepGrock(h, p);
       else stepTigerShot(h, p);
     }
     hazards = hazards.filter(h => !h.dead);
@@ -8087,6 +8890,233 @@
     barrels = barrels.filter(b => !b.dead);
   }
 
+  // ===== ver6.18 ボス「グラビトン」 =====
+  const GV_CEIL_Y = TILE * 2;                 // 天じょうの 内がわ（＝さかさま世界の ゆか）
+  function gravitonY(b) { return (b.side > 0) ? (BOSS_GROUND - b.h) : GV_CEIL_Y; }
+
+  function updateGraviton(b) {
+    const p = player;
+    b.rot += b.phase2 ? 0.05 : 0.022;
+    if (b.guardHit > 0) b.guardHit--;
+    if (gvHint > 0) gvHint--;
+    if (gvWarn > 0) gvWarn--;
+
+    // ── ハートが 半分に なった しゅんかん：わっかが 赤く 光って 別の 戦いに なる
+    if (!b.phase2 && b.hp <= 3) {
+      b.phase2 = true;
+      b.flipCd = 200; b.orbCd = 60; b.rockCd = 90; b.beamCd = 150;
+      screenShake = Math.max(screenShake, 16);
+      spawnParticles(b.x + b.w / 2, b.y + b.h / 2, "#ff5a3c", 26);
+      spawnParticles(b.x + b.w / 2, b.y + b.h / 2, "#ffd34d", 16);
+      playSE("roar"); beep(70, 0.5, "sawtooth", 0.1);
+      gvHint = 260;
+    }
+
+    // ── 反対がわへ 飛んで 移って いる とちゅう（ふまれた あと）
+    if (b.moveT > 0) {
+      b.moveT--;
+      const k = 1 - b.moveT / 26;
+      b.y = b.fromY + (b.toY - b.fromY) * (k * k * (3 - 2 * k));   // なめらかに
+      if (b.moveT % 3 === 0) spawnParticles(b.x + b.w / 2, b.y + b.h / 2, "#e0be76", 3);
+      if (b.moveT === 0) {
+        b.y = b.toY;
+        screenShake = Math.max(screenShake, 8);
+        beep(110, 0.22, "sine", 0.08);
+        spawnParticles(b.x + b.w / 2, b.y + (b.side > 0 ? b.h : 0), "#ffd9a0", 16);
+        b.arrow = 70;                       // どっちへ 行ったかを 画面の ふちで 教える
+      }
+      stepGravitonOrbs(b);
+      return;
+    }
+    b.y = gravitonY(b);
+    if (b.arrow > 0) b.arrow--;
+
+    // ── うごき：前半は その場／後半は 走って 追ってくる
+    if (b.phase2) {
+      const dir = (p.x + p.w / 2 < b.x + b.w / 2) ? -1 : 1;
+      b.x += dir * 2.15;
+      b.face = dir;
+      if (b.x < 16) b.x = 16;
+      if (b.x + b.w > W - 16) b.x = W - 16 - b.w;
+      // ★重力を かってに 反転させてくる（この 戦いで いちばん 大きな 変化）
+      b.flipCd--;
+      if (b.flipCd === 60) { gvWarn = 60; beep(300, 0.25, "square", 0.06); }   // 1びょう まえに 予告
+      if (b.flipCd <= 0) {
+        b.flipCd = 200;
+        setGdir(p, gdirOf(p) > 0 ? -1 : 1);
+        screenShake = Math.max(screenShake, 10);
+        beep(150, 0.3, "sawtooth", 0.09);
+        spawnParticles(p.x + p.w / 2, p.y + p.h / 2, "#a06bff", 18);
+      }
+    }
+
+    // ── こうげき① わく星おとし
+    b.orbCd--;
+    if (b.orbCd <= 0) {
+      // ★ver6.20：前半も 2つ ずつ・まちも みじかく（「よわすぎる」オーナー報告）
+      b.orbCd = b.phase2 ? 110 : 140;
+      const ready = b.orbs.filter(o => o.out <= 0 && o.back <= 0);
+      const n = b.phase2 ? ready.length : Math.min(2, ready.length);   // 後半は 3つ 同時
+      for (let i = 0; i < n; i++) launchGravitonOrb(b, ready[i]);
+    }
+    stepGravitonOrbs(b);
+
+    // ── こうげき② ビーム（目から まっすぐ 反対の 面へ。ゆっくり 左右に なぐ）
+    if (b.beamT > 0) {
+      b.beamT--;
+      b.beamX += b.beamDir * (b.phase2 ? 2.6 : 1.9);
+      // ★ver6.20：ねらった 面を なめる おびが **どんどん のびてくる**
+      b.spread += b.phase2 ? 7.5 : 5.4;
+      const on = (b.beamT < 96 && b.beamT > 8);
+      if (on && p.invuln <= 0) {
+        if (rectHit(p, gravitonBeamBox(b))) hurtPlayer();
+        else if (rectHit(p, gravitonFloorBox(b))) hurtPlayer();
+      }
+      if (b.beamT === 0) { b.beamCd = b.phase2 ? 150 : 200; b.spread = 0; }
+    } else if (b.beamChg > 0) {
+      b.beamChg--;
+      // ★ためて いる あいだに「どちらの 面が あぶないか」を 決めて、光らせて 教える
+      b.beamSide = gdirOf(p);
+      if (b.beamChg === 0) {
+        b.beamT = 110;                  // ★ver6.19の 86 より 長く
+        b.beamX = b.x + b.w / 2;
+        b.beamDir = (p.x + p.w / 2 < b.x + b.w / 2) ? -1 : 1;
+        b.spread = 0;
+        beep(200, 0.5, "sawtooth", 0.06);
+      }
+    } else {
+      b.beamCd--;
+      if (b.beamCd <= 0) { b.beamChg = 46; beep(560, 0.2, "sine", 0.05); }
+    }
+
+    // ── こうげき③ いんせき（天じょうと ゆかから 交ごに 小さな 岩）
+    b.rockCd--;
+    if (b.rockCd <= 0) {
+      b.rockCd = b.phase2 ? 70 : 130;
+      const fromTop = (b.t % 2 === 0);
+      const rx = 90 + Math.random() * (W - 180);
+      hazards.push({ kind: "grock", x: rx, y: fromTop ? (GV_CEIL_Y + 10) : (BOSS_GROUND - 10),
+                     vx: 0, vy: fromTop ? 3.4 : -3.4, t: 0, rot: Math.random() * 6 });
+      beep(240, 0.06, "triangle", 0.04);
+    }
+
+    // ── まるりんとの あたり
+    //   ★ふめるのは「ボスと 同じ 面に 立って いる」ときだけ。
+    //     ゆかの ボスは ふつうの 重力で、天じょうの ボスは さかさまで しか ふめない。
+    //   ★「自分の 重力の むきに 落ちながら ぶつかった とき だけ」は **入れない**（オーナー判断）。
+    //     後半は 強制反転が あるので、そこまで きびしく すると 理不じんに なる。
+    if (rectHit(p, b)) {
+      const same = (gdirOf(p) < 0) === (b.side < 0);
+      const onFree = (b.side > 0)
+        ? ((p.y + p.h) - b.y < b.h * 0.65)          // ゆかの ボス＝上から
+        : ((b.y + b.h) - p.y < b.h * 0.65);         // 天じょうの ボス＝下から（さかさま世界の 上）
+      if (same && onFree) {
+        if (b.invuln <= 0) {
+          damageBoss(b, false);
+          if (b.alive) flipGraviton(b);
+        }
+        const timed = jumpKey() || jumpBuffer > 0;
+        p.vy = (timed ? -15 : -10) * gdirOf(p);
+        p.bounceLock = 12; jumpBuffer = 0; p.squash = 0.7;
+        p.invuln = Math.max(p.invuln, 10);
+      } else if (p.invuln <= 0) {
+        hurtPlayer();
+      }
+    }
+  }
+
+  // ふまれた → わっかを 広げて 反対がわへ
+  function flipGraviton(b) {
+    b.side = -b.side;
+    b.fromY = b.y; b.toY = gravitonY(b);
+    b.moveT = 26;
+    b.invuln = b.phase2 ? 46 : 76;      // 後半は むてき時間が 短い＝テンポが 上がる
+    b.beamT = 0; b.beamChg = 0;
+    screenShake = Math.max(screenShake, 10);
+    beep(90, 0.3, "sine", 0.09);
+    spawnParticles(b.x + b.w / 2, b.y + b.h / 2, "#ffd9a0", 20);
+  }
+
+  // 3つの 惑星：ふだんは まわる。はなれると まるりんの いる 面へ ゆっくり 飛んで、はねかえって もどる
+  function launchGravitonOrb(b, o) {
+    if (!o) return;
+    const p = player;
+    o.x = b.x + b.w / 2 + Math.cos(o.a) * o.r;
+    o.y = b.y + b.h / 2 + Math.sin(o.a) * o.r;
+    const dx = (p.x + p.w / 2) - o.x, dy = (p.y + p.h / 2) - o.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const sp = b.phase2 ? 4.6 : 3.4;   // ★ver6.20：前半も すこし はやく
+    o.vx = dx / d * sp; o.vy = dy / d * sp;
+    o.out = b.phase2 ? 120 : 150;
+    beep(420, 0.1, "sine", 0.05);
+  }
+  function stepGravitonOrbs(b) {
+    const p = player;
+    const bcx = b.x + b.w / 2, bcy = b.y + b.h / 2;
+    for (let i = 0; i < b.orbs.length; i++) {
+      const o = b.orbs[i];
+      if (o.out > 0) {
+        o.out--;
+        o.x += o.vx; o.y += o.vy;
+        // かべ・ゆか・天じょうで はねかえる（へやの 外へは 行かない）
+        if (o.x < 22) { o.x = 22; o.vx = Math.abs(o.vx); }
+        if (o.x > W - 22) { o.x = W - 22; o.vx = -Math.abs(o.vx); }
+        if (o.y > BOSS_GROUND - 12) { o.y = BOSS_GROUND - 12; o.vy = -Math.abs(o.vy); }
+        if (o.y < GV_CEIL_Y + 12) { o.y = GV_CEIL_Y + 12; o.vy = Math.abs(o.vy); }
+        // とんで いる あいだは 尾を 引く＝「いまは 当たる」しるし
+        if (b.t % 2 === 0) spawnParticles(o.x, o.y, i === 0 ? "#ff7a5a" : (i === 1 ? "#6ea8ff" : "#7ee0a0"), 1);
+        if (p.invuln <= 0 && rectHit(p, { x: o.x - 11, y: o.y - 11, w: 22, h: 22 })) hurtPlayer();
+        if (o.out === 0) o.back = 30;
+        continue;
+      }
+      if (o.back > 0) {
+        // 軌道へ もどる
+        o.back--;
+        const tx = bcx + Math.cos(o.a + b.rot) * o.r, ty = bcy + Math.sin(o.a + b.rot) * o.r;
+        o.x += (tx - o.x) * 0.18; o.y += (ty - o.y) * 0.18;
+        continue;
+      }
+      // ★ver6.19：**まわって いる あいだは 当たらない**（ボスの かざり）。
+      //   まえは まわって いる 惑星にも 当たり判定が あった ので、
+      //   1つが とんで きた ときに のこりの 2つが かべに なって、
+      //   ふみに 行けなかった（オーナー報告）。「ふむ しか ない」ボスなのに 近づけないのは よくない。
+      o.x = bcx + Math.cos(o.a + b.rot) * o.r;
+      o.y = bcy + Math.sin(o.a + b.rot) * o.r;
+    }
+  }
+  // ★ver6.20：ねらわれた 面を なめる おび。ビームの ばしょから 左右へ のびて いく。
+  //   **これが「重力反転で よける」の しかけ。** はんたいの 面に 移れば 当たらない。
+  function gravitonFloorBox(b) {
+    const H2 = 26;                                   // おびの あつさ
+    const y = (b.beamSide > 0) ? (BOSS_GROUND - H2) : GV_CEIL_Y;
+    const x = Math.max(28, Math.min(W - 28, b.beamX));
+    const s = Math.min(b.spread, W);
+    return { x: x - s, y: y, w: s * 2, h: H2 };
+  }
+  // ビームの はこ（目から 反対の 面まで まっすぐ）
+  function gravitonBeamBox(b) {
+    const x = Math.max(28, Math.min(W - 28, b.beamX));
+    const top = (b.side > 0) ? GV_CEIL_Y : (b.y + b.h);
+    const bot = (b.side > 0) ? b.y : BOSS_GROUND;
+    return { x: x - 11, y: top, w: 22, h: Math.max(0, bot - top) };
+  }
+
+  // ボスの いんせき（hazards に 入れて ある＝ちょうじゅうりょく・ブラックホールが きく）
+  function stepGrock(h, p) {
+    h.y += h.vy;
+    h.rot = (h.rot || 0) + 0.06;
+    const box = { x: h.x - 12, y: h.y - 12, w: 24, h: 24 };
+    if (p.invuln <= 0 && p.burrow <= 0 && rectHit(p, box)) {
+      h.dead = true; hurtPlayer();
+      spawnParticles(h.x, h.y, "#b98a52", 8); return;
+    }
+    if (h.y > BOSS_GROUND - 6 || h.y < GV_CEIL_Y + 6 || h.t > 300) {
+      h.dead = true;
+      spawnParticles(h.x, h.y, "#b98a52", 8);
+      spawnParticles(h.x, h.y, "#f0d9a8", 4);
+    }
+  }
+
   function updateBossOnly() {
     const p = player;
     if (!bosses.length) return;
@@ -8116,6 +9146,7 @@
       if (b.kind === "dramp") { updateDramp(b); continue; }
       if (b.kind === "motherai") { updateMotherAI(b); continue; }
       if (b.kind === "frostdragon") { updateFrostDragon(b); continue; }
+      if (b.kind === "graviton") { updateGraviton(b); continue; }
       const phase = b.kind === "kuri" ? (b.hp <= 5 ? 2 : (b.hp <= 10 ? 1 : 0)) : 0;
       let speed = b.speedBase + phase * 0.7;
       // こうよう：構え（windup）→ 突進（charging）＋ 四股（真上ジャンプ→着地でスタン）＋ 怒りモード
@@ -9419,7 +10450,7 @@
     ctx.restore();
   }
 
-  // (1) ゲドルフを たおして まほうの国に へいわが もどる
+  // (1) ゲドルフを たおして 魔法の国に へいわが もどる
   function sceneHonWin(f, dur) {
     storyNightSky();
     storyFarTower(560, STORY_GROUND, 1, f);
@@ -9525,33 +10556,33 @@
         { dur: 250, act: sceneOpFairy,  lines: ["「ようこそ、いじげんへ。」", "ちいさな ようせいが とんで きました。"] },
         { dur: 250, act: sceneOpWay,    lines: ["「おうちへの かえりみちは、", "この せかいの ずっと おくに あるよ。」"] },
         { dur: 260, act: sceneOpSkill,  lines: ["「せかいごとに ねむる “スキル” が 7つ。", "ぜんぶ あつめれば、おうちに 帰れるよ。」"] },
-        { dur: 260, act: sceneOpArrive, lines: ["まるりんは はじまりの そうげんに おりたちました。", "おうちに かえるため、ぼうけんの はじまり です！"] }
+        { dur: 260, act: sceneOpArrive, lines: ["まるりんは はじまりの草原に おりたちました。", "おうちに かえるため、ぼうけんの はじまり です！"] }
       ]
     },
     // ※ もとあった 1:（南流山の前）と 3:（ハワイの前）は 世界編の紙芝居なので削除ずみ。
-    1: {   // ステージ2「まほうの塔」の前
+    1: {   // ステージ2「魔法の塔」の前
       // ★異世界編は「1ステージ＝ひとつの異世界」。つぎの世界へは かならず異次元のとびらをくぐる。
       bgm: 0,   // ステージ1のBGM
       scenes: [
-        { dur: 230, act: sceneTowerWin,   lines: ["キングスライムを たおして、", "はじまりの そうげんに へいわが もどりました。"] },
+        { dur: 230, act: sceneTowerWin,   lines: ["キングスライムを たおして、", "はじまりの草原に へいわが もどりました。"] },
         { dur: 250, act: sceneGateOpen,   lines: ["「これで スキルは 1つめ。あと 6つ だね。」", "ようせいが 空に とびらを えがきます。"] },
         { dur: 250, act: sceneBatsuHill,  lines: ["——そのとき、丘の 上から", "だれかが じっと 見ていました。"] },
         // ★トンネルを ぐるぐる している あいだは まだ 前の 世界の 曲。
         //   ついた まい（sceneMagicLand）から つぎの ステージの 曲に する。
         { dur: 250, act: sceneGateCross,  lines: ["まるりんは 異次元の トンネルを くぐりぬけて——"] },
-        { dur: 260, act: sceneMagicLand,  bgm: 1, lines: ["ついたのは “まほうの国”。", "「ふもとで スキルを もらって、塔の てっぺんを めざそう。」"] },
+        { dur: 260, act: sceneMagicLand,  bgm: 1, lines: ["ついたのは “魔法の国”。", "「ふもとで スキルを もらって、塔の てっぺんを めざそう。」"] },
         { dur: 250, act: sceneTowerWizard,bgm: 1, lines: ["「でも 塔のぬしの 大まどうしが、", "だれも 通さないって……。」"] },
         { dur: 240, act: sceneTowerNight, bgm: 1, lines: ["日が くれて、まるりんは 塔の ふもとに 着きました。", "さあ、てっぺんまで のぼろう！"] }
       ]
     },
     2: {   // ステージ3「本能寺の変」の前
-      // 1ステージ＝ひとつの異世界。まほうの国から 異次元を くぐって 戦国の世へ。
+      // 1ステージ＝ひとつの異世界。魔法の国から 異次元を くぐって 戦国の世へ。
       // ★とびらの まえは ステージ2の 曲。
       //   くぐった あとは **専用曲 uchiagehanabi**（ステージ3の 曲では ない）。
       //   ここだけ 特別あつかい＝戦国に 着いた ところを 和風の 曲で 見せたいため。
       bgm: 1,
       scenes: [
-        { dur: 230, act: sceneHonWin,  lines: ["ゲドルフを たおして、", "まほうの国に へいわが もどりました。"] },
+        { dur: 230, act: sceneHonWin,  lines: ["ゲドルフを たおして、", "魔法の国に へいわが もどりました。"] },
         { dur: 250, act: sceneHonGate, lines: ["「2つめ。いい ちょうし だね。」", "ようせいが また 空に とびらを えがきます。"] },
         { dur: 250, act: sceneHonCamp, audio: STORY3_BGM, lines: ["とびらを くぐった 先は——よるの じんち。", "たいまつの 前に、ひとりの ぶしょうが 立っていました。"] },
         { dur: 300, act: sceneHonToki, audio: STORY3_BGM, lines: ["「ときは いま！」", "——ちょうど その とき、まるりんが とび出しました。"] },
@@ -9559,9 +10590,9 @@
         { dur: 280, act: sceneHonJoin, audio: STORY3_BGM, lines: ["つられて まるりんも「まるー！」", "そのまま みんなと 本能寺へ！"] }
       ]
     },
-    3: {   // ステージ4「あの世ゆきの汽車」の前
+    3: {   // ステージ4「あの世行きの汽車」の前
       // ★1ステージ＝ひとつの異世界。ステージ3（戦国）を おわらせて、
-      //   異次元の トンネルを くぐり、あたらしい せかい「よみの くに」へ 行く——という 流れ。
+      //   異次元の トンネルを くぐり、あたらしい せかい「黄泉の国」へ 行く——という 流れ。
       //   とびらの まえは ステージ3の 曲、くぐった あとは ステージ4の 曲。
       // ★とびらの まえ＋トンネルの あいだ ＝ 戦国の 曲（uchiagehanabi）。
       //   くぐって あたらしい 世界に 着いた まいから ステージ4の 曲。
@@ -9572,7 +10603,7 @@
         { dur: 250, act: sceneS4Gate,  lines: ["「3つめ。あと 4つ だね。」", "ようせいが また 空に とびらを えがきました。"] },
         { dur: 240, act: sceneBatsuRuin, lines: ["また あの かげが、", "遠くから こちらを 見ています。"] },
         { dur: 250, act: sceneGateCross, lines: ["まるりんは 異次元の トンネルを くぐりぬけて——"] },
-        { dur: 260, act: sceneS4Rail,  bgm: 3, lines: ["ついたのは “よみの くに”。", "まっくらな のはらに、線路が 一本 のびて います。"] },
+        { dur: 260, act: sceneS4Rail,  bgm: 3, lines: ["ついたのは “黄泉の国”。", "まっくらな のはらに、線路が 一本 のびて います。"] },
         { dur: 300, act: sceneS4Train, bgm: 3, lines: ["「ボォーーーッ」", "光を つけた 汽車が、ゆっくり 止まりました。"] },
         { dur: 300, act: sceneS4Ride,  bgm: 3, lines: ["「この 汽車は、たましいを はこぶ 汽車だよ。」", "終点は——あの世の えき。"] }
       ]
@@ -9581,17 +10612,17 @@
       //   とびらの まえ＝ステージ4の 曲、くぐった あと＝ステージ5の 曲。
       bgm: 3,
       scenes: [
-        { dur: 240, act: sceneS5Win,   bgm: 3, lines: ["ケルベロスを たおして、", "よみの くにに しずけさが もどりました。"] },
+        { dur: 240, act: sceneS5Win,   bgm: 3, lines: ["ケルベロスを たおして、", "黄泉の国に しずけさが もどりました。"] },
         { dur: 260, act: sceneS5Gate,  bgm: 3, lines: ["「4つめ。あと 3つ だね。」", "ようせいが また 空に とびらを えがきます。"] },
         { dur: 250, act: sceneGateCross, lines: ["まるりんは 異次元の トンネルを くぐりぬけて——"] },
         { dur: 280, act: sceneS5City,  bgm: 4, lines: ["ついたのは “ネオ・ハムシティ”。", "ネオンが ぴかぴか ひかる、みらいの よるの 町です。"] },
         { dur: 280, act: sceneS5Robot, bgm: 4, lines: ["「この 町を うごかして いるのは 大きな コンピュータ。」", "「ロボットの スキルを もらって いこう。」"] }
       ]
     },
-    5: {   // ★ステージ6「こおりの お城」のまえ
+    5: {   // ★ステージ6「氷のお城」のまえ
       //   ・マザーAIを たおして 6つめ
       //   ・**ばつりんが はじめて しゃべる**（3回目の 登場。ここだけ ×印と 目を 見せる）
-      //   ・異次元の トンネル → 雪の 山 → 遠くに こおりの お城
+      //   ・異次元の トンネル → 雪の 山 → 遠くに 氷のお城
       //   とびらの まえ＝ステージ5の 曲、くぐった あと＝ステージ6の 曲。
       bgm: 4,
       scenes: [
@@ -9604,7 +10635,50 @@
         { dur: 280, act: sceneS6Vanish, bgm: 4, lines: ["まるりんの あたまに 「？」が うかびます。", "——もういちど 見た ときには、かげは いませんでした。"] },
         { dur: 250, act: sceneGateCross, lines: ["まるりんは 異次元の トンネルを くぐりぬけて——"] },
         { dur: 280, act: sceneS6Snow,   bgm: 5, lines: ["ついたのは ふぶきの 山。", "「さむい ところだね。でも スキルは この 先に あるよ。」"] },
-        { dur: 300, act: sceneS6Castle, bgm: 5, lines: ["山の おくに、こおりの お城。", "その 上を——大きな ドラゴンが まわって います。"] }
+        { dur: 300, act: sceneS6Castle, bgm: 5, lines: ["山の おくに、氷のお城。", "その 上を——大きな ドラゴンが まわって います。"] }
+      ]
+    },
+    6: {   // ★ステージ7「星の天文台」のまえ
+      //   ・フロストドラゴンを たおして 6つめ
+      //   ・**ばつりん 4回目**。前は「……やめて おけ。」と 言って 消えたが、
+      //     こんどは **にげずに 近づいて きて** はっきり 止めに くる。
+      //   ・ようせいの 伏線は 2つだけ：**いつもより はしゃぐ** ／ **かげには ふれずに 先を 向く**。
+      //     ★人の わるくちは 言わせない（オーナー指示）。言わせると すぐ あやしく 見えて しまう。
+      //     ★手を むりやり ひっぱる のも だめ（同）。ようせいは ただ 先を 向いて いる だけ。
+      //   ★★紙芝居では「ばつりん」という **名まえを ぜったいに 出さない**（オーナー指示）。
+      //     ほかの 紙芝居も ぜんぶ「かげ」「だれか」で 通して ある。名まえが 出ると
+      //     とたんに「知って いる てき」に なって、なぞの こわさが なくなる。
+      //   とびらの まえ＝ステージ6の 曲、くぐった あと＝ステージ7の 曲。
+      bgm: 5,
+      scenes: [
+        { dur: 250, act: sceneS7Win,   bgm: 5, lines: ["フロストドラゴンを たおして、", "ふぶきが ぴたりと やみました。"] },
+        { dur: 260, act: sceneS7Gate,  bgm: 5, lines: ["「6つめ。……あと 1つ！", "あと 1つで、おうちに 帰れるよ！」"] },
+        { dur: 300, act: sceneS7Batsu, bgm: 5, lines: ["「……その さいごの 1つだけは、", "とっては いけない。」"] },
+        // ★ver6.24：地の文「ようせいは、もう とびらの ほうを 向いて います。」も 消した。
+        //   言葉に した とたん あやしく 見える（オーナー指摘）。**絵だけで 見せる。**
+        { dur: 280, act: sceneS7Pull,  bgm: 5, lines: ["「さあ 行こう、まるりん。とびらが 待って いるよ。」"] },
+        { dur: 250, act: sceneGateCross, lines: ["まるりんは 異次元の トンネルを くぐりぬけて——"] },
+        { dur: 270, act: sceneS7Sky,   bgm: 6, lines: ["ついたのは “星の天文台”。", "上も 下も、星でした。"] },
+        { dur: 290, act: sceneS7Tele,  bgm: 6, lines: ["「ぬしの グラビトンが、", "この せかいの じゅうりょくを にぎって いるよ。」"] }
+      ]
+    },
+    7: {   // ★ステージ7の あと＝7つ そろった。つぎは 神殿（ステージ8）。
+      //   ★いまは ステージ8が まだ 無いので stageCleared から 直に 出す。
+      //     ステージ8が できたら、ふつうに advanceStage が 出す ように なる（中身は そのまま）。
+      //   ・ようせいの 伏線＝**「早く」を 2回**、そして **ひとりで 先に 行って しまう**。
+      //     わらった ままで いい。顔も 色も 変えない（S9まで あやしさを 出しすぎない）。
+      bgm: 6,
+      endHint: "タップで つづく ▶",
+      scenes: [
+        { dur: 250, act: sceneS8Win,    bgm: 6, lines: ["グラビトンを たおして、", "さかさまの 空が もとに もどりました。"] },
+        { dur: 300, act: sceneS8Seven,  bgm: 6, lines: ["7つの スキルが、ぜんぶ そろった！"] },
+        { dur: 290, act: sceneS8Fairy,  bgm: 6, lines: ["「やった！ やったね まるりん！", "……さあ、早く。早く 行こう。」"] },
+        // ★ver6.23：いきなり レンズの 中に なると 何を 見せられて いるか わからない。
+        //   ようせいが「のぞいて みて」と 言う まいを はさむ（オーナー指摘）。
+        { dur: 260, act: sceneS8Look,   bgm: 6, lines: ["「まるりん、あの 望遠鏡を のぞいて みて。」", "ようせいが 金いろの つつを さしました。"] },
+        // ★ここだけ 曲を 止める（風の音 だけ）。「あれ？」と 思わせる ための 1まい。
+        { dur: 280, act: sceneS8Temple, silent: true, lines: ["「とびらが 開くのは、あの 神殿だけ。」", "レンズの おくに、白い 神殿が 見えました。"] },
+        { dur: 300, act: sceneS8Go,     bgm: 6, lines: ["まるりんは、神殿へ むかいます。"] }
       ]
     },
     ending: {   // 世界編フィナーレ（ドランプ撃破後・ボスBGMではなくエンディング曲）
@@ -9628,6 +10702,38 @@
     if (ni >= 0) abilityIndex = ni;
     endDragonMode(); resetTechs(p);
   }
+  // ★ver6.22：曲を 止める まい（scene.silent）の あとしまつ。
+  //   stopBGM() は 「いま 鳴って いる 曲」を おぼえた ままなので、
+  //   つぎの まいで もとの 曲に もどると「同じ 曲だから 鳴らし直さない」に なって **むおんが つづく**。
+  //   → 止めた ことを おぼえて おいて、つぎの まいは かならず 鳴らし直す。
+  let storyHushed = false;
+  // ★風の SEファイルは 無いので、ノイズを 作って 低い フィルターに 通して 風に する。
+  //   （神殿が 見える まいの ため。曲を 止めた だけだと 子どもには 「こわれた？」に 見える）
+  let storyWindNode = null;
+  function startStoryWind() {
+    stopStoryWind();
+    try {
+      const a = ac();
+      const len = Math.floor(a.sampleRate * 2);
+      const buf = a.createBuffer(1, len, a.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * 0.6;
+      const src = a.createBufferSource(); src.buffer = buf; src.loop = true;
+      const lp = a.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 380;
+      const g = a.createGain();
+      src.connect(lp); lp.connect(g); g.connect(a.destination);
+      const t = a.currentTime;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.05, t + 1.1);
+      src.start(t);
+      storyWindNode = { src: src, g: g };
+    } catch (e) {}
+  }
+  function stopStoryWind() {
+    if (!storyWindNode) return;
+    try { storyWindNode.g.gain.value = 0; storyWindNode.src.stop(); } catch (e) {}
+    storyWindNode = null;
+  }
   // その 1まいで 鳴らす 曲を 返す。
   // ★紙芝居は「いまの せかい → 異次元のトンネル → つぎの せかい」という 流れなので、
   //   とびらを くぐる まいから 曲も つぎの ステージのものに 変わる。
@@ -9641,8 +10747,14 @@
   }
   function applySceneBgm() {
     if (!story) return;
-    const track = sceneTrack(STORIES[story.key], story.scene);
-    if (!track || track === bgm) return;      // 同じ曲なら 鳴らし直さない（ぷつっと 切れないように）
+    stopStoryWind();
+    const def = STORIES[story.key], sc = def.scenes[story.scene];
+    // ★ver6.22：曲を 止める まい（神殿が 見える ところ）
+    if (sc && sc.silent) { stopBGM(); storyHushed = true; startStoryWind(); return; }
+    const track = sceneTrack(def, story.scene);
+    if (!track) return;
+    if (track === bgm && !storyHushed) return;   // 同じ曲なら 鳴らし直さない（ぷつっと 切れないように）
+    storyHushed = false;
     stopBGM();
     try { track.currentTime = 0; } catch (e) {}
     playTrack(track);
@@ -9662,6 +10774,7 @@
     cutsceneActive = true;
     document.body.classList.add("storymode");
     state = "story";
+    storyHushed = false;
     applySceneBgm();   // 1まいめの 曲（＝ふつうは いまの ステージの 曲）
   }
   function nextScene() {
@@ -9688,7 +10801,11 @@
     if (sb !== bgm) { try { sb.currentTime = 0; } catch (e) {} }
     // ★ver6.5：ステージの あいだの 紙芝居の あとは「ようせいの とびらの間」へ。
     //   （オープニングの あとだけは そのまま ステージ1へ＝まだ とびらが 1つしか ない ので）
+    stopStoryWind();
     if (key === "opening") showStageName();
+    // ★ver6.22：つぎの ステージが まだ 無い 紙芝居（＝ステージ7の あと）は
+    //   そのまま 全クリアの 画面へ。ステージ8を 作ったら この 3行は いらなく なる。
+    else if (STAGES[key] === undefined) { stopBGM(); state = "clear"; }
     else goHub(stageIndex);
   }
   function advanceStory() {   // タップ／キーで次のシーンへ（開いた直後の誤操作は無視）
@@ -9715,6 +10832,7 @@
   }
   // エンディング終了 → 全クリアメニューへ（エンディング曲はそのまま流す）
   function finishEnding() {
+    stopStoryWind();
     story = null; cutsceneActive = false;
     document.body.classList.remove("storymode");
     state = "clear";
@@ -9769,7 +10887,7 @@
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
       drawClouds();
     } else if (inBoss && STAGES[stageIndex].boss === "frostdragon") {
-      // フロストドラゴン戦：こおりの お城の 中の 大ひろま。氷の はしらと 吹きこむ ふぶき。
+      // フロストドラゴン戦：氷のお城の 中の 大ひろま。氷の はしらと 吹きこむ ふぶき。
       const g = ctx.createLinearGradient(0, 0, 0, H);
       g.addColorStop(0, "#123a5c");
       g.addColorStop(0.55, "#2a6a94");
@@ -9856,7 +10974,7 @@
       drawClouds();
       drawHills();
     } else if (theme === "fantasy") {
-      // ファンタジー：まほうの国の空（紫〜ピンクの夕暮れっぽい幻想色＋星）
+      // ファンタジー：魔法の国の空（紫〜ピンクの夕暮れっぽい幻想色＋星）
       const g = ctx.createLinearGradient(0, 0, 0, H);
       g.addColorStop(0, "#4a3a8a");
       g.addColorStop(0.45, "#8a6ac0");
@@ -9873,7 +10991,7 @@
       }
       drawClouds();
     } else if (theme === "tower") {
-      // まほうの塔：夜空（深い藍〜むらさき）＋大きな月＋星
+      // 魔法の塔：夜空（深い藍〜むらさき）＋大きな月＋星
       const g = ctx.createLinearGradient(0, 0, 0, H);
       g.addColorStop(0, "#12143a");
       g.addColorStop(0.45, "#2a2260");
@@ -9929,7 +11047,7 @@
       gg.addColorStop(1, "rgba(255,140,50," + (0.20 * fl + 0.12) + ")");
       ctx.fillStyle = gg; ctx.fillRect(0, H * 0.45, W, H * 0.55);
     } else if (theme === "train") {
-      // あの世ゆきの汽車：真夜中の 彼岸。
+      // あの世行きの汽車：真夜中の 彼岸。
       // ★汽車が 右へ 走っているので、まるりんが 止まっていても けしきは 左へ 流れる。
       //   だから 視差は camX だけでなく elapsed でも 動かす（これが「走っている感」の 正体）。
       const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -10037,7 +11155,7 @@
         ctx.stroke();
       }
     } else if (theme === "ice") {
-      // こおりの お城（雪の山）：うすい 水いろの 冬の 空＋オーロラ＋ふぶき。
+      // 氷のお城（雪の山）：うすい 水いろの 冬の 空＋オーロラ＋ふぶき。
       // ★夜では なく「うす明るい 昼の ふぶき」に した。白い 氷の 足場が
       //   いちばん 見やすいのが この あかるさ だから。
       const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -10095,6 +11213,94 @@
         ctx.fillStyle = "rgba(255,255,255," + (0.35 + (i % 3) * 0.2) + ")";
         ctx.fillRect(W - sx, sy, 2 + (i % 3), 2);
       }
+    } else if (theme === "stargaze") {
+      // ★ver6.18 ステージ7「星の天文台」＝こい藍色の 星空 ＋ 真鍮の 金。
+      //   ステージ5も 紺だが、5は 蛍光ピンク／シアンの ネオン、7は 金・あめ色の アンティーク。
+      //   じゅうりょくまるりん（紺＋金の わっか）と 色を そろえて ある。
+      // ★処理落ち よけの きまり（ver6.13で 学んだ こと）：
+      //   ・shadowBlur は つかわない
+      //   ・つぶつぶは **1つの みちすじに まとめて 1回 fill**
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#080b22");
+      g.addColorStop(0.55, "#111845");
+      g.addColorStop(1, "#1d1a4a");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+      // ── おく① 天の川（ななめの うすい おび）
+      const mw = ctx.createLinearGradient(0, H * 0.1, W, H * 0.85);
+      mw.addColorStop(0, "rgba(150,170,255,0)");
+      mw.addColorStop(0.45, "rgba(170,190,255,0.13)");
+      mw.addColorStop(0.6, "rgba(220,210,255,0.10)");
+      mw.addColorStop(1, "rgba(150,170,255,0)");
+      ctx.save();
+      ctx.translate(-(camX * 0.02) % 400, 0);
+      ctx.fillStyle = mw;
+      ctx.beginPath();
+      ctx.moveTo(-120, H * 0.02); ctx.lineTo(W + 160, H * 0.52);
+      ctx.lineTo(W + 160, H * 0.92); ctx.lineTo(-120, H * 0.40);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+
+      // ── おく② 星（2そう。またたく。ぜんぶ まとめて 2回の fill）
+      for (let L = 0; L < 2; L++) {
+        const par = L ? 0.09 : 0.035, n = L ? 46 : 64;
+        const span = W + 80, hspan = H + 80;
+        ctx.fillStyle = L ? "rgba(255,255,255,0.92)" : "rgba(198,214,255,0.62)";
+        ctx.beginPath();
+        for (let i = 0; i < n; i++) {
+          const sx = ((i * 137.3 + L * 61 - camX * par) % span + span) % span - 40;
+          const sy = ((i * 79.7 + L * 23 - camY * par) % hspan + hspan) % hspan - 40;
+          const tw = 1 + (i % 3) * 0.6 + Math.sin(elapsed * 0.06 + i * 1.7) * 0.5;
+          ctx.rect(sx, sy, tw, tw);
+        }
+        ctx.fill();
+      }
+
+      // ── おく③ わっかの ある 惑星（この ステージの かおに なる 1つ）
+      {
+        const px = 620 - (camX * 0.05) % 2400, py = 108 - (camY * 0.05);
+        if (px > -220 && px < W + 220) {
+          ctx.save();
+          ctx.translate(px, py);
+          // わっか（うしろ半分）
+          ctx.strokeStyle = "rgba(224,186,110,0.42)"; ctx.lineWidth = 9;
+          ctx.beginPath(); ctx.ellipse(0, 0, 108, 26, -0.28, Math.PI, Math.PI * 2); ctx.stroke();
+          // 本体
+          const pg = ctx.createLinearGradient(-56, -56, 56, 56);
+          pg.addColorStop(0, "#6c78c8"); pg.addColorStop(0.55, "#3c4390"); pg.addColorStop(1, "#242a63");
+          ctx.fillStyle = pg;
+          ctx.beginPath(); ctx.arc(0, 0, 56, 0, 7); ctx.fill();
+          // しま
+          ctx.save();
+          ctx.beginPath(); ctx.arc(0, 0, 56, 0, 7); ctx.clip();
+          ctx.fillStyle = "rgba(255,255,255,0.09)";
+          ctx.fillRect(-60, -26, 120, 9); ctx.fillRect(-60, -2, 120, 6); ctx.fillRect(-60, 20, 120, 11);
+          ctx.restore();
+          // わっか（まえ半分）
+          ctx.strokeStyle = "rgba(240,206,132,0.75)"; ctx.lineWidth = 9;
+          ctx.beginPath(); ctx.ellipse(0, 0, 108, 26, -0.28, 0, Math.PI); ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      // ── なか 回る 歯車の 影（3つ）＋ うかんで いる かけら
+      for (let i = 0; i < 3; i++) {
+        const gx = 210 + i * 430 - (camX * 0.18) % 1290;
+        const px2 = ((gx % 1290) + 1290) % 1290 - 190;
+        if (px2 < -190 || px2 > W + 190) continue;
+        const gy = 90 + (i % 2) * 190 - (camY * 0.18);
+        drawGearSil(px2, gy, 96 + i * 22, 12, elapsed * (i % 2 ? -0.004 : 0.003) + i,
+                    "rgba(120,96,52,0.30)");
+      }
+      ctx.fillStyle = "rgba(190,160,100,0.28)";
+      ctx.beginPath();
+      for (let i = 0; i < 26; i++) {
+        const dx = ((i * 191 - camX * 0.24) % (W + 60) + W + 60) % (W + 60) - 30;
+        const dy = ((i * 113 - camY * 0.24 + Math.sin(elapsed * 0.01 + i) * 8) % (H + 60) + H + 60) % (H + 60) - 30;
+        const sz = 3 + (i % 4) * 2;
+        ctx.rect(dx, dy, sz, sz * 0.7);
+      }
+      ctx.fill();
     } else if (theme === "neon") {
       // ネオン・ハムシティ：近未来の 夜の 街。
       // ★「からくり屋敷」ではなく 近未来（ユーザー指示）。夜にしたのは、
@@ -10159,7 +11365,7 @@
       drawHills();
     }
 
-    // タイトル画面はステージを映さない（まほうの国の空だけを背景にする）
+    // タイトル画面はステージを映さない（魔法の国の空だけを背景にする）
     if (state === "menu") return;
 
     ctx.save();
@@ -10181,6 +11387,7 @@
     else if (theme === "train") drawTrainDecor();
     else if (theme === "neon") drawNeonDecor();
     else if (theme === "ice") { if (iceIndoor()) drawIceInsideDecor(); else drawIceDecor(); }
+    else if (theme === "stargaze") drawStargazeDecor();
     drawSolids();
     drawSigns();        // 「ちかへ」の 案内板
     drawShutters();     // 電動シャッター（開くと 上へ 引きこまれる）
@@ -10198,6 +11405,9 @@
     drawBreads();
     if (goal) drawGoal(goal);
     drawSeeds();
+    if (gravBalls.length) drawGravBalls();     // ★ver6.14
+    if (holes.length) drawHoles();             // ★ver6.14
+    drawHeavyPull(player);                     // ★ver6.14
     drawThrown();       // テレキネシスで投げたもの
     drawFlames();
     drawIceFx();        // こおりスキル（いき・つらら・ホッケー）
@@ -11046,6 +12256,27 @@
     ctx.restore();
   }
 
+  // ★ver6.18：歯車の かたち。**1つの みちすじ**に まとめて 1回で ぬる。
+  //   そとの わ（時計まわり）→ 中の あな（ぎゃくまわり）で、あなが ちゃんと あく。
+  function drawGearSil(cx, cy, r, teeth, rot, color) {
+    ctx.save();
+    ctx.translate(cx, cy); ctx.rotate(rot);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    const step = Math.PI * 2 / teeth, tip = r * 1.16, half = step * 0.22;
+    for (let i = 0; i < teeth; i++) {
+      const a = i * step;
+      ctx.lineTo(Math.cos(a - half) * r, Math.sin(a - half) * r);
+      ctx.lineTo(Math.cos(a - half * 0.6) * tip, Math.sin(a - half * 0.6) * tip);
+      ctx.lineTo(Math.cos(a + half * 0.6) * tip, Math.sin(a + half * 0.6) * tip);
+      ctx.lineTo(Math.cos(a + half) * r, Math.sin(a + half) * r);
+    }
+    ctx.closePath();
+    ctx.arc(0, 0, r * 0.34, 0, Math.PI * 2, true);   // ← ぎゃくまわり＝あな
+    ctx.fill();
+    ctx.restore();
+  }
+
   function drawSolids() {
     for (const s of solids) {
       if (s.x + s.w < camX - 40 || s.x > camX + W + 40) continue;
@@ -11065,6 +12296,56 @@
         // フロストドラゴン戦の 天じょう（つららが ぶら下がる ところ）
         fillTileGrad(s, "iceceil", [0, "#3d7ea6", 1, "#9ed4ec"]);    // ★ver6.10：作りなおさない
         ctx.fillStyle = "rgba(255,255,255,0.35)"; ctx.fillRect(s.x, s.y + s.h - 5, s.w, 5);
+        continue;
+      }
+      // ★ver6.18 ステージ7の タイル
+      if (s.type === "starceil") {
+        // 天じょう。ゆかと 同じ 真鍮だが、**金の ラインが 下べり**に ある＝
+        // 「こちらが わたる 面」が 一目で わかる。
+        fillTileGrad(s, "starceil", [0, "#3a2c14", 1, "#7d5f2c"]);
+        ctx.fillStyle = "rgba(240,206,132,0.55)"; ctx.fillRect(s.x, s.y + s.h - 5, s.w, 5);
+        ctx.fillStyle = "rgba(255,232,176,0.35)";
+        ctx.fillRect(s.x + 7, s.y + s.h - 13, 4, 4);
+        ctx.fillRect(s.x + s.w - 11, s.y + s.h - 13, 4, 4);
+        ctx.strokeStyle = "rgba(0,0,0,0.32)"; ctx.lineWidth = 1;
+        ctx.strokeRect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);
+        continue;
+      }
+      if (s.type === "glassfloor") {
+        // 星の ガラス床。うしろが すけて 見える＝**おもりで 割って 下へ 行ける**しるし。
+        ctx.fillStyle = "rgba(140,190,240,0.20)"; ctx.fillRect(s.x, s.y, s.w, s.h);
+        ctx.strokeStyle = "rgba(200,232,255,0.60)"; ctx.lineWidth = 2;
+        ctx.strokeRect(s.x + 1, s.y + 1, s.w - 2, s.h - 2);
+        // 中の 星と、ななめの ひかり
+        ctx.strokeStyle = "rgba(255,255,255,0.28)"; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(s.x + 5, s.y + s.h - 5); ctx.lineTo(s.x + s.w - 5, s.y + 5);
+        ctx.stroke();
+        const tw = 2 + Math.sin(elapsed * 0.06 + s.x * 0.05) * 1.2;
+        ctx.fillStyle = "rgba(255,250,220,0.8)";
+        ctx.fillRect(s.x + s.w / 2 - tw / 2, s.y + s.h / 2 - tw / 2, tw, tw);
+        continue;
+      }
+      if (s.type === "gearblock") {
+        // 回る 歯車の 足場。ぐるぐる 回るので 生きて 見える（当たり判定は ふつうの 四かく）。
+        fillTileGrad(s, "gearblk", [0, "#5b451f", 1, "#33260f"]);
+        drawGearSil(s.x + s.w / 2, s.y + s.h / 2, 17, 8,
+                    (s.t || 0) * 0.017 + elapsed * 0.012, "rgba(226,182,104,0.95)");
+        ctx.fillStyle = "#241a09";
+        ctx.beginPath(); ctx.arc(s.x + s.w / 2, s.y + s.h / 2, 5, 0, 7); ctx.fill();
+        continue;
+      }
+      if (theme === "stargaze" && (s.type === "ground" || s.type === "stone")) {
+        // 真鍮の ゆか。リベット＋金の ライン（上べり）。
+        fillTileGrad(s, "starfloor", [0, "#7d5f2c", 1, "#3a2c14"]);
+        ctx.fillStyle = "rgba(240,206,132,0.55)"; ctx.fillRect(s.x, s.y, s.w, 5);
+        ctx.fillStyle = "rgba(255,232,176,0.30)";
+        ctx.fillRect(s.x + 7, s.y + 9, 4, 4);
+        ctx.fillRect(s.x + s.w - 11, s.y + 9, 4, 4);
+        ctx.fillStyle = "rgba(0,0,0,0.18)";
+        ctx.fillRect(s.x, s.y + s.h - 4, s.w, 4);
+        ctx.strokeStyle = "rgba(0,0,0,0.32)"; ctx.lineWidth = 1;
+        ctx.strokeRect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);
         continue;
       }
       if (s.type === "crate") {
@@ -11299,7 +12580,7 @@
           ctx.fillStyle = underwater ? "#e4d4a2" : "#f3e6bd"; ctx.fillRect(s.x, s.y, s.w, 6);
         }
       } else if (s.type === "ground" && theme === "tower") {
-        // まほうの塔：むらさきの石だたみ（上面は月あかりで少し光る）
+        // 魔法の塔：むらさきの石だたみ（上面は月あかりで少し光る）
         ctx.fillStyle = "#4c4270"; ctx.fillRect(s.x, s.y, s.w, s.h);
         ctx.fillStyle = "#413861";
         for (let i=0;i<2;i++) for(let j=0;j<2;j++) ctx.fillRect(s.x+5+i*17, s.y+6+j*16, 14, 12);
@@ -11696,6 +12977,110 @@
     ctx.restore();
   }
 
+
+  // ===== じゅうりょくまるりん の すがた（ver6.14）=====
+  // ★まるりんの かたちは 変えない。そうび だけ 足す。
+  //   いちばんの 目じるしは **土星の わっか**（遠目でも すぐ わかる）。
+  //   さかさま中は わっかが 青白く なって 逆に まわる ＝ いま どっちが 下かが 一目で わかる。
+  const GRAV_RX = 31, GRAV_RY = 9.5;
+  function gravRingCols(flip) {
+    return flip ? ["#7fd8ff", "#bff0ff", "rgba(127,216,255,0.28)"]
+                : ["#f0a02c", "#ffe08a", "rgba(240,160,44,0.28)"];
+  }
+  // half: "back"＝体の うしろ半分／"front"＝手まえ半分
+  function drawGravRing(p, half) {
+    const flip = gdirOf(p) < 0;
+    const rot = flip ? 0.35 : -0.35;
+    const col = gravRingCols(flip);
+    const a0 = (half === "back") ? Math.PI : 0;
+    const a1 = (half === "back") ? Math.PI * 2 : Math.PI;
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.strokeStyle = col[2]; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.ellipse(0, 0, GRAV_RX, GRAV_RY, rot, a0, a1); ctx.stroke();
+    const g = ctx.createLinearGradient(-GRAV_RX, 0, GRAV_RX, 0);
+    g.addColorStop(0, col[0]); g.addColorStop(0.5, col[1]); g.addColorStop(1, col[0]);
+    ctx.strokeStyle = g; ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.ellipse(0, 0, GRAV_RX, GRAV_RY, rot, a0, a1); ctx.stroke();
+    // わっかを まわる ひかりの つぶ（逆回転で 向きの ちがいを 見せる）
+    const spin = (flip ? -1 : 1) * p.animT * 0.045;
+    const a = a0 + ((spin % 1) + 1) % 1 * Math.PI;
+    const px = Math.cos(a) * GRAV_RX, py = Math.sin(a) * GRAV_RY;
+    const cs = Math.cos(rot), sn = Math.sin(rot);
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(px * cs - py * sn, px * sn + py * cs, 1.8, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+  // すきとおった ヘルメット（顔が 見える ように うすく）
+  function drawGravHelmet(p) {
+    const flip = gdirOf(p) < 0;
+    const hx = 4, hy = -5, hr = 21;
+    ctx.save();
+    const g = ctx.createRadialGradient(hx - 7, hy - 9, 2, hx, hy, hr);
+    g.addColorStop(0, "rgba(215,240,255,0.30)");
+    g.addColorStop(0.6, "rgba(150,200,255,0.10)");
+    g.addColorStop(1, "rgba(110,170,255,0.20)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(hx, hy, hr, 0, 7); ctx.fill();
+    ctx.strokeStyle = flip ? "rgba(160,225,255,0.85)" : "rgba(200,235,255,0.8)";
+    ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.arc(hx, hy, hr, 0, 7); ctx.stroke();
+    ctx.strokeStyle = "#f0b23c"; ctx.lineWidth = 2.6;      // 首もとの 金の ふち
+    ctx.beginPath(); ctx.arc(hx, hy, hr, 0.55, 2.6); ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,0.75)"; ctx.lineWidth = 2.4;   // てかり
+    ctx.beginPath(); ctx.arc(hx, hy, hr - 3.5, -2.5, -1.6); ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.7)";               // ヘルメットに うつる 星
+    for (const s of [[-8, -14, 1.0], [12, -13, 0.8], [-11, 2, 0.7]]) {
+      ctx.beginPath(); ctx.arc(hx + s[0], hy + s[1], s[2], 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+  // 紺の スーツ（体の 上に かさねる）
+  function drawGravSuit(p) {
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(0, 0, 17, 19, 0, 0, 7); ctx.clip();
+    ctx.fillStyle = "#1e2a5e";
+    ctx.beginPath(); ctx.ellipse(-9, 0, 15, 20, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#2b3a7d";
+    ctx.beginPath(); ctx.ellipse(-11, -3, 11, 13, 0, 0, 7); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = "#f0b23c"; ctx.lineWidth = 1.6;      // えりの 金ライン
+    ctx.beginPath(); ctx.arc(3, 3, 13.5, -2.5, -0.5); ctx.stroke();
+  }
+  // 紺の ブーツ（足の 上に かさねる）
+  function drawGravBoots(p, run, airborne, legPhase) {
+    const fs = run ? legPhase * 6 : (airborne ? -3 : 0);
+    ctx.fillStyle = "#25306b";
+    ctx.beginPath(); ctx.ellipse(-6, 16 - fs * 0.3, 6.4, 5.2, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(7, 16 + fs * 0.3, 6.4, 5.2, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#f0b23c"; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(-11.5, 14 - fs * 0.3); ctx.lineTo(-0.5, 14 - fs * 0.3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(1.6, 14 + fs * 0.3); ctx.lineTo(12.6, 14 + fs * 0.3); ctx.stroke();
+  }
+  // まわりを ふわふわ する 星
+  function drawGravStars(p) {
+    const flip = gdirOf(p) < 0;
+    ctx.save();
+    ctx.fillStyle = flip ? "rgba(190,240,255,0.9)" : "rgba(255,225,150,0.9)";
+    for (let i = 0; i < 3; i++) {
+      const a = p.animT * 0.03 + i * 2.09;
+      const x = Math.cos(a) * 27, y = Math.sin(a * 1.3) * 20;
+      const s = 1.6 + Math.sin(p.animT * 0.09 + i) * 0.5;
+      ctx.beginPath(); ctx.arc(x, y, s, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+  // さかさまに なった しゅんかん：わっかが 大きく 広がって 消える
+  function drawGravFlipFx(p) {
+    if (p.flipFx <= 0) return;
+    const k = 1 - p.flipFx / 22;
+    ctx.save();
+    ctx.globalAlpha = (1 - k) * 0.9;
+    ctx.strokeStyle = gdirOf(p) < 0 ? "#8fd8ff" : "#ffd08a";
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(0, 0, GRAV_RX + k * 46, GRAV_RY + k * 22, 0, 0, 7); ctx.stroke();
+    ctx.restore();
+  }
 
   // ===== こおりまるりん の すがた =====
   // ★まるりんの かたちは 変えない（たまご ひとつ＋みみ＋足）。
@@ -12752,6 +14137,7 @@
     if (theme === "train") { drawTrainGoal(gl); return; }
     if (theme === "neon") { drawNeonGoal(gl); return; }
     if (theme === "ice") { drawIceCastleGoal(gl); return; }
+    if (theme === "stargaze") { drawTelescopeGoal(gl); return; }
     const x = gl.x;
     // ポール
     ctx.fillStyle = "#cfcfcf"; ctx.fillRect(x-3, gl.top, 6, TILE*6);
@@ -12773,12 +14159,98 @@
   }
 
 
-  // ===== ステージ6「こおりの お城」の けしき =====
+  // ===== ステージ6「氷のお城」の けしき =====
   // ★ステージ6は 前半＝外（ふぶきの 雪原）／後半＝お城の 中。
   //   130列より 右に 入ったら「中」。空も かざりも まるごと 切りかわる。
   const ICE_INDOOR_X = 128 * TILE;
   //   ★カメラでは なく **まるりんの ばしょ**で 切りかえる。カメラだと
   //     まだ 外に いるのに 空だけ 中に なって しまう（見ていて 変）。
+  // ★ver6.18 ステージ7の てまえ：真鍮の 柱と アーチ、星座を きざんだ ガラス窓。
+  //   うしろの 星空が すける。**画面に 入る ぶんだけ** えがく。
+  function drawStargazeDecor() {
+    const L = camX - 160, R = camX + W + 160;
+    const SPAN = 360;
+    for (let bx = Math.floor(L / SPAN) * SPAN; bx < R; bx += SPAN) {
+      const top = camY + 8;
+      // ガラス窓（星座を きざんだ まる窓）
+      const wcx = bx + SPAN / 2, wcy = top + 96;
+      ctx.fillStyle = "rgba(120,170,230,0.13)";
+      ctx.beginPath(); ctx.arc(wcx, wcy, 54, 0, 7); ctx.fill();
+      ctx.strokeStyle = "rgba(226,190,116,0.45)"; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.arc(wcx, wcy, 54, 0, 7); ctx.stroke();
+      // 星座の 線（かんたんな 5つ星）
+      ctx.strokeStyle = "rgba(255,240,200,0.40)"; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(wcx - 30, wcy - 14); ctx.lineTo(wcx - 8, wcy + 12);
+      ctx.lineTo(wcx + 16, wcy - 6); ctx.lineTo(wcx + 30, wcy + 18);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,246,214,0.75)";
+      ctx.beginPath();
+      for (const q of [[-30, -14], [-8, 12], [16, -6], [30, 18], [4, -30]]) {
+        ctx.rect(wcx + q[0] - 2, wcy + q[1] - 2, 4, 4);
+      }
+      ctx.fill();
+      // 柱（うすい 真鍮。おくに ある ので うっすら）
+      const cg = ctx.createLinearGradient(bx - 16, 0, bx + 16, 0);
+      cg.addColorStop(0, "rgba(96,72,34,0.34)");
+      cg.addColorStop(0.45, "rgba(186,146,74,0.34)");
+      cg.addColorStop(1, "rgba(84,62,28,0.34)");
+      ctx.fillStyle = cg;
+      ctx.fillRect(bx - 16, top, 32, H + 200);
+      // 柱がしらの かざり
+      ctx.fillStyle = "rgba(214,176,102,0.42)";
+      ctx.fillRect(bx - 24, top + 34, 48, 10);
+      ctx.fillRect(bx - 20, top + 46, 40, 6);
+      // アーチ（となりの 柱へ かかる）
+      ctx.strokeStyle = "rgba(196,158,84,0.32)"; ctx.lineWidth = 9;
+      ctx.beginPath();
+      ctx.moveTo(bx, top + 40);
+      ctx.quadraticCurveTo(bx + SPAN / 2, top - 24, bx + SPAN, top + 40);
+      ctx.stroke();
+    }
+  }
+
+  // ★ver6.18 ステージ7の ゴール：大望遠鏡。金の つつが 星空を 向いて いる。
+  function drawTelescopeGoal(gl) {
+    const x = gl.x, base = gl.top + TILE * 6;
+    ctx.save();
+    // 台（三きゃく）
+    ctx.strokeStyle = "#5d4820"; ctx.lineWidth = 9;
+    ctx.beginPath();
+    ctx.moveTo(x - 42, base); ctx.lineTo(x, base - 62);
+    ctx.moveTo(x + 42, base); ctx.lineTo(x, base - 62);
+    ctx.moveTo(x, base); ctx.lineTo(x, base - 62);
+    ctx.stroke();
+    // つつ（ななめ 上むき）
+    ctx.save();
+    ctx.translate(x, base - 74);
+    ctx.rotate(-0.62);
+    const tg = ctx.createLinearGradient(0, -22, 0, 22);
+    tg.addColorStop(0, "#f0d089"); tg.addColorStop(0.45, "#c99b3f"); tg.addColorStop(1, "#7a5a22");
+    ctx.fillStyle = tg;
+    ctx.fillRect(-24, -21, 132, 42);
+    // わっか（3本）
+    ctx.fillStyle = "rgba(255,240,200,0.55)";
+    ctx.fillRect(4, -23, 7, 46); ctx.fillRect(48, -23, 7, 46); ctx.fillRect(92, -23, 7, 46);
+    // レンズ（先っぽ）。中に ちいさな 星が またたく
+    ctx.fillStyle = "#0d1030";
+    ctx.beginPath(); ctx.ellipse(108, 0, 8, 22, 0, 0, 7); ctx.fill();
+    const tw = 0.45 + Math.sin(elapsed * 0.09) * 0.35;
+    ctx.fillStyle = "rgba(180,214,255," + tw.toFixed(2) + ")";
+    ctx.beginPath(); ctx.ellipse(108, 0, 5, 15, 0, 0, 7); ctx.fill();
+    ctx.restore();
+    // てんもんだいの ドーム（うしろ）
+    ctx.fillStyle = "rgba(126,98,46,0.45)";
+    ctx.beginPath(); ctx.arc(x, base - 6, 78, Math.PI, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(226,190,116,0.55)"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(x, base - 6, 78, Math.PI, Math.PI * 2); ctx.stroke();
+    // 「ゴール」の 文字
+    ctx.fillStyle = "#ffe9b0";
+    ctx.font = "bold 15px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("ゴール", x, base - 96);
+    ctx.restore();
+  }
+
   function iceIndoor() { return theme === "ice" && !inBoss && !!player && (player.x + player.w) > ICE_INDOOR_X; }
   // お城の 中の かざり：柱・シャンデリア・天じょうの つらら
   function drawIceInsideDecor() {
@@ -12818,7 +14290,7 @@
   }
   function drawIceDecor() {
     const gy = LEVEL_H - TILE * 2;   // 地面の 高さ（かざりを 立たせる ところ）
-    // とおくの こおりの お城（ゴールの すがた。ずっと 遠くに 見えて いる）
+    // とおくの 氷のお城（ゴールの すがた。ずっと 遠くに 見えて いる）
     const castX = camX * 0.72 + W * 0.55;   // ゆっくり ついてくる＝すごく 遠い
     ctx.save();
     ctx.globalAlpha = 0.42;
@@ -12905,7 +14377,7 @@
     ctx.restore();
   }
 
-  // ゴール①：はじまりのそうげん＝「ふしぎな石の門」。まもののすみかへ つづく ワープゲート。
+  // ゴール①：はじまりの草原＝「ふしぎな石の門」。まもののすみかへ つづく ワープゲート。
   function drawPortalGoal(gl) {
     const x = gl.x, gy = gl.top + TILE * 6;   // 石の門が立っている地面
     const t = elapsed * 0.05;
@@ -12974,7 +14446,7 @@
     ctx.restore();
   }
 
-  // ゴール②：まほうの塔のてっぺん＝「大きなまほうのクリスタル」
+  // ゴール②：魔法の塔のてっぺん＝「大きなまほうのクリスタル」
   // 本能寺のゴール＝燃えさかる 本堂の門。くぐると 信長のいる 奥へ すすむ。
   function drawHonnojiGoal(gl) {
     const x = gl.x, by = gl.top + TILE * 4;    // 門の足もと（Gタイルの4マス下）
@@ -13459,6 +14931,9 @@
     reaper:  { lite: "#9d8fd6", dark: "#241d3c", ring: "#d8cfff" },
     robot:   { lite: "#6fe0ff", dark: "#0d3a55", ring: "#c4f4ff" },
     ice:     { lite: "#bfefff", dark: "#1b5578", ring: "#eafaff" },
+    // ★ver6.19：じゅうりょくの 玉が 無くて、ノーマル（ハムスターの かお）に 落ちて いた。
+    //   じゅうりょくまるりんと 同じ **こい紺＋金の わっか**。
+    gravity: { lite: "#7d8ae0", dark: "#161b45", ring: "#f0ce84" },
     hamster: { lite: "#f0cf8e", dark: "#6b4a1c", ring: "#ffeec4" }
   };
   function drawSkillGem(id, x, y, glow, t) {
@@ -13574,6 +15049,27 @@
       ctx.beginPath(); ctx.arc(3.6, -2.6, 2.4, 0, 7); ctx.fill();
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(-6, 7, 12, 4.5);
+    } else if (id === "gravity") {
+      // ★ver6.19 じゅうりょく：わっかの ある 惑星（土星）
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.arc(0, 0, 6.4, 0, 7); ctx.fill();
+      // しま もよう（玉の 中を くりぬく）
+      ctx.save();
+      ctx.beginPath(); ctx.arc(0, 0, 6.4, 0, 7); ctx.clip();
+      ctx.fillStyle = "rgba(22,27,69,0.45)";
+      ctx.fillRect(-8, -3.4, 16, 1.6);
+      ctx.fillRect(-8, 1.2, 16, 2.2);
+      ctx.restore();
+      // わっか（ななめ）
+      ctx.save();
+      ctx.rotate(-0.42);
+      ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.ellipse(0, 0, 11.5, 3.6, 0, 0, 7); ctx.stroke();
+      ctx.restore();
+      // ちいさな 星
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.fillRect(-10, -9.5, 1.8, 1.8);
+      ctx.fillRect(8.6, 7.4, 1.6, 1.6);
     } else {
       // ノーマル（ハムスターの かお）
       ctx.fillStyle = "#ffffff";
@@ -13812,7 +15308,7 @@
     }
   }
 
-  // まほうの塔：外は夜の草原、中は大きな石づみのかべ＋アーチ窓＋浮かぶろうそく
+  // 魔法の塔：外は夜の草原、中は大きな石づみのかべ＋アーチ窓＋浮かぶろうそく
   const TOWER_L = 24 * TILE, TOWER_R = 58 * TILE;   // 塔の左のかべ／右のかべ（ステージ2の作りに合わせた値）
   // 本能寺の変：うしろに 燃えさかる 伽藍（お堂）、地面ぎわに 松明、空に 火の粉。
   // ※この関数は カメラの中（ワールド座標）で 呼ばれる。画面のここに出したい、というものは
@@ -13889,13 +15385,13 @@
     }
   }
 
-  // あの世ゆきの汽車の けしき。
+  // あの世行きの汽車の けしき。
   // ★足場は 止まっているのに 走って見えるのは、ここで 外の けしきを elapsed で 流しているから。
   //   手前（電柱）ほど はやく、遠く（山・星）ほど おそく 流す＝これで おくゆきが 出る。
   const TRAIN_CEIL = 7 * TILE;      // 客車の 天じょうの 高さ（ワールド座標）
   const TRAIN_WIN_TOP = 300, TRAIN_WIN_H = 80, TRAIN_WIN_W = 116, TRAIN_WIN_PITCH = 176;
 
-  // あの世ゆきの汽車の けしき。
+  // あの世行きの汽車の けしき。
   // ★汽車は 走っているので、外の ものは camX だけでなく elapsed でも 流す。
   //   手まえ（電柱）ほど はやく、遠く（山・星）ほど おそい＝おくゆきが 出る。
   function drawTrainOutside() {
@@ -14574,6 +16070,214 @@
     ctx.restore();
   }
 
+  // ===== ver6.18 ステージ7の てきの 絵 =====
+
+  // さかさムシ：真鍮の てんとう虫。大きな 一つ目。
+  //   **自分の 重力の むきに 合わせて 上下が ひっくり返る**（まるりんと 同じ 見せかた）。
+  function drawFlipBug(e) {
+    const cx = e.x + e.w / 2, by = e.y + e.h;
+    ctx.save();
+    ctx.translate(cx, (e.eg < 0) ? e.y : by);
+    if (e.eg < 0) ctx.scale(1, -1);
+    ctx.scale(e.face < 0 ? -1 : 1, e.squash);
+    if (e.hurtT > 0) ctx.globalAlpha = 0.6;
+    // 足（6本）
+    ctx.strokeStyle = "#3a2c14"; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let i = -1; i <= 1; i++) {
+      const lx = i * 9, sw = Math.sin(e.t * 0.28 + i) * 2.5;
+      ctx.moveTo(lx, -4); ctx.lineTo(lx + sw, 0);
+    }
+    ctx.stroke();
+    // こうら
+    const g = ctx.createLinearGradient(0, -25, 0, 0);
+    g.addColorStop(0, "#e6c076"); g.addColorStop(0.55, "#b98f3e"); g.addColorStop(1, "#6d5120");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(0, -12, 16, 12, 0, 0, 7); ctx.fill();
+    // こうらの 切れ目と 星の もよう
+    ctx.strokeStyle = "rgba(60,42,14,0.7)"; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(0, -23); ctx.lineTo(0, -2); ctx.stroke();
+    ctx.fillStyle = "rgba(52,36,12,0.75)";
+    ctx.beginPath(); ctx.arc(-8, -15, 3, 0, 7); ctx.arc(8, -11, 2.4, 0, 7); ctx.fill();
+    // あたま＋一つ目
+    ctx.fillStyle = "#4a3718";
+    ctx.beginPath(); ctx.arc(-13, -13, 8, 0, 7); ctx.fill();
+    ctx.fillStyle = "#f4f7ff";
+    ctx.beginPath(); ctx.arc(-14, -14, 5, 0, 7); ctx.fill();
+    ctx.fillStyle = "#1a1436";
+    ctx.beginPath(); ctx.arc(-15.5, -14, 2.6, 0, 7); ctx.fill();
+    // しょっかく
+    ctx.strokeStyle = "#4a3718"; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-16, -19); ctx.quadraticCurveTo(-24, -27, -20, -32);
+    ctx.stroke();
+    ctx.fillStyle = "#e8c887";
+    ctx.beginPath(); ctx.arc(-20, -33, 2.4, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+
+  // ほしくらげ：星の かさ ＋ ゆれる 足。つぶれた あとは ぺたんこの 足場。
+  function drawStarJelly(e) {
+    const cx = e.x + e.w / 2;
+    ctx.save();
+    if (e.hurtT > 0) ctx.globalAlpha = 0.6;
+    if (e.jellyDown) {
+      // つぶれた すがた＝足場。のこり時間で うすく なって いく
+      const left = (e.frozen || 0) / 180;
+      ctx.globalAlpha *= 0.45 + left * 0.5;
+      ctx.fillStyle = "#8fd8ff";
+      ctx.beginPath(); ctx.ellipse(cx, e.y + e.h / 2, e.w / 2, e.h / 2, 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = "rgba(230,250,255,0.9)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(cx, e.y + e.h / 2, e.w / 2, e.h / 2, 0, 0, 7); ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.fillRect(cx - 8, e.y + 3, 16, 3);
+      ctx.restore();
+      return;
+    }
+    const cy = e.y + 13;
+    // 足（5本。ゆらゆら）
+    ctx.strokeStyle = "rgba(150,220,255,0.75)"; ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const ox = -12 + i * 6;
+      ctx.moveTo(cx + ox, cy + 6);
+      ctx.quadraticCurveTo(cx + ox + Math.sin(e.t * 0.09 + i) * 5, cy + 15,
+                           cx + ox + Math.sin(e.t * 0.09 + i + 1) * 7, cy + 24);
+    }
+    ctx.stroke();
+    // かさ＝星
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(Math.sin(e.t * 0.03) * 0.14);
+    ctx.fillStyle = "rgba(150,215,255,0.55)";
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + i * Math.PI / 5;
+      const r = (i % 2 ? 8 : 17);
+      ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r * 0.95);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "rgba(226,248,255,0.9)"; ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+    // 中の 光
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.beginPath(); ctx.arc(cx - 4, cy - 4, 3.4, 0, 7); ctx.fill();
+    // 目
+    ctx.fillStyle = "#1c2a4a";
+    ctx.beginPath(); ctx.arc(cx - 5, cy + 2, 2, 0, 7); ctx.arc(cx + 5, cy + 2, 2, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+
+  // いんせき：ごつごつの 岩＋しっぽの 火。まだ 出てくる まえは **来る ばしょの しるし**だけ。
+  function drawMeteor(e) {
+    const cx = e.x + e.w / 2, cy = e.y + e.h / 2;
+    ctx.save();
+    if (e.harmless) {
+      // 予告：うすい 岩と、進む むきの やじるし（点めつ）
+      const blink = (e.wait < 45) ? (0.25 + Math.abs(Math.sin(e.wait * 0.35)) * 0.45) : 0.16;
+      ctx.globalAlpha = blink;
+      ctx.fillStyle = "#c08a50";
+      ctx.beginPath(); ctx.arc(cx, cy, 12, 0, 7); ctx.fill();
+      ctx.fillStyle = "#ffd9a0";
+      ctx.beginPath();
+      ctx.moveTo(cx, cy + e.mdir * 22);
+      ctx.lineTo(cx - 8, cy + e.mdir * 12);
+      ctx.lineTo(cx + 8, cy + e.mdir * 12);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+      return;
+    }
+    if (e.hurtT > 0) ctx.globalAlpha = 0.6;
+    // しっぽの 火（進む むきの ぎゃく）
+    const tg = ctx.createLinearGradient(cx, cy, cx, cy - e.mdir * 34);
+    tg.addColorStop(0, "rgba(255,190,90,0.75)");
+    tg.addColorStop(1, "rgba(255,120,40,0)");
+    ctx.fillStyle = tg;
+    ctx.beginPath();
+    ctx.moveTo(cx - 11, cy);
+    ctx.lineTo(cx, cy - e.mdir * 34);
+    ctx.lineTo(cx + 11, cy);
+    ctx.closePath(); ctx.fill();
+    // 岩（ごつごつ）
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(e.t * 0.04 * e.mdir);
+    const g = ctx.createLinearGradient(-14, -14, 14, 14);
+    g.addColorStop(0, "#8a6440"); g.addColorStop(0.6, "#5c412a"); g.addColorStop(1, "#3a2718");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      const r = 13 + ((i * 7) % 5) - 2;
+      ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.closePath(); ctx.fill();
+    // クレーター
+    ctx.fillStyle = "rgba(0,0,0,0.30)";
+    ctx.beginPath(); ctx.arc(-4, -3, 3.4, 0, 7); ctx.arc(5, 4, 2.4, 0, 7); ctx.fill();
+    ctx.restore();
+    ctx.restore();
+  }
+
+  // ほしのみはり：真鍮の 一つ目の 像。ためる → まっすぐ ビーム。
+  function drawStarEye(e) {
+    const cx = e.x + e.w / 2, cy = e.y + e.h / 2;
+    const d = e.edir;                      // +1＝下へ 撃つ（天じょうづき）／-1＝上へ（床づき）
+    ctx.save();
+    if (e.hurtT > 0) ctx.globalAlpha = 0.6;
+    // ビーム（撃って いる あいだ）
+    if (e.beam && e.fireT > 0) {
+      const b = e.beam;
+      const on = (e.fireT < 52 && e.fireT > 6);
+      const w2 = on ? 9 : 4;               // 出はじめ／消えぎわは 細い＝まだ 当たらない しるし
+      const bg = ctx.createLinearGradient(cx - w2, 0, cx + w2, 0);
+      bg.addColorStop(0, "rgba(255,180,90,0)");
+      bg.addColorStop(0.5, on ? "rgba(255,226,150,0.85)" : "rgba(255,226,150,0.35)");
+      bg.addColorStop(1, "rgba(255,180,90,0)");
+      ctx.fillStyle = bg;
+      ctx.fillRect(cx - w2, b.y, w2 * 2, b.h);
+      ctx.fillStyle = on ? "rgba(255,255,240,0.95)" : "rgba(255,255,240,0.4)";
+      ctx.fillRect(cx - w2 * 0.34, b.y, w2 * 0.68, b.h);
+    }
+    // 台ざ（つく 面がわ）
+    ctx.fillStyle = "#6d5120";
+    ctx.fillRect(e.x + 2, (d > 0) ? e.y : (e.y + e.h - 8), e.w - 4, 8);
+    // 本体（まるい 真鍮）
+    const g = ctx.createLinearGradient(0, e.y, 0, e.y + e.h);
+    g.addColorStop(0, "#d9ad5e"); g.addColorStop(0.55, "#9a7430"); g.addColorStop(1, "#5b431c");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(cx, cy, 16, 0, 7); ctx.fill();
+    ctx.strokeStyle = "rgba(255,232,176,0.6)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, 16, 0, 7); ctx.stroke();
+    // まぶた（上下）
+    ctx.fillStyle = "#4a3718";
+    ctx.beginPath();
+    ctx.moveTo(cx - 16, cy - d * 7); ctx.lineTo(cx + 16, cy - d * 7);
+    ctx.lineTo(cx + 13, cy - d * 15); ctx.lineTo(cx - 13, cy - d * 15);
+    ctx.closePath(); ctx.fill();
+    // 白目
+    ctx.fillStyle = "#f6f2e2";
+    ctx.beginPath(); ctx.ellipse(cx, cy + d * 2, 10, 8, 0, 0, 7); ctx.fill();
+    // ひとみ：ためて いる あいだは 赤く 大きく なる
+    const ch = e.chargeT > 0 ? (1 - e.chargeT / 120) : 0;
+    const pr = 4 + ch * 3.2;
+    ctx.fillStyle = e.fireT > 0 ? "#fff3c4" : (e.chargeT > 0 ? "#ff8a4a" : "#22203f");
+    ctx.beginPath(); ctx.arc(cx, cy + d * 3, pr, 0, 7); ctx.fill();
+    // ためて いる あいだの ねらい線（ここに くるよ、の 予告）
+    if (e.chargeT > 0) {
+      ctx.strokeStyle = "rgba(255,150,80," + (0.25 + ch * 0.45).toFixed(2) + ")";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([7, 7]);
+      const b2 = eyeBeamBox(e);
+      ctx.beginPath();
+      ctx.moveTo(cx, b2.y); ctx.lineTo(cx, b2.y + b2.h);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+  }
+
   function drawEnemies() {
     for (const e of enemies) {
       if (e.x + e.w < camX - 40 || e.x > camX + W + 40) continue;
@@ -14589,6 +16293,10 @@
       if (e.kind === "snowball") { drawSnowball(e); continue; }
       if (e.kind === "icebat") { drawIceBat(e); continue; }
       if (e.kind === "bonfire") { drawBonfire(e); continue; }
+      if (e.kind === "flipbug") { drawFlipBug(e); continue; }
+      if (e.kind === "starjelly") { drawStarJelly(e); continue; }
+      if (e.kind === "meteor") { drawMeteor(e); continue; }
+      if (e.kind === "stareye") { drawStarEye(e); continue; }
       if (e.kind === "bat")  { drawBat(e);  continue; }
       if (e.kind === "wisp") { drawWisp(e); continue; }
       if (e.kind === "shroom") { drawShroom(e); continue; }
@@ -15566,6 +17274,177 @@
   }
 
   // ボスの描画（種類ごとに振り分け）
+  // グラビトンの いんせき
+  function drawGrock(h) {
+    ctx.save();
+    ctx.translate(h.x, h.y);
+    ctx.rotate(h.rot || 0);
+    const g = ctx.createLinearGradient(-12, -12, 12, 12);
+    g.addColorStop(0, "#8a6440"); g.addColorStop(0.6, "#5c412a"); g.addColorStop(1, "#3a2718");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    for (let i = 0; i < 7; i++) {
+      const a = i * Math.PI * 2 / 7, r = 11 + ((i * 5) % 4) - 1.5;
+      ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.beginPath(); ctx.arc(-3, -2, 2.8, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+
+  // グラビトン本体：真鍮の 球＋金の わっか＋まわる 3つの 惑星
+  function drawGraviton(b) {
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    const hot = b.phase2;
+    ctx.save();
+
+    // ── ビーム
+    if (b.beamT > 0) {
+      const box = gravitonBeamBox(b);
+      const on = (b.beamT < 74 && b.beamT > 8);
+      const w2 = on ? 11 : 4;
+      const bx = box.x + box.w / 2;
+      const bg = ctx.createLinearGradient(bx - w2, 0, bx + w2, 0);
+      bg.addColorStop(0, "rgba(255,170,80,0)");
+      bg.addColorStop(0.5, on ? "rgba(255,226,150,0.85)" : "rgba(255,226,150,0.3)");
+      bg.addColorStop(1, "rgba(255,170,80,0)");
+      ctx.fillStyle = bg; ctx.fillRect(bx - w2, box.y, w2 * 2, box.h);
+      ctx.fillStyle = on ? "rgba(255,255,240,0.95)" : "rgba(255,255,240,0.35)";
+      ctx.fillRect(bx - w2 * 0.34, box.y, w2 * 0.68, box.h);
+      // ★ver6.20：ねらわれた 面を なめる おび
+      const fb = gravitonFloorBox(b);
+      if (fb.w > 2) {
+        const fg = ctx.createLinearGradient(0, fb.y, 0, fb.y + fb.h);
+        const near = (b.beamSide > 0) ? 1 : 0;
+        fg.addColorStop(near, on ? "rgba(255,214,130,0.85)" : "rgba(255,214,130,0.3)");
+        fg.addColorStop(1 - near, "rgba(255,140,60,0)");
+        ctx.fillStyle = fg; ctx.fillRect(fb.x, fb.y, fb.w, fb.h);
+        // さきっぽ（ここまで 来た、が 見える）
+        ctx.fillStyle = on ? "rgba(255,255,235,0.9)" : "rgba(255,255,235,0.35)";
+        const ey = (b.beamSide > 0) ? (fb.y + fb.h - 7) : fb.y;
+        ctx.fillRect(fb.x, ey, 6, 7);
+        ctx.fillRect(fb.x + fb.w - 6, ey, 6, 7);
+      }
+    } else if (b.beamChg > 0) {
+      // ためて いる あいだの ねらい線
+      const box = { x: cx - 11, y: (b.side > 0) ? GV_CEIL_Y : (b.y + b.h), w: 22,
+                    h: (b.side > 0) ? (b.y - GV_CEIL_Y) : (BOSS_GROUND - b.y - b.h) };
+      ctx.strokeStyle = "rgba(255,150,80," + (0.2 + (1 - b.beamChg / 46) * 0.5).toFixed(2) + ")";
+      ctx.lineWidth = 2; ctx.setLineDash([8, 8]);
+      ctx.beginPath(); ctx.moveTo(cx, box.y); ctx.lineTo(cx, box.y + box.h); ctx.stroke();
+      ctx.setLineDash([]);
+      // ★ver6.20：どちらの 面が あぶないかを、ためて いる あいだに 光らせて 教える。
+      //   （「その 面から にげろ＝重力を 反転しろ」の あいず）
+      const wy = (b.beamSide > 0) ? (BOSS_GROUND - 26) : GV_CEIL_Y;
+      const bl = 0.18 + Math.abs(Math.sin(b.beamChg * 0.28)) * 0.4;
+      ctx.fillStyle = "rgba(255,120,60," + bl.toFixed(2) + ")";
+      ctx.fillRect(0, wy, W, 26);
+      ctx.strokeStyle = "rgba(255,220,150,0.7)"; ctx.lineWidth = 2;
+      const ly = (b.beamSide > 0) ? wy : (wy + 26);
+      ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(W, ly); ctx.stroke();
+    }
+
+    // ── うしろの 惑星（軌道の おく半分）
+    for (let i = 0; i < b.orbs.length; i++) {
+      const o = b.orbs[i];
+      if (o.out <= 0 && o.back <= 0 && Math.sin(o.a + b.rot) < 0) drawGravOrb(o, i);
+    }
+
+    // ── 金の わっか（ななめ）
+    ctx.save();
+    ctx.translate(cx, cy); ctx.rotate(-0.34);
+    ctx.strokeStyle = hot ? "rgba(255,110,80,0.9)" : "rgba(240,206,132,0.9)";
+    ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.ellipse(0, 0, 62, 17, 0, 0, 7); ctx.stroke();
+    ctx.strokeStyle = hot ? "rgba(255,190,140,0.6)" : "rgba(255,240,200,0.55)";
+    ctx.lineWidth = 2.4;
+    ctx.beginPath(); ctx.ellipse(0, 0, 62, 17, 0, 0, 7); ctx.stroke();
+    ctx.restore();
+
+    // ── 本体
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(1, b.squash);
+    if (b.hurtFlash > 0 && Math.floor(b.hurtFlash / 4) % 2 === 0) ctx.globalAlpha = 0.55;
+    const g = ctx.createRadialGradient(-14, -16, 6, 0, 0, 40);
+    g.addColorStop(0, hot ? "#ffcf9a" : "#f0d089");
+    g.addColorStop(0.55, hot ? "#c06a34" : "#b98f3e");
+    g.addColorStop(1, hot ? "#5d2c14" : "#4d3a16");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(0, 0, 37, 0, 7); ctx.fill();
+    // けいど線（太陽系儀らしさ）
+    ctx.strokeStyle = "rgba(60,42,14,0.45)"; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 15, 37, 0, 0, 7);
+    ctx.moveTo(-37, 0); ctx.lineTo(37, 0);
+    ctx.stroke();
+    // 一つ目（ふめる がわが 青く 光る）
+    const eyeY = -b.side * 9;
+    ctx.fillStyle = "#f6f2e2";
+    ctx.beginPath(); ctx.ellipse(0, eyeY, 16, 13, 0, 0, 7); ctx.fill();
+    const px = Math.max(-6, Math.min(6, (player.x + player.w / 2 - cx) * 0.06));
+    ctx.fillStyle = (b.beamChg > 0 || b.beamT > 0) ? "#ff8a4a" : (hot ? "#ff5a3c" : "#22203f");
+    ctx.beginPath(); ctx.arc(px, eyeY + 1, 7, 0, 7); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.beginPath(); ctx.arc(px - 2.4, eyeY - 2, 2.4, 0, 7); ctx.fill();
+    ctx.restore();
+
+    // ── ふめる がわの しるし（青く 光る おび）
+    if (b.moveT <= 0) {
+      const sy = (b.side > 0) ? b.y : (b.y + b.h);
+      const gl = 0.35 + Math.sin(elapsed * 0.12) * 0.2;
+      ctx.fillStyle = "rgba(140,210,255," + gl.toFixed(2) + ")";
+      ctx.fillRect(b.x + 6, sy - (b.side > 0 ? 6 : 0), b.w - 12, 6);
+    }
+
+    // ── 手まえの 惑星
+    for (let i = 0; i < b.orbs.length; i++) {
+      const o = b.orbs[i];
+      if (o.out > 0 || o.back > 0 || Math.sin(o.a + b.rot) >= 0) drawGravOrb(o, i);
+    }
+
+    // ── はじいた しるし（たまが きかない ことを 目で 教える）
+    if (b.guardHit > 0) {
+      ctx.strokeStyle = "rgba(255,240,190," + (b.guardHit / 14).toFixed(2) + ")";
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(cx, cy, 46 + (14 - b.guardHit) * 1.6, 0, 7); ctx.stroke();
+    }
+    ctx.restore();
+
+    // ── どっちへ 行ったかの やじるし（画面の ふち）
+    if (b.arrow > 0) {
+      const up = b.side < 0;
+      const ay = up ? 96 : H - 78;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, b.arrow / 20);
+      ctx.fillStyle = "#ffd34d";
+      ctx.beginPath();
+      ctx.moveTo(cx, ay + (up ? -20 : 20));
+      ctx.lineTo(cx - 16, ay); ctx.lineTo(cx + 16, ay);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+  }
+  function drawGravOrb(o, i) {
+    const col = i === 0 ? ["#ff9a7a", "#c2472a"] : (i === 1 ? ["#9ec6ff", "#2f5bb0"] : ["#a8eec0", "#2f8f5c"]);
+    const hot = o.out > 0;                  // ★とんで いる＝当たる
+    const r = hot ? 11 : 9;
+    if (hot) {
+      // 当たる ときだけ 赤い わっかを つける（見て わかる ように）
+      ctx.strokeStyle = "rgba(255,120,80,0.75)"; ctx.lineWidth = 2.4;
+      ctx.beginPath(); ctx.arc(o.x, o.y, r + 4, 0, 7); ctx.stroke();
+    }
+    const g = ctx.createRadialGradient(o.x - 3, o.y - 3, 1, o.x, o.y, r + 1);
+    g.addColorStop(0, col[0]); g.addColorStop(1, col[1]);
+    ctx.fillStyle = g;
+    ctx.globalAlpha = hot ? 1 : 0.72;       // まわって いる ぶんは すこし うすい＝「いまは 安全」
+    ctx.beginPath(); ctx.arc(o.x, o.y, r, 0, 7); ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(o.x, o.y, r, 0, 7); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
   function drawBosses() {
     for (const b of bosses) {
       if (b.kind === "kingslime") drawKingSlime(b);
@@ -15575,6 +17454,7 @@
       else if (b.kind === "motherai") drawMotherAI(b);
       else if (b.kind === "cerberus") { drawCerberus(b); drawCerbShakeFx(b); }
       else if (b.kind === "frostdragon") drawFrostDragon(b);
+      else if (b.kind === "graviton") drawGraviton(b);
       else if (b.kind === "pegi" || b.kind === "nisepegi") drawPenguinBoss(b);
       else if (b.kind === "sumo") drawSumoBoss(b);
       else if (b.kind === "mega") drawMegaBoss(b);
@@ -16371,6 +18251,7 @@
       if (h.kind === "fball") { drawFball(h); continue; }
       if (h.kind === "ice") { drawIcicle(h); continue; }
       if (h.kind === "bolt") { drawBolt(h); continue; }
+      if (h.kind === "grock") { drawGrock(h); continue; }
       drawTigerShot(h.x, h.y, h.kind === "tiger", h.t);
     }
   }
@@ -18720,6 +20601,8 @@
 
     ctx.save();
     ctx.translate(cx, cy);
+    // ★ver6.14：さかさま中は 体ごと たてに ひっくり返す（耳も 逆に たれる）
+    if (gdirOf(p) < 0 && playing) ctx.scale(1, -1);
     // しゅくちぎりの ため中：足もとを じくに 前かがみ
     if (playing) {
       const lean = chargeLean();
@@ -18778,6 +20661,8 @@
     if (isRobotForm() && playing) drawRobotPack(p, run, airborne);
     // こおりまるりん：氷の マントは 体の うしろ
     if (isIceForm() && playing) drawIceCloak(p, run, airborne);
+    // ★ver6.14 じゅうりょくまるりん：わっかの うしろ半分と 星は 体の うしろ
+    if (isGravForm() && playing) { drawGravStars(p); drawGravRing(p, "back"); }
 
     // 後ろ足（クリーム色）
     ctx.fillStyle = "#f6e2c0";
@@ -18800,6 +20685,8 @@
       }
     }
 
+    // ★ver6.14 じゅうりょくまるりん：紺の ブーツ（足の 上に かさねる）
+    if (isGravForm() && playing) drawGravBoots(p, run, airborne, legPhase);
     // 体（グレーの丸／たねまるりんは黄金色）
     ctx.fillStyle = p.seed ? "#eac352" : "#b8bcc4";
     ctx.beginPath(); ctx.ellipse(0, 0, bodyR, bodyR+2, 0, 0, 7); ctx.fill();
@@ -18807,6 +20694,8 @@
     ctx.fillStyle = p.seed ? "#d9ad3a" : "#a7abb4";
     ctx.beginPath(); ctx.ellipse(-6, -2, bodyR*0.7, bodyR*0.85, 0, 0, 7); ctx.fill();
 
+    // ★ver6.14 じゅうりょくまるりん：紺の スーツ（体の 上に かさねる）
+    if (isGravForm() && playing) drawGravSuit(p);
     // 耳（クリーム色＋少し濃い内側）※実物に合わせて
     ctx.fillStyle = "#efe1c6";
     ctx.beginPath(); ctx.ellipse(-9, -15, 5, 6, -0.3, 0, 7); ctx.fill();
@@ -18876,6 +20765,8 @@
     if (isRobotForm() && playing) drawRobotGear(p, run, airborne, legPhase);
     // こおりまるりん：つららの かんむりは 手前に
     if (isIceForm() && playing) drawIceCrown(p, run, airborne);
+    // ★ver6.14 じゅうりょくまるりん：ヘルメットと わっかの まえ半分は 手まえに
+    if (isGravForm() && playing) { drawGravHelmet(p); drawGravRing(p, "front"); drawGravFlipFx(p); }
 
     }   // 通常まるりん／ドラゴンまるりんの描き分けここまで
 
@@ -19592,6 +21483,51 @@
       ctx.restore();
     }
 
+    // ★ver6.18 グラビトン戦：たまが きかない ことと、ふみかたを 教える
+    if (state === "boss" && gvHint > 0 && STAGES[stageIndex].boss === "graviton") {
+      const b = bosses[0];
+      const onCeil = b && b.side < 0;
+      const line1 = (b && (b.beamChg > 0 || b.beamT > 0))
+                      ? "光った ゆかは あぶない！ 重力を 反転して にげろ！"
+                      : ((b && b.phase2) ? "うごきだした！ 重力を 反転させてくるぞ"
+                                         : "たまも 技も きかない！ ふむ しか ない！");
+      const line2 = onCeil ? "ボスは 天じょう！ B ながおしで さかさまに なって ふめ！"
+                           : "ボスは ゆか！ ふつうの 重力で ふめ！";
+      ctx.save();
+      ctx.globalAlpha = gvHint > 40 ? 1 : gvHint / 40;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = "bold 17px 'Yu Gothic','Hiragino Kaku Gothic ProN',sans-serif";
+      const bw3 = Math.max(ctx.measureText(line1).width, ctx.measureText(line2).width) + 54;
+      // ★ボス（ゆか側 y=284〜360／天じょう側 y=80〜156）に かぶらない まん中の おび
+      const by3 = 222;
+      ctx.fillStyle = "rgba(18,14,44,0.86)";
+      ctx.fillRect(W/2 - bw3/2, by3 - 26, bw3, 56);
+      ctx.strokeStyle = "rgba(240,206,132,0.95)"; ctx.lineWidth = 2;
+      ctx.strokeRect(W/2 - bw3/2, by3 - 26, bw3, 56);
+      ctx.fillStyle = "#fff3d6"; ctx.fillText(line1, W/2, by3 - 9);
+      ctx.fillStyle = "#ffd34d"; ctx.fillText(line2, W/2, by3 + 14);
+      ctx.restore();
+    }
+    // ★ver6.18 グラビトン後半：重力が 反転する 予告
+    if (state === "boss" && gvWarn > 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.35 + Math.abs(Math.sin(gvWarn * 0.3)) * 0.45;
+      ctx.fillStyle = "#a06bff";
+      const up = gdirOf(player) > 0;                     // いまが ふつう＝これから 上へ 行く
+      for (let i = 0; i < 5; i++) {
+        const ax = 120 + i * 140, ay = up ? 74 : H - 60;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay + (up ? -18 : 18));
+        ctx.lineTo(ax - 14, ay); ctx.lineTo(ax + 14, ay);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = "bold 18px 'Yu Gothic','Hiragino Kaku Gothic ProN',sans-serif";
+      ctx.fillStyle = "#e6d4ff";
+      ctx.fillText("じゅうりょく はんてん！", W / 2, up ? 108 : H - 96);
+      ctx.restore();
+    }
+
     // ★フロストドラゴン戦：つららの 落としかたを 教える（初見では わからないため）
     if (state === "boss" && fdHint > 0 && STAGES[stageIndex].boss === "frostdragon") {
       const ripe = ceilIce.some(ic => !ic.dead && !ic.fall && ic.grow >= 1);
@@ -19765,11 +21701,11 @@
   // とびらは ステージの テーマ色。クリアして いない ぶんは 岩で ふさがって いる。
   const HUB_DOOR_COL = [
     ["#4fa64f", "#8fe08f"],   // 1 くさはら
-    ["#7a5bd0", "#c9b6ff"],   // 2 まほうの塔
+    ["#7a5bd0", "#c9b6ff"],   // 2 魔法の塔
     ["#c0522e", "#ffb06a"],   // 3 本能寺
-    ["#2f5a8f", "#9fd0f0"],   // 4 あの世ゆきの汽車
+    ["#2f5a8f", "#9fd0f0"],   // 4 あの世行きの汽車
     ["#a8348a", "#ff9be2"],   // 5 ネオ・ハムシティ
-    ["#3d8fb8", "#bfeaff"],   // 6 こおりのお城
+    ["#3d8fb8", "#bfeaff"],   // 6 氷のお城
     ["#8a7a3a", "#e7d79a"],   // 7 （これから）
     ["#5a2b3a", "#e59ab4"],   // 8 （これから）
     ["#c9a227", "#fff3c0"]    // 9 ようせいとの さいしゅうけっせん（金）
@@ -20547,8 +22483,8 @@
   }
   // =================== オープニングここまで ===================
 
-  // =================== ステージ2「まほうの塔」の前 ===================
-  // ムービー用の 遠くにそびえる まほうの塔（cxを中心に、groundYから上へ）
+  // =================== ステージ2「魔法の塔」の前 ===================
+  // ムービー用の 遠くにそびえる 魔法の塔（cxを中心に、groundYから上へ）
   function storyFarTower(cx, groundY, sc, f) {
     ctx.save();
     ctx.translate(cx, groundY); ctx.scale(sc, sc);
@@ -20715,7 +22651,7 @@
     }
   }
 
-  // シーン4：まほうの国に とうちゃく（紫の空・光るキノコ・水晶）＋遠くに塔
+  // シーン4：魔法の国に とうちゃく（紫の空・光るキノコ・水晶）＋遠くに塔
   function sceneMagicLand(f, dur) {
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, "#4a3a8a"); g.addColorStop(0.45, "#8a6ac0");
@@ -20735,7 +22671,7 @@
       ctx.beginPath(); ctx.ellipse(ix, by, iw / 2, 12, 0, 0, 7); ctx.fill();
       ctx.beginPath(); ctx.moveTo(ix - iw/2, by); ctx.lineTo(ix, by + 34); ctx.lineTo(ix + iw/2, by); ctx.closePath(); ctx.fill();
     }
-    // 遠くの まほうの塔
+    // 遠くの 魔法の塔
     storyFarTower(600, STORY_GROUND - 28, 0.72, f);
     // 地面（むらさきの土＋ミントの草）
     ctx.fillStyle = "#6a4c88"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
@@ -20856,7 +22792,7 @@
   // =================== ステージ2の紙芝居ここまで ===================
 
   // シーン1：くさはらから南流山のおうちに帰宅（夕方）
-  // ===== ステージ4前の 紙芝居（あの世ゆきの汽車）=====
+  // ===== ステージ4前の 紙芝居（あの世行きの汽車）=====
   // 夜の のはら（線路つき）。sc で 線路の 見えぐあいを かえる。
   function storyNightField(f, railAlpha) {
     const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -21109,7 +23045,7 @@
   }
 
 
-  // ---- ステージ6のまえ（こおりの お城）----
+  // ---- ステージ6のまえ（氷のお城）----
   // ★ばつりんが 出てくるのは これで 3回目。ここで **はじめて しゃべる**。
   //   「……やめて おけ。」だけ 言って 消える＝まだ てきか 味方か 分からない ままに する。
   // ★うごかなく なった けいびロボ（ステージ6の まえの 紙芝居）。
@@ -21264,7 +23200,7 @@
     storyMaru(250, STORY_GROUND, 1, false);
     storyFairy(334, STORY_GROUND - 96, f, 0.9);
   }
-  // こおりの お城の シルエット（紙芝居／ステージの けしき で 使いまわす）
+  // 氷のお城の シルエット（紙芝居／ステージの けしき で 使いまわす）
   //   bx＝左はし、gy＝地面の 高さ、bw＝はば
   function drawStoryIceCastle(bx, gy, bw) {
     const wallH = 88, wallY = gy - wallH;
@@ -21298,7 +23234,7 @@
   }
   function sceneS6Castle(f, dur) {
     storySnowField(f, 1);
-    // 遠くの こおりの お城（だんだん 見えて くる）
+    // 遠くの 氷のお城（だんだん 見えて くる）
     // ★はじめ 細い 塔を ならべる だけに していたら「ロケットが ならんで いる」ように
     //   見えた（スクショで 確認）。城かべ・まど・門を 足して お城に する。
     const k = Math.min(1, f / (dur * 0.55));
@@ -21327,6 +23263,362 @@
     ctx.restore();
     storyMaru(230, STORY_GROUND, 1, false);
     storyFairy(314, STORY_GROUND - 96, f, 0.9);
+  }
+
+  // ================= ステージ7の 前後の 紙芝居（ver6.22）=================
+  // 星の 海。**上にも 下にも 星が ある**＝どっちが 空か わからない、が この 世界の かお。
+  function storyStarSea(f) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#080b22"); g.addColorStop(0.5, "#131a48"); g.addColorStop(1, "#080b22");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    // 天の川（ななめの うすい おび）
+    const mw = ctx.createLinearGradient(0, H * 0.1, W, H * 0.9);
+    mw.addColorStop(0, "rgba(150,170,255,0)");
+    mw.addColorStop(0.5, "rgba(196,206,255,0.14)");
+    mw.addColorStop(1, "rgba(150,170,255,0)");
+    ctx.fillStyle = mw;
+    ctx.beginPath();
+    ctx.moveTo(-120, 18); ctx.lineTo(W + 160, H * 0.55);
+    ctx.lineTo(W + 160, H * 0.95); ctx.lineTo(-120, H * 0.42);
+    ctx.closePath(); ctx.fill();
+    // 星（2そう・まとめて 1回ずつ fill＝処理落ち よけ ver6.13の きまり）
+    for (let L = 0; L < 2; L++) {
+      const n = L ? 52 : 72;
+      ctx.fillStyle = L ? "rgba(255,255,255,0.92)" : "rgba(198,214,255,0.6)";
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const sx = (i * 137.3 + L * 61) % W, sy = (i * 79.7 + L * 23) % H;
+        const tw = 1 + (i % 3) * 0.6 + Math.sin(f * 0.06 + i * 1.7) * 0.5;
+        ctx.rect(sx, sy, tw, tw);
+      }
+      ctx.fill();
+    }
+    storyRingPlanet(668, 92, 1, f);
+  }
+  // わっかの ある 惑星（ステージ7の かお）
+  function storyRingPlanet(cx, cy, sc, f) {
+    ctx.save();
+    ctx.translate(cx, cy); ctx.scale(sc, sc); ctx.rotate(-0.38);
+    ctx.strokeStyle = "rgba(226,190,116,0.5)"; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.ellipse(0, 0, 62, 18, 0, Math.PI, Math.PI * 2); ctx.stroke();
+    const g = ctx.createRadialGradient(-12, -12, 4, 0, 0, 40);
+    g.addColorStop(0, "#c9a86a"); g.addColorStop(1, "#5c4520");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(0, 0, 34, 0, 7); ctx.fill();
+    ctx.strokeStyle = "rgba(240,206,132,0.78)"; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.ellipse(0, 0, 62, 18, 0, 0, Math.PI); ctx.stroke();
+    ctx.restore();
+    void f;
+  }
+  // 真鍮の ゆか（てんもんだいの 通路）
+  function storyBrassFloor(gy) {
+    ctx.fillStyle = "#241a0e"; ctx.fillRect(0, gy, W, H - gy);
+    const g = ctx.createLinearGradient(0, gy, 0, gy + 32);
+    g.addColorStop(0, "#7d5f2c"); g.addColorStop(1, "#3a2c14");
+    ctx.fillStyle = g; ctx.fillRect(0, gy, W, 32);
+    ctx.fillStyle = "rgba(240,206,132,0.55)"; ctx.fillRect(0, gy, W, 5);
+    ctx.fillStyle = "rgba(240,206,132,0.3)";
+    for (let x = 16; x < W; x += 46) { ctx.beginPath(); ctx.arc(x, gy + 16, 2.6, 0, 7); ctx.fill(); }
+  }
+  // 大望遠鏡（ゴールの drawTelescopeGoal を 紙芝居用に 大きく した もの）
+  function storyTelescope(cx, gy, sc, f) {
+    ctx.save();
+    ctx.translate(cx, gy); ctx.scale(sc, sc);
+    ctx.fillStyle = "rgba(126,98,46,0.5)";                       // ドーム
+    ctx.beginPath(); ctx.arc(0, -6, 96, Math.PI, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(226,190,116,0.6)"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(0, -6, 96, Math.PI, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = "#5d4820"; ctx.lineWidth = 9; ctx.lineCap = "round";   // 三きゃく
+    ctx.beginPath();
+    ctx.moveTo(-46, 0); ctx.lineTo(0, -70);
+    ctx.moveTo(46, 0); ctx.lineTo(0, -70);
+    ctx.moveTo(0, 0); ctx.lineTo(0, -70);
+    ctx.stroke();
+    ctx.save();                                                   // つつ
+    ctx.translate(0, -84); ctx.rotate(-0.62);
+    const tg = ctx.createLinearGradient(0, -22, 0, 22);
+    tg.addColorStop(0, "#f0d089"); tg.addColorStop(0.45, "#c99b3f"); tg.addColorStop(1, "#7a5a22");
+    ctx.fillStyle = tg; ctx.fillRect(-26, -21, 140, 42);
+    ctx.fillStyle = "rgba(255,240,200,0.55)";
+    ctx.fillRect(4, -23, 7, 46); ctx.fillRect(50, -23, 7, 46); ctx.fillRect(96, -23, 7, 46);
+    ctx.fillStyle = "#0d1030";
+    ctx.beginPath(); ctx.ellipse(114, 0, 8, 22, 0, 0, 7); ctx.fill();
+    const tw = 0.45 + Math.sin(f * 0.09) * 0.35;
+    ctx.fillStyle = "rgba(180,214,255," + tw.toFixed(2) + ")";
+    ctx.beginPath(); ctx.ellipse(114, 0, 5, 15, 0, 0, 7); ctx.fill();
+    ctx.restore();
+    ctx.restore();
+  }
+  // ボス グラビトン（紙芝居用の かんたんな すがた）。crack を 上げると ひびが 入る。
+  function storyGraviton(cx, cy, f, alpha, crack) {
+    const cr = crack || 0;
+    ctx.save();
+    ctx.globalAlpha = alpha === undefined ? 1 : alpha;
+    ctx.translate(cx, cy);
+    ctx.strokeStyle = "rgba(240,206,132,0.85)"; ctx.lineWidth = 6;      // 金の わっか
+    ctx.beginPath(); ctx.ellipse(0, 0, 76, 26, Math.sin(f * 0.012) * 0.5, 0, 7); ctx.stroke();
+    ctx.fillStyle = "#161b45";                                          // 目玉
+    ctx.beginPath(); ctx.arc(0, 0, 42, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#f0ce84"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(0, 0, 42, 0, 7); ctx.stroke();
+    const ex = Math.cos(f * 0.03) * 6, ey = Math.sin(f * 0.04) * 4;
+    ctx.fillStyle = "#7d8ae0";
+    ctx.beginPath(); ctx.arc(ex, ey, 20, 0, 7); ctx.fill();
+    ctx.fillStyle = "#0b0d24";
+    ctx.beginPath(); ctx.arc(ex, ey, 9, 0, 7); ctx.fill();
+    if (cr > 0) {                                                       // ひび
+      ctx.strokeStyle = "rgba(255,246,221," + Math.min(1, cr * 1.4).toFixed(2) + ")";
+      ctx.lineWidth = 2.4;
+      for (let i = 0; i < 4; i++) {
+        const a = i * 1.57 + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(a) * 40 * cr, Math.sin(a) * 40 * cr);
+        ctx.lineTo(Math.cos(a + 0.35) * 42 * cr, Math.sin(a + 0.35) * 42 * cr);
+        ctx.stroke();
+      }
+    }
+    for (let i = 0; i < 3; i++) {                                       // まわる 惑星 3つ
+      const a = f * 0.035 + i * 2.09;
+      ctx.fillStyle = i === 1 ? "#f0ce84" : "#9aa6f0";
+      ctx.beginPath(); ctx.arc(Math.cos(a) * 92, Math.sin(a) * 34, 9, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+  // 7つの スキルの 玉。k=0 で 大きく まわり、k=1 で まるりんの むねに あつまる。
+  const STORY_SKILL_ICONS = ["\uD83D\uDC32", "\uD83D\uDD2E", "\uD83D\uDDE1", "\uD83D\uDC80", "\uD83E\uDD16", "\u2744", "\uD83E\uDE90"];
+  function storySkillOrbs(cx, cy, f, k) {
+    const R = 152 * (1 - k * 0.92), s = 1 - k * 0.5;
+    ctx.font = "20px 'Segoe UI Emoji','Segoe UI',sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    for (let i = 0; i < 7; i++) {
+      const a = f * 0.05 + i * (Math.PI * 2 / 7);
+      const x = cx + Math.cos(a) * R, y = cy + Math.sin(a) * R * 0.55;
+      ctx.fillStyle = "rgba(240,206,132,0.45)";
+      ctx.beginPath(); ctx.arc(x, y, 19 * s, 0, 7); ctx.fill();
+      ctx.fillStyle = "#fff6dd";
+      ctx.beginPath(); ctx.arc(x, y, 13 * s, 0, 7); ctx.fill();
+      ctx.fillStyle = "#2a2438";
+      ctx.fillText(STORY_SKILL_ICONS[i], x, y + 1);
+    }
+  }
+  // 白い 神殿（ステージ8）。柱6本・三角の やね・かいだん。
+  function storyTemple(cx, gy, sc) {
+    ctx.save();
+    ctx.translate(cx, gy); ctx.scale(sc, sc);
+    ctx.fillStyle = "#d8d2c0";                                   // かいだん
+    for (let i = 0; i < 3; i++) ctx.fillRect(-98 + i * 9, -9 - i * 9, 196 - i * 18, 9);
+    ctx.fillStyle = "#efe9d8"; ctx.fillRect(-86, -38, 172, 11);   // 台
+    ctx.fillStyle = "#1b1f38";                                    // 入口（まっくら）
+    ctx.fillRect(-19, -100, 38, 62);
+    ctx.fillStyle = "#f6f2e6";                                    // 柱
+    for (let i = 0; i < 6; i++) {
+      const x = -80 + i * 30;
+      if (x > -26 && x < 12) continue;                            // まん中は 入口
+      ctx.fillRect(x, -100, 15, 62);
+    }
+    ctx.fillStyle = "rgba(150,140,120,0.26)";
+    for (let i = 0; i < 6; i++) {
+      const x = -80 + i * 30;
+      if (x > -26 && x < 12) continue;
+      ctx.fillRect(x + 11, -100, 4, 62);
+    }
+    ctx.fillStyle = "#efe9d8"; ctx.fillRect(-90, -113, 180, 13);  // はり
+    ctx.fillStyle = "#fbf8ee";                                    // やね
+    ctx.beginPath();
+    ctx.moveTo(-100, -113); ctx.lineTo(0, -162); ctx.lineTo(100, -113);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  // ---- S7の まえ（ステージ6を クリアした あと）----
+  function sceneS7Win(f, dur) {
+    // ★ver6.23：「ぴたりと やみました」なので **0 まで** 止める。
+    //   0.15 のこして いたら S6まえの ふぶきと 見分けが つかなかった（オーナー指摘）。
+    const k = Math.min(1, f / (dur * 0.6));
+    storySnowField(f, 1 - k);                                     // ふぶきが やんで いく
+    ctx.save(); ctx.globalAlpha = 0.4 + k * 0.5;
+    drawStoryIceCastle(455, STORY_GROUND, 320);
+    ctx.restore();
+    // 雲の きれ間から さす 光
+    ctx.fillStyle = "rgba(255,244,200," + (0.30 * k).toFixed(2) + ")";
+    ctx.beginPath();
+    ctx.moveTo(470, -10); ctx.lineTo(650, -10);
+    ctx.lineTo(500, STORY_GROUND + 40); ctx.lineTo(300, STORY_GROUND + 40);
+    ctx.closePath(); ctx.fill();
+    storyMaru(230, STORY_GROUND, 1, false);
+    storyFairy(314, STORY_GROUND - 96, f, 0.9);
+  }
+  // ★ようせいが **いつもより はやく とびまわる**。
+  //   ことばでは 言わない。「やけに うれしそう」が あとで 効く。
+  function sceneS7Gate(f, dur) {
+    storySnowField(f, 0);        // ★ver6.23：もう ふって いない
+    ctx.save(); ctx.globalAlpha = 0.85;
+    drawStoryIceCastle(455, STORY_GROUND, 320);
+    ctx.restore();
+    const r = Math.min(1, f / (dur * 0.55)) * 86;
+    storyWarp(620, 116, r, f);
+    storyMaru(230, STORY_GROUND, 1, false);
+    storyFairy(332 + Math.cos(f * 0.075) * 78, STORY_GROUND - 128 + Math.sin(f * 0.11) * 28, f * 1.7, 0.9);
+  }
+  // ★ばつりん 4回目。1・2回目＝遠くの かげ、3回目＝しゃべって 消える。
+  //   こんどは **にげずに 近づいて くる**（k で 近づく＋はっきり する）。
+  function sceneS7Batsu(f, dur) {
+    storySnowField(f, 0);        // ★ver6.23：もう ふって いない
+    const k = Math.min(1, f / (dur * 0.65));
+    ctx.save(); ctx.globalAlpha = 0.32 * k; ctx.fillStyle = "#0b1024"; ctx.fillRect(0, 0, W, H); ctx.restore();
+    storyMaru(230, STORY_GROUND, 1, false);
+    storyFairy(314, STORY_GROUND - 96, f, 0.6);
+    storyBatsu(720 - k * 150, STORY_GROUND, -1, 0.5 + k * 0.5, f, k > 0.45);
+  }
+  // ★伏線その2：ようせいは **ばつりんの ほうを 見ない**。
+  //   わるくちは 言わせない（オーナー指示）。見ない・手を ひく、だけで じゅうぶん。
+  function sceneS7Pull(f, dur) {
+    // ★お城は 出さない。前の まい（sceneS7Batsu）と 同じ「お城から はなれた 雪原」に 見せる。
+    //   ここで お城を 出すと ばつりんが かべの 上に 立って いる ように 見え、
+    //   さらに 前の まいから **ばつりんの いちが とんで** しまう。
+    storySnowField(f, 0);        // ★ver6.23：もう ふって いない
+    storyWarp(620, 116, 86, f);
+    storyBatsu(570, STORY_GROUND, -1, 0.75, f, true);            // 前の まいで 止まった ところに そのまま
+    // ★ver6.23：手を ひっぱる 光の 線は やめた（むりやり つれて 行くように 見えた）。
+    //   まるりんは その場に 立った まま。ようせいだけが とびらの ほうへ すすむ。
+    const k = Math.min(1, f / (dur * 0.8));
+    storyMaru(230, STORY_GROUND, 1, false);
+    storyQuestion(198, STORY_GROUND - 46, f);
+    storyFairy(316 + k * 96, STORY_GROUND - 100 - k * 34, f, 0.9);
+  }
+  // ★ついた ところ。まるりんは **さかさまに ういて いる**＝「上も 下も 星」を 絵で 見せる。
+  function sceneS7Sky(f, dur) {
+    storyStarSea(f);
+    storyMaruXform(300, 196, 1, false, 1, Math.PI + Math.sin(f * 0.02) * 0.12);
+    storyFairy(410, 182, f, 0.9);
+    void dur;
+  }
+  function sceneS7Tele(f, dur) {
+    storyStarSea(f);
+    storyBrassFloor(STORY_GROUND + 30);
+    storyTelescope(560, STORY_GROUND + 30, 0.9, f);
+    const k = Math.min(1, f / (dur * 0.5));
+    // ★x=600 は 背景の「わっかの ある 惑星（668）」と かさなる。左へ よける。
+    storyGraviton(430, 100, f, 0.35 + k * 0.5, 0);
+    storyMaru(206, STORY_GROUND + 30, 1, false);
+    storyFairy(296, STORY_GROUND - 62, f, 0.9);
+  }
+
+  // ---- S7の あと（7つ そろった → 神殿へ）----
+  function sceneS8Win(f, dur) {
+    storyStarSea(f);
+    storyBrassFloor(STORY_GROUND + 30);
+    storyTelescope(560, STORY_GROUND + 30, 0.9, f);
+    // ★dur*0.6 だと まいの まん中では もう 消えきって いて、割れる ところが 見えない。
+    const k = Math.min(1, f / (dur * 0.92));
+    storyGraviton(430, 100, f, 0.9 * (1 - k * 0.92), k);
+    for (let i = 0; i < 10; i++) {                               // かけら
+      const a = i * 0.63, rr = 40 + k * (110 + (i % 4) * 26);
+      ctx.globalAlpha = Math.max(0, 0.9 - k);
+      ctx.fillStyle = i % 2 ? "#f0ce84" : "#9aa6f0";
+      ctx.fillRect(430 + Math.cos(a) * rr, 100 + Math.sin(a) * rr * 0.7, 5, 5);
+    }
+    ctx.globalAlpha = 1;
+    storyMaru(206, STORY_GROUND + 30, 1, false);
+    storyFairy(296, STORY_GROUND - 62, f, 0.9);
+  }
+  // ★見せ場。7つの 玉が 大きく まわって、まるりんに あつまる。
+  function sceneS8Seven(f, dur) {
+    storyStarSea(f);
+    storyBrassFloor(STORY_GROUND + 30);
+    const k = Math.max(0, Math.min(1, (f - dur * 0.45) / (dur * 0.35)));
+    storyMaru(400, STORY_GROUND + 30, 1, false);
+    storySkillOrbs(400, STORY_GROUND - 26, f, k);
+    if (k >= 1) {                                                 // あつまりきった しゅんかんの 金の 光
+      const t = 1 - (f - dur * 0.8) / 24;
+      if (t > 0) {
+        ctx.globalAlpha = Math.min(1, t) * 0.85;
+        ctx.fillStyle = "#fff6dd"; ctx.fillRect(0, 0, W, H);
+        ctx.globalAlpha = 1;
+      }
+    }
+    storyFairy(536, STORY_GROUND - 96, f, 0.9);
+  }
+  // ★伏線その3：まるりんは まだ よろこんで はねて いるのに、
+  //   ようせいだけ もう ひとりで 先へ 行って しまう。顔も 色も 変えない。
+  function sceneS8Fairy(f, dur) {
+    storyStarSea(f);
+    storyBrassFloor(STORY_GROUND + 30);
+    storyTelescope(560, STORY_GROUND + 30, 0.9, f);
+    const k = Math.min(1, f / (dur * 0.9));
+    const jump = Math.abs(Math.sin(f * 0.13)) * 24;
+    storyMaru(236, STORY_GROUND + 30 - jump, 1, false);
+    storyFairy(420 + k * 210, STORY_GROUND - 90 - k * 26, f * 1.4, 0.9);
+  }
+  // ★ver6.23：レンズを のぞく まえの 1まい。ようせいが 望遠鏡を さす。
+  function sceneS8Look(f, dur) {
+    storyStarSea(f);
+    storyBrassFloor(STORY_GROUND + 30);
+    storyTelescope(560, STORY_GROUND + 30, 0.9, f);
+    const k = Math.min(1, f / (dur * 0.55));
+    // さししめす 点せん（ようせい → のぞき口）
+    ctx.strokeStyle = "rgba(160,245,220,0.6)"; ctx.lineWidth = 2.2; ctx.lineCap = "round";
+    ctx.setLineDash([6, 6]); ctx.lineDashOffset = -f * 0.6;
+    ctx.beginPath(); ctx.moveTo(446, 226); ctx.lineTo(536, 264); ctx.stroke();
+    ctx.setLineDash([]);
+    // のぞき口の きらり
+    ctx.fillStyle = "rgba(255,246,221," + (0.35 + 0.45 * Math.abs(Math.sin(f * 0.1))).toFixed(2) + ")";
+    ctx.beginPath(); ctx.arc(541, 268, 7, 0, 7); ctx.fill();
+    storyMaru(430 + k * 66, STORY_GROUND + 30, 1, k > 0.05 && k < 0.95);
+    storyFairy(430, 212, f, 0.9);
+  }
+  // ★曲を 止める まい。望遠鏡の レンズを のぞくと 神殿が 見える。
+  //   門の 前に、ちいさな かげ（ばつりん）が もう 立って いる。
+  function sceneS8Temple(f, dur) {
+    storyStarSea(f);
+    // ★文字ばこ（y≒336から 下）に かからない 高さ。0.46 だと かいだんが 切れる。
+    const cx = W / 2, cy = H * 0.40, R = 148;
+    const k = Math.min(1, f / (dur * 0.5));
+    ctx.save();
+    ctx.fillStyle = "rgba(6,8,22,0.88)"; ctx.fillRect(0, 0, W, H);
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.clip();
+    const g = ctx.createLinearGradient(0, cy - R, 0, cy + R);
+    g.addColorStop(0, "#1a2350"); g.addColorStop(1, "#6272ac");
+    ctx.fillStyle = g; ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
+    ctx.globalAlpha = 0.25 + k * 0.75;
+    storyTemple(cx, cy + 78, 0.8);
+    ctx.globalAlpha = 1;
+    ctx.save();                                                   // 門の 前の ちいさな かげ
+    ctx.translate(cx, cy + 78); ctx.scale(0.42, 0.42);
+    storyBatsu(0, 0, -1, 0.75 * k, f, false);
+    ctx.restore();
+    ctx.restore();
+    ctx.strokeStyle = "#c99b3f"; ctx.lineWidth = 12;              // レンズの ふち（真鍮）
+    ctx.beginPath(); ctx.arc(cx, cy, R + 5, 0, 7); ctx.stroke();
+    ctx.strokeStyle = "rgba(255,240,200,0.45)"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(cx, cy, R + 13, 0, 7); ctx.stroke();
+  }
+  // ★文字ばこは y≒336 から 下。ここより 下に おいた ものは **見えない**。
+  //   はじめ まるりんを STORY_GROUND+92（=392）に おいて いて、まるごと かくれて いた。
+  function sceneS8Go(f, dur) {
+    storyStarSea(f);
+    const k = Math.min(1, f / (dur * 0.6));
+    const TY = 250;                                               // 神殿の 足もと
+    ctx.save(); ctx.globalAlpha = 0.4 + k * 0.5;
+    storyTemple(620, TY, 0.5);
+    ctx.restore();
+    ctx.fillStyle = "rgba(240,206,132,0.18)";                     // 星の 道
+    ctx.beginPath();
+    ctx.moveTo(40, 338); ctx.lineTo(430, 338);
+    ctx.lineTo(636, TY); ctx.lineTo(602, TY);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#fff6dd";
+    for (let i = 0; i < 16; i++) {
+      const t = ((i * 71 + f * 2) % 320) / 320;
+      const x = 230 + (618 - 230) * t, y = 338 - (338 - TY) * t;
+      ctx.globalAlpha = 0.7 * (1 - t);
+      ctx.beginPath(); ctx.arc(x, y, 3.4 * (1 - t * 0.7), 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    storyMaru(210 + k * 44, 334, 1, true);
+    storyFairy(306 + k * 50, 250, f, 0.85);
   }
 
   // シーン4：まっくらな のはらと 一本の 線路
