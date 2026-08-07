@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 7.0 (2026-08-07)";
+  const GAME_VERSION = "異世界編 ver 7.2 (2026-08-07)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -1034,6 +1034,12 @@
     skillFreeze = 0;
     hazards = []; cukes = []; barrels = [];
     gravBalls = []; holes = [];        // ★ver6.14
+    // ★ver7.2：**フロストドラゴン戦の「天じょうの つらら」を ステージに 持ちこまない。**
+    //   ceilIce を 消して いたのは setupBossArena だけ だったので、
+    //   ドラゴンを たおして つぎの ステージに 行くと、つららが そのまま のこって
+    //   **ステージ7の 天じょうに つららが ぶら下がって 見えて いた**（オーナー報告）。
+    //   つららの y は ボス部屋の 天じょう(40)なので、ステージの 天じょう(160)より 上に 出る。
+    ceilIce = [];
     hp = maxHp;   // ステージ開始・やり直しはハート満タンから
     dragonMode = false; dragonGauge = DRAGON_MAX;
     robotMode = false;
@@ -1184,11 +1190,14 @@
     }
     if (kind === "stareye") {
       // ほしのみはり：大きな 一つ目の 真鍮の 像。動かない。**床にも 天じょうにも** くっつく。
-      //   2びょう ためて 1びょう ビームを 撃つ。ふめない。ハート3（どの スキルの 技でも こわせる）。
+      //   2びょう ためて 1びょう ビームを 撃つ。
+      // ★ver7.1：**たおせない**（オーナー指示）。まえは ハート3で どの 技でも こわせたが、
+      //   飛び道具を 撃つだけで 消えて しまい、「タイミングで くぐる」しかけに ならなかった。
+      //   → トゲトゲと 同じ「じゃまなだけの 相手」＝ぜんぶ はじく。
       const up = !!opts.ceil;
       return { kind, x: x + 2, y: up ? y + 2 : (y + TILE - 38), w: 36, h: 36, vx: 0,
                alive: true, t: Math.random()*6, squash: 1, noStomp: true, stareye: true,
-               hp: 3, edir: up ? 1 : -1, chargeT: 0, fireT: 0, beam: null,
+               hp: 99, edir: up ? 1 : -1, chargeT: 0, fireT: 0, beam: null,
                cd: 50 + Math.floor(Math.random()*70) };
     }
     if (kind === "spiky") {
@@ -1754,6 +1763,14 @@
       e.hurtT = 12; e.squash = 0.85;
       sfx.block();
       spawnParticles(e.x + e.w/2, e.y + e.h/2, "#e8e4f0", 4);
+      return false;
+    }
+    // ★ver7.1：ほしのみはりも たおせない（オーナー指示）。真鍮の 像なので 技を はじく。
+    //   「こわせない」と 分かる ように、金の 火花＋はじく 音を 出す。
+    if (e.stareye) {
+      e.hurtT = 12; e.squash = 0.92;
+      sfx.block();
+      spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#f0ce84", 5);
       return false;
     }
     e.hp = (e.hp === undefined ? 1 : e.hp) - 1;
@@ -4773,6 +4790,9 @@
     bgmWatchT = 0;
     warmStep();                     // ★つぎの 曲の 先読みも ここで 1本ずつ すすめる
     if (!desiredBgm || !desiredBgm.paused) return;
+    // ★ver7.1：鳴らす べき 曲が 止まって いる＝まだ 解禁されて いない かも。
+    //   つぎの タップで まっさきに 解禁する ように、列の いちばん まえに 出して おく。
+    primeFirst(desiredBgm);
     unmuteForPlay(desiredBgm);      // ★ねかせて ある ミュートを ここで 外す
     try { const pr = desiredBgm.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
   }
@@ -4939,8 +4959,21 @@
     } catch (e) { done(); return; }
     setTimeout(done, 25000);          // つながらない ときも つぎへ すすむ
   }
+  // ★ver7.1：**これから 使う 曲を「解禁の 列」の いちばん まえに 出す。**
+  //   解禁（primeOne）は タップの 中でしか できず、列は 80本ちかく ある。
+  //   しかも プレイ中は 0.4びょうに 1本、ボス戦では 0本 しか すすまない。
+  //   ＝先の ステージの 曲は「着いた ときに まだ 解禁されて いない」ことが あり、
+  //     スマホでは 解禁されて いない 音は タップの 外から 鳴らせない＝**むおん**に なる。
+  //   （オーナー報告「ステージ7で 曲が 流れない」。PCでは 再げん できなかったが、
+  //     ここが いちばん あやしい。まえに 出しても そんは しない。）
+  function primeFirst(a) {
+    if (!a) return;
+    const i = primeQueue.indexOf(a);
+    if (i > 0) { primeQueue.splice(i, 1); primeQueue.unshift(a); }
+  }
   // つぎに 使いそうな 曲を ならべる（ステージ i を あそんで いる とき）
   function warmForStage(i) {
+    try { primeFirst(BGM[i]); primeFirst(BOSS_BGM[i]); primeFirst(BGM[i + 1]); } catch (e) {}
     // ★loadStage(0) は この 行より **まえ**（ページを ひらいた すぐ）にも 走るので、
     //   まだ 曲が つくられて いない ことが ある。その ときは 何も しない。
     try {
@@ -10701,6 +10734,10 @@
     const ni = abilities.indexOf("normal");
     if (ni >= 0) abilityIndex = ni;
     endDragonMode(); resetTechs(p);
+    // ★ver7.1：**重力も かならず ふつうに もどす**（オーナー報告）。
+    //   ボスを さかさまの まま たおすと、そのあとの 紙芝居も さかさまの ままだった。
+    //   スキルを ノーマルに するのと 同じ すじで、紙芝居は いつも「ふつうの まるりん」。
+    if (p) { setGdir(p, 1); p.flipCd = 0; p.flipFx = 0; p.hoverT = 0; p.slam = 0; }
   }
   // ★ver6.22：曲を 止める まい（scene.silent）の あとしまつ。
   //   stopBGM() は 「いま 鳴って いる 曲」を おぼえた ままなので、
@@ -11417,7 +11454,8 @@
     drawBalls();
     drawBarrels();
     if (jets.length) drawJets();
-    if (ceilIce.length) drawCeilIce();   // 天じょうの つらら（フロストドラゴン戦）
+    // ★ver7.2：**ボス戦の あいだ だけ**（buildLevel でも 消すが、二重の 用心）
+    if (inBoss && ceilIce.length) drawCeilIce();   // 天じょうの つらら（フロストドラゴン戦）
     if (bosses.length) drawBosses();
     if (sps.length) drawDrampSPs();
     drawCukes();
@@ -16227,18 +16265,37 @@
     ctx.save();
     if (e.hurtT > 0) ctx.globalAlpha = 0.6;
     // ビーム（撃って いる あいだ）
+    // ★ver7.1：まえは 白っぽい たての ぼうで、**つららに 見えて いた**（オーナー報告）。
+    //   → 赤オレンジに して、光の わっかを 走らせる＝ひと目で「レーザー」と わかる。
     if (e.beam && e.fireT > 0) {
       const b = e.beam;
       const on = (e.fireT < 52 && e.fireT > 6);
       const w2 = on ? 9 : 4;               // 出はじめ／消えぎわは 細い＝まだ 当たらない しるし
-      const bg = ctx.createLinearGradient(cx - w2, 0, cx + w2, 0);
-      bg.addColorStop(0, "rgba(255,180,90,0)");
-      bg.addColorStop(0.5, on ? "rgba(255,226,150,0.85)" : "rgba(255,226,150,0.35)");
-      bg.addColorStop(1, "rgba(255,180,90,0)");
+      const a1 = on ? 0.9 : 0.35;
+      const bg = ctx.createLinearGradient(cx - w2 * 1.6, 0, cx + w2 * 1.6, 0);
+      bg.addColorStop(0, "rgba(255,70,40,0)");
+      bg.addColorStop(0.5, "rgba(255,90,50," + a1.toFixed(2) + ")");
+      bg.addColorStop(1, "rgba(255,70,40,0)");
       ctx.fillStyle = bg;
-      ctx.fillRect(cx - w2, b.y, w2 * 2, b.h);
-      ctx.fillStyle = on ? "rgba(255,255,240,0.95)" : "rgba(255,255,240,0.4)";
-      ctx.fillRect(cx - w2 * 0.34, b.y, w2 * 0.68, b.h);
+      ctx.fillRect(cx - w2 * 1.6, b.y, w2 * 3.2, b.h);
+      ctx.fillStyle = on ? "rgba(255,214,140,0.95)" : "rgba(255,214,140,0.4)";
+      ctx.fillRect(cx - w2 * 0.6, b.y, w2 * 1.2, b.h);
+      ctx.fillStyle = on ? "rgba(255,255,235,0.98)" : "rgba(255,255,235,0.45)";
+      ctx.fillRect(cx - w2 * 0.22, b.y, w2 * 0.44, b.h);
+      // 走る 光の わっか（うごいて いる＝ビームだと 分かる）
+      if (on) {
+        ctx.fillStyle = "rgba(255,246,214,0.85)";
+        for (let i = 0; i < 5; i++) {
+          const t = ((e.t * 7 + i * 40) % 200) / 200;
+          const yy = (d > 0) ? (b.y + b.h * t) : (b.y + b.h * (1 - t));
+          ctx.fillRect(cx - w2 * 1.5, yy, w2 * 3, 3);
+        }
+        // 出口の ひかり（目の すぐ 先）
+        ctx.fillStyle = "rgba(255,140,70,0.55)";
+        ctx.beginPath();
+        ctx.ellipse(cx, (d > 0) ? b.y + 2 : b.y + b.h - 2, w2 * 2.2, w2 * 1.1, 0, 0, 7);
+        ctx.fill();
+      }
     }
     // 台ざ（つく 面がわ）
     ctx.fillStyle = "#6d5120";
