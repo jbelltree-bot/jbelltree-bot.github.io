@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 7.3 (2026-08-07)";
+  const GAME_VERSION = "異世界編 ver 7.5 (2026-08-07)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -10923,31 +10923,17 @@
     if (state === "boss" && pk) { drawPK(); return; }   // ポルトガル：PK戦は専用画面
     if (inBoss && STAGES[stageIndex].boss === "penguins") {
       // 駅構内（ボス戦）：やわらかい室内色
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#e2e9ef");
-      g.addColorStop(1, "#eef2f6");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#e2e9ef"], [1, "#eef2f6"]]);
     } else if (inBoss && STAGES[stageIndex].boss === "sumo") {
       // 相撲場の館内（ボス戦）：あたたかい木の色
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#f0e2c6");
-      g.addColorStop(1, "#f6ecd6");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#f0e2c6"], [1, "#f6ecd6"]]);
     } else if (inBoss && STAGES[stageIndex].boss === "mega") {
       // メガロドン戦：船の上（どんよりした海の空）
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#3f6076");
-      g.addColorStop(0.5, "#5f8ea6");
-      g.addColorStop(1, "#83b3c8");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#3f6076"], [0.5, "#5f8ea6"], [1, "#83b3c8"]]);
       drawClouds();
     } else if (inBoss && STAGES[stageIndex].boss === "frostdragon") {
       // フロストドラゴン戦：氷のお城の 中の 大ひろま。氷の はしらと 吹きこむ ふぶき。
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#123a5c");
-      g.addColorStop(0.55, "#2a6a94");
-      g.addColorStop(1, "#8fc4dd");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#123a5c"], [0.55, "#2a6a94"], [1, "#8fc4dd"]]);
       // 氷の はしらが ならぶ ひろま
       for (let i = 0; i < 6; i++) {
         const px = 40 + i * 140;
@@ -10965,52 +10951,28 @@
       }
     } else if (inBoss && STAGES[stageIndex].boss === "zagat") {
       // ザガット戦：青空の遺跡（寝釈迦仏のある広場）
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#4aa8e0");
-      g.addColorStop(0.6, "#addcf0");
-      g.addColorStop(1, "#e7f5fb");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#4aa8e0"], [0.6, "#addcf0"], [1, "#e7f5fb"]]);
       drawClouds();
     } else if (theme === "thailand") {
       // タイランド：あたたかい南国の空
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#f0a94e");
-      g.addColorStop(0.5, "#f6cf86");
-      g.addColorStop(1, "#fdf0cf");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#f0a94e"], [0.5, "#f6cf86"], [1, "#fdf0cf"]]);
       drawClouds();
     } else if (theme === "portugal") {
       // ポルトガル：さわやかな海辺の青空
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#4aa6e4");
-      g.addColorStop(0.55, "#a6d8f2");
-      g.addColorStop(1, "#eaf6fc");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#4aa6e4"], [0.55, "#a6d8f2"], [1, "#eaf6fc"]]);
       drawClouds();
     } else if (theme === "america") {
       // アメリカ：広い青空
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#3f7fd0");
-      g.addColorStop(0.55, "#9cc4ee");
-      g.addColorStop(1, "#e8f2fb");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#3f7fd0"], [0.55, "#9cc4ee"], [1, "#e8f2fb"]]);
       drawClouds();
     } else if (theme === "hawaii") {
       // 前半＝ビーチの空／後半＝海の中（カメラ位置でクロスフェード）
       const t = Math.max(0, Math.min(1, (camX + W/2 - 2720) / 620));
-      let g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#4fb4ea");
-      g.addColorStop(0.6, "#a9e0f5");
-      g.addColorStop(1, "#eaf6fb");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#4fb4ea"], [0.6, "#a9e0f5"], [1, "#eaf6fb"]]);
       if (t < 0.92) drawClouds();
       if (t > 0) {
         ctx.save(); ctx.globalAlpha = t;
-        const u = ctx.createLinearGradient(0, 0, 0, H);
-        u.addColorStop(0, "#1a86b8");
-        u.addColorStop(0.55, "#137aa8");
-        u.addColorStop(1, "#0c5a82");
-        ctx.fillStyle = u; ctx.fillRect(0, 0, W, H);
+        fillSky([[0, "#1a86b8"], [0.55, "#137aa8"], [1, "#0c5a82"]]);
         // 光のすじ
         ctx.fillStyle = "rgba(200,240,255,0.12)";
         for (let i = 0; i < 4; i++) {
@@ -11021,21 +10983,12 @@
       }
     } else if (theme === "rpg") {
       // はじまりの草原：ぬけるような青空（王道RPGの旅立ちの空）
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#2f7fd6");
-      g.addColorStop(0.5, "#7cc0ee");
-      g.addColorStop(1, "#d8f0ff");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#2f7fd6"], [0.5, "#7cc0ee"], [1, "#d8f0ff"]]);
       drawClouds();
       drawHills();
     } else if (theme === "fantasy") {
       // ファンタジー：魔法の国の空（紫〜ピンクの夕暮れっぽい幻想色＋星）
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#4a3a8a");
-      g.addColorStop(0.45, "#8a6ac0");
-      g.addColorStop(0.8, "#d8a6d8");
-      g.addColorStop(1, "#f6d8e8");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#4a3a8a"], [0.45, "#8a6ac0"], [0.8, "#d8a6d8"], [1, "#f6d8e8"]]);
       // またたく星（画面座標・ゆっくり流れる）
       for (let i = 0; i < 14; i++) {
         const sx = ((i * 173 + 60 - camX * 0.08) % (W + 40) + W + 40) % (W + 40) - 20;
@@ -11047,12 +11000,7 @@
       drawClouds();
     } else if (theme === "tower") {
       // 魔法の塔：夜空（深い藍〜むらさき）＋大きな月＋星
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#12143a");
-      g.addColorStop(0.45, "#2a2260");
-      g.addColorStop(0.8, "#59397e");
-      g.addColorStop(1, "#8a5a86");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#12143a"], [0.45, "#2a2260"], [0.8, "#59397e"], [1, "#8a5a86"]]);
       // 星（カメラでゆっくり動く／のぼるほど たくさん見える）
       for (let i = 0; i < 34; i++) {
         const sx = ((i * 211 + 40 - camX * 0.06) % (W + 60) + W + 60) % (W + 60) - 30;
@@ -11073,12 +11021,7 @@
       ctx.beginPath(); ctx.arc(mx - 6, my + 20, 6, 0, 7); ctx.fill();
     } else if (theme === "honnoji") {
       // 本能寺の変：真夜中。下のほうが 火事の あかりで 赤い
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#080a1e");
-      g.addColorStop(0.42, "#1b1330");
-      g.addColorStop(0.72, "#4a1f27");
-      g.addColorStop(1, "#8d3a20");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#080a1e"], [0.42, "#1b1330"], [0.72, "#4a1f27"], [1, "#8d3a20"]]);
       // 星（火の あかりで 下のほうは 見えない）
       for (let i = 0; i < 26; i++) {
         const sx = ((i * 197 + 30 - camX * 0.05) % (W + 60) + W + 60) % (W + 60) - 30;
@@ -11105,12 +11048,7 @@
       // あの世行きの汽車：真夜中の 彼岸。
       // ★汽車が 右へ 走っているので、まるりんが 止まっていても けしきは 左へ 流れる。
       //   だから 視差は camX だけでなく elapsed でも 動かす（これが「走っている感」の 正体）。
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#08061c");
-      g.addColorStop(0.38, "#191139");
-      g.addColorStop(0.70, "#3a2058");
-      g.addColorStop(1, "#63305a");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#08061c"], [0.38, "#191139"], [0.70, "#3a2058"], [1, "#63305a"]]);
 
       // 星（いちばん 遠いので ゆっくり）
       for (let i = 0; i < 30; i++) {
@@ -11157,11 +11095,7 @@
       }
     } else if (theme === "ice" && iceIndoor()) {
       // ★ステージ6の 後半＝お城の 中。空の かわりに 氷の れんがの かべ。
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#0e2b46");
-      g.addColorStop(0.5, "#1c4a70");
-      g.addColorStop(1, "#2b6a92");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#0e2b46"], [0.5, "#1c4a70"], [1, "#2b6a92"]]);
       // 氷の れんが（カメラで ゆっくり 動く＝おくの かべ）
       const bw = 96, bh = 48;
       const ox = (camX * 0.25) % (bw * 2), oy = (camY * 0.25) % bh;
@@ -11213,12 +11147,7 @@
       // 氷のお城（雪の山）：うすい 水いろの 冬の 空＋オーロラ＋ふぶき。
       // ★夜では なく「うす明るい 昼の ふぶき」に した。白い 氷の 足場が
       //   いちばん 見やすいのが この あかるさ だから。
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#5d84b8");
-      g.addColorStop(0.4, "#9dc3e0");
-      g.addColorStop(0.75, "#d3e8f4");
-      g.addColorStop(1, "#eef7fb");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#5d84b8"], [0.4, "#9dc3e0"], [0.75, "#d3e8f4"], [1, "#eef7fb"]]);
       // オーロラ（そらの おく。ゆっくり ゆれる）
       for (let i = 0; i < 3; i++) {
         const ay = 40 + i * 26;
@@ -11275,11 +11204,7 @@
       // ★処理落ち よけの きまり（ver6.13で 学んだ こと）：
       //   ・shadowBlur は つかわない
       //   ・つぶつぶは **1つの みちすじに まとめて 1回 fill**
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#080b22");
-      g.addColorStop(0.55, "#111845");
-      g.addColorStop(1, "#1d1a4a");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#080b22"], [0.55, "#111845"], [1, "#1d1a4a"]]);
 
       // ── おく① 天の川（ななめの うすい おび）
       const mw = ctx.createLinearGradient(0, H * 0.1, W, H * 0.85);
@@ -11360,12 +11285,7 @@
       // ネオン・ハムシティ：近未来の 夜の 街。
       // ★「からくり屋敷」ではなく 近未来（ユーザー指示）。夜にしたのは、
       //   ロボットの 水色の ひかり（ビーム・バリア・ジェット）が いちばん 映えるから。
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#070b1c");
-      g.addColorStop(0.42, "#141a3c");
-      g.addColorStop(0.78, "#2a1d46");
-      g.addColorStop(1, "#3d2352");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#070b1c"], [0.42, "#141a3c"], [0.78, "#2a1d46"], [1, "#3d2352"]]);
       // 星（ビルの すきまに 少しだけ）
       for (let i = 0; i < 40; i++) {
         const sx = (i * 173) % W, sy = (i * 97) % Math.floor(H * 0.45);
@@ -11393,29 +11313,17 @@
       }
     } else if (theme === "town") {
       // 街の空（少しやわらかい水色）
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#9fd8f2");
-      g.addColorStop(0.55, "#cdeaf6");
-      g.addColorStop(1, "#eef7fb");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#9fd8f2"], [0.55, "#cdeaf6"], [1, "#eef7fb"]]);
       drawClouds();
       drawSkyline();
     } else if (theme === "narita") {
       // 成田：やわらかい青空＋緑の木立
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#8fcdf0");
-      g.addColorStop(0.55, "#c6e7f4");
-      g.addColorStop(1, "#eaf6ef");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#8fcdf0"], [0.55, "#c6e7f4"], [1, "#eaf6ef"]]);
       drawClouds();
       drawHills();
     } else {
       // 空グラデーション（くさはら）
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#8fd3ff");
-      g.addColorStop(0.6, "#bfe9ff");
-      g.addColorStop(1, "#e8f8ff");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      fillSky([[0, "#8fd3ff"], [0.6, "#bfe9ff"], [1, "#e8f8ff"]]);
       drawClouds();
       drawHills();
     }
@@ -11527,6 +11435,33 @@
   //   それを 3〜4回 はりつける だけに する（えがき方の 数 約900 → 約10）。
   //   おまけ：まえは スクロールの たびに まどの 色が ちらちら 変わって いたが、
   //   焼いた 絵に した ことで **ちらつきも なくなる**。
+  // ★ver7.4：空の グラデーションを **1回 焼いて、あとは はりつける**。
+  //   800x450 を まいコマ グラデーションで ぬるのは、スマホでは とても 重い
+  //   （色を 1つぶ ずつ 計算しなおす から）。焼いた 絵なら ただの コピー。
+  //   見た目は まったく 同じ。おき場は 4まいまで＝ハワイのように
+  //   1コマで 2まい つかう ところが あるから。
+  const skyBaked = [];
+  function fillSky(stops) {
+    let key = "";
+    for (let i = 0; i < stops.length; i++) key += stops[i][0] + stops[i][1] + ";";
+    for (let i = 0; i < skyBaked.length; i++) {
+      if (skyBaked[i].key === key) {
+        if (i > 0) { const hit = skyBaked.splice(i, 1)[0]; skyBaked.unshift(hit); }
+        ctx.drawImage(skyBaked[0].cv, 0, 0);
+        return;
+      }
+    }
+    const cv = document.createElement("canvas");
+    cv.width = W; cv.height = H;
+    const c = cv.getContext("2d");
+    const g = c.createLinearGradient(0, 0, 0, H);
+    for (let i = 0; i < stops.length; i++) g.addColorStop(stops[i][0], stops[i][1]);
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    skyBaked.unshift({ key: key, cv: cv });
+    if (skyBaked.length > 4) skyBaked.length = 4;
+    ctx.drawImage(cv, 0, 0);
+  }
+
   const NEON_LAYERS = [[0.14, "#0d1230", 0.34, 150],
                        [0.30, "#151a44", 0.50, 120],
                        [0.52, "#1d2456", 0.66, 96]];
@@ -11535,9 +11470,19 @@
     neonTiles = NEON_LAYERS.map(L => {
       const par = L[0], col = L[1], base = L[2], span = L[3];
       const tw = span * 5;                 // 5けんで ひとまわり
+      // ★ver7.4：**ビルより 上の すきとった ところは 焼かない**。
+      //   まえは たて450px ぜんぶを はって いたが、上のほうは 何も 描いて いない。
+      //   いちばん 高い ビルの てっぺんから 下 だけに する。
+      let minTop = H;
+      for (let j = 0; j < 5; j++) {
+        const bh0 = 60 + ((j * 37 + span) % 5) * 26;
+        minTop = Math.min(minTop, H * base - bh0);
+      }
+      const y0 = Math.max(0, Math.floor(minTop) - 2);
       const cv = document.createElement("canvas");
-      cv.width = tw; cv.height = H;
+      cv.width = tw; cv.height = H - y0;
       const c = cv.getContext("2d");
+      c.translate(0, -y0);                 // 中みの 座標は そのままで いい
       for (let j = 0; j < 5; j++) {
         const bx = j * span;
         const bh = 60 + ((j * 37 + span) % 5) * 26;
@@ -11556,14 +11501,28 @@
           }
         }
       }
-      return { cv, span, par, tw };
+      return { cv, span, par, tw, y0, h: H - y0 };
     });
   }
+  // ★ver7.4：**画面に 出る ぶん だけ** を きりとって はる。
+  //   まえの やり方（タイルを まるごと 3まい かさねる）だと：
+  //     ・1まいめは いつも 画面の 外＝まるまる むだ（off < span < tw なので x+tw <= 0）
+  //     ・のこりも 2250px ぶん ぬって いた（画面は 800px しか ない）
+  //     ・ずらす 量を span で わって いたので、タイル（tw＝span×5）の つなぎ目が
+  //       とぶ＝ビルが ときどき 入れかわって 見えて いた
+  //   → よこ 800px ぶん ちょうど・たては ビルの ぶん だけ。3そう 合わせて
+  //     ぬる 広さが 約2.7ばい へる（オーナー報告の カクつきの いちばんの もと）。
   function drawNeonBuildings() {
     if (!neonTiles) buildNeonTiles();
     for (const t of neonTiles) {
-      const off = (camX * t.par) % t.span;
-      for (let x = -off - t.tw; x < W; x += t.tw) ctx.drawImage(t.cv, Math.round(x), 0);
+      let sx = Math.floor(((camX * t.par) % t.tw + t.tw) % t.tw);
+      let dx = 0;
+      while (dx < W) {
+        const w = Math.min(t.tw - sx, W - dx);
+        if (w <= 0) break;
+        ctx.drawImage(t.cv, sx, 0, w, t.h, dx, t.y0, w, t.h);
+        dx += w; sx = 0;
+      }
     }
   }
 
@@ -16714,9 +16673,7 @@
   function drawMotherBackdrop() {
     const t = elapsed;
     // 奥の へや
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#0a1030"); g.addColorStop(1, "#131a3c");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#0a1030"], [1, "#131a3c"]]);
     // ネオンの すじ（奥）
     for (let i = 0; i < 7; i++) {
       const y = 40 + i * 44;
@@ -17285,11 +17242,7 @@
   }
 
   function drawWizardArenaBackdrop() {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#2a2350");
-    g.addColorStop(0.6, "#3a2f60");
-    g.addColorStop(1, "#241e40");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#2a2350"], [0.6, "#3a2f60"], [1, "#241e40"]]);
     // 石づみのかべ
     ctx.strokeStyle = "rgba(18,14,36,0.5)"; ctx.lineWidth = 2;
     for (let r = 0; r * 60 < BOSS_GROUND + 60; r++) {
@@ -21703,12 +21656,7 @@
   function drawTitleBackdrop() {
     const t = elapsed;
     // 夜空
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#05030f");
-    g.addColorStop(0.45, "#140c33");
-    g.addColorStop(0.8, "#2a1050");
-    g.addColorStop(1, "#12082a");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#05030f"], [0.45, "#140c33"], [0.8, "#2a1050"], [1, "#12082a"]]);
     // 紫のオーラ（ぼんやり光る）
     const auraR = 260 + Math.sin(t * 0.012) * 18;
     const ag = ctx.createRadialGradient(W/2, H*0.46, 20, W/2, H*0.46, auraR);
@@ -21787,9 +21735,7 @@
   ];
   function drawHub() {
     // かべ（うすむらさきの 石）
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#1a1030"); g.addColorStop(0.6, "#2a1c48"); g.addColorStop(1, "#191030");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#1a1030"], [0.6, "#2a1c48"], [1, "#191030"]]);
     // 石の めじ
     ctx.strokeStyle = "rgba(255,255,255,0.05)"; ctx.lineWidth = 1;
     for (let y = 30; y < HUB_GROUND; y += 34) {
@@ -21948,9 +21894,7 @@
   function drawStageNameScreen() {
     const t = stageNameT;
     const a = t < 18 ? t / 18 : (t > STAGE_NAME_TIME - 22 ? Math.max(0, (STAGE_NAME_TIME - t) / 22) : 1);
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#0b0e2a"); g.addColorStop(0.5, "#1a1c4a"); g.addColorStop(1, "#0b0e2a");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#0b0e2a"], [0.5, "#1a1c4a"], [1, "#0b0e2a"]]);
     // ゆっくり流れる星
     for (let i = 0; i < 44; i++) {
       const x = ((i * 197 + t * 0.5) % (W + 40)) - 20, y = (i * 83) % H;
@@ -22378,9 +22322,7 @@
 
   // まっしろな いじげんの すきま
   function storyWhiteVoid(f) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#ffffff"); g.addColorStop(0.55, "#f0fbff"); g.addColorStop(1, "#e2f0ff");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#ffffff"], [0.55, "#f0fbff"], [1, "#e2f0ff"]]);
     for (let i = 0; i < 10; i++) {
       const x = ((i * 173 + f * 0.5) % (W + 100)) - 50;
       const y = 40 + ((i * 97) % 210) + Math.sin(f * 0.03 + i) * 10;
@@ -22511,9 +22453,7 @@
 
   // シーンO6：はじまりの草原に とうちゃく
   function sceneOpArrive(f, dur) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#2f7fd6"); g.addColorStop(0.5, "#7cc0ee"); g.addColorStop(1, "#d8f0ff");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#2f7fd6"], [0.5, "#7cc0ee"], [1, "#d8f0ff"]]);
     // くも
     ctx.fillStyle = "rgba(255,255,255,0.9)";
     for (const [cxx, cyy, cr] of [[140, 70, 34], [430, 52, 28], [660, 86, 32]]) {
@@ -22601,9 +22541,7 @@
   }
   // 夜空（星＋月）
   function storyNightSky() {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#12143a"); g.addColorStop(0.5, "#2a2260"); g.addColorStop(1, "#7a4d78");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#12143a"], [0.5, "#2a2260"], [1, "#7a4d78"]]);
     for (let i = 0; i < 40; i++) {
       const sx = (i * 211) % W, sy = (i * 137) % 260;
       const tw = 0.5 + Math.sin(elapsed * 0.04 + i * 1.3) * 0.5;
@@ -22645,9 +22583,7 @@
 
   // そうげんの背景（シーン1と2で共通）
   function storyMeadow(f) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#2f7fd6"); g.addColorStop(0.5, "#7cc0ee"); g.addColorStop(1, "#d8f0ff");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#2f7fd6"], [0.5, "#7cc0ee"], [1, "#d8f0ff"]]);
     ctx.fillStyle = "rgba(255,255,255,0.9)";
     for (const [cxx, cyy, cr] of [[150, 66, 34], [470, 48, 26], [690, 92, 30]]) {
       ctx.beginPath();
@@ -22728,10 +22664,7 @@
 
   // シーン4：魔法の国に とうちゃく（紫の空・光るキノコ・水晶）＋遠くに塔
   function sceneMagicLand(f, dur) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#4a3a8a"); g.addColorStop(0.45, "#8a6ac0");
-    g.addColorStop(0.8, "#d8a6d8"); g.addColorStop(1, "#f6d8e8");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#4a3a8a"], [0.45, "#8a6ac0"], [0.8, "#d8a6d8"], [1, "#f6d8e8"]]);
     // またたく星
     for (let i = 0; i < 18; i++) {
       const sx = (i * 173 + 40) % W, sy = 18 + ((i * 97) % 190);
@@ -22870,10 +22803,7 @@
   // ===== ステージ4前の 紙芝居（あの世行きの汽車）=====
   // 夜の のはら（線路つき）。sc で 線路の 見えぐあいを かえる。
   function storyNightField(f, railAlpha) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#08061c"); g.addColorStop(0.42, "#191139");
-    g.addColorStop(0.75, "#3a2058"); g.addColorStop(1, "#63305a");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#08061c"], [0.42, "#191139"], [0.75, "#3a2058"], [1, "#63305a"]]);
     for (let i = 0; i < 26; i++) {
       const sx = (i * 191 + 30) % W, sy = 14 + ((i * 113) % 170);
       const tw = 0.5 + Math.sin(f * 0.05 + i * 1.7) * 0.5;
@@ -22976,10 +22906,7 @@
   // 下じきに した シーンが もう一度 まるりんを 描いて 2ひきに なるため。
   function s4Ruins(f, dur) {
     const k = Math.min(1, f / dur);
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#080a1e"); g.addColorStop(0.45, "#1b1330");
-    g.addColorStop(0.78, "#4a1f27"); g.addColorStop(1, "#6d3020");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#080a1e"], [0.45, "#1b1330"], [0.78, "#4a1f27"], [1, "#6d3020"]]);
     for (let i = 0; i < 20; i++) {
       const sx = (i * 173 + 30) % W, sy = 14 + ((i * 97) % 150);
       ctx.fillStyle = "rgba(255,244,214," + (0.2 + Math.sin(f * 0.05 + i) * 0.25) + ")";
@@ -23073,9 +23000,7 @@
   // ★まるりんと ようせいは **入れない**。ここを 背景として 使いまわす まいが あり、
   //   その まいが もう1ぴき 描くと **まるりんが 2ひきに 見えて しまう**（ユーザー指摘）。
   function s5CityBase(f) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#0a1030"); g.addColorStop(0.6, "#1b1440"); g.addColorStop(1, "#3a1f4e");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#0a1030"], [0.6, "#1b1440"], [1, "#3a1f4e"]]);
     for (let i = 0; i < 40; i++) {
       const x = (i * 173) % W, y = (i * 61) % 140;
       ctx.globalAlpha = 0.3 + 0.5 * Math.abs(Math.sin(f * 0.04 + i));
@@ -23227,12 +23152,7 @@
   }
   // 雪の 山の けしき（紙芝居用）
   function storySnowField(f, k) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#4a6d99");
-    g.addColorStop(0.4, "#8fb4d4");
-    g.addColorStop(0.78, "#cfe4f2");
-    g.addColorStop(1, "#eef7fb");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#4a6d99"], [0.4, "#8fb4d4"], [0.78, "#cfe4f2"], [1, "#eef7fb"]]);
     // オーロラ
     for (let i = 0; i < 2; i++) {
       const ay = 46 + i * 30;
@@ -23343,9 +23263,7 @@
   // ================= ステージ7の 前後の 紙芝居（ver6.22）=================
   // 星の 海。**上にも 下にも 星が ある**＝どっちが 空か わからない、が この 世界の かお。
   function storyStarSea(f) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#080b22"); g.addColorStop(0.5, "#131a48"); g.addColorStop(1, "#080b22");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#080b22"], [0.5, "#131a48"], [1, "#080b22"]]);
     // 天の川（ななめの うすい おび）
     const mw = ctx.createLinearGradient(0, H * 0.1, W, H * 0.9);
     mw.addColorStop(0, "rgba(150,170,255,0)");
@@ -23734,10 +23652,7 @@
 
   // シーン6：走りだす（車窓）
   function sceneS4Ride(f, dur) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#08061c"); g.addColorStop(0.45, "#191139");
-    g.addColorStop(1, "#3a2058");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#08061c"], [0.45, "#191139"], [1, "#3a2058"]]);
     // 車内（まどわく）
     const run = f * 9;
     ctx.save();
@@ -23796,9 +23711,7 @@
   }
 
   function sceneReturn(f, dur) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#ffb15a"); g.addColorStop(0.5, "#ffd7a0"); g.addColorStop(1, "#fdeccf");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#ffb15a"], [0.5, "#ffd7a0"], [1, "#fdeccf"]]);
     ctx.fillStyle = "rgba(255,170,80,0.85)"; ctx.beginPath(); ctx.arc(130, 96, 42, 0, 7); ctx.fill();
     storyTownSilhouette(0.45);
     ctx.fillStyle = "#cdb488"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
@@ -23832,9 +23745,7 @@
   }
   // シーン3：ふたりを探して冒険に出発（夕焼けの道を走る）
   function sceneSetOut(f, dur) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#f2894a"); g.addColorStop(0.5, "#f7b070"); g.addColorStop(1, "#ffe0b0");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#f2894a"], [0.5, "#f7b070"], [1, "#ffe0b0"]]);
     ctx.fillStyle = "rgba(255,150,70,0.85)"; ctx.beginPath(); ctx.arc(W - 140, 110, 46, 0, 7); ctx.fill();
     storyTownSilhouette(0.4);
     ctx.fillStyle = "#c7ac80"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
@@ -23845,9 +23756,7 @@
   }
   // シーン4：街のみんなが狂暴になって襲ってくる
   function sceneRampage(f, dur) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#3a2140"); g.addColorStop(0.55, "#6a2836"); g.addColorStop(1, "#9c3a40");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#3a2140"], [0.55, "#6a2836"], [1, "#9c3a40"]]);
     storyTownSilhouette(0.5);
     ctx.fillStyle = "#5a4038"; ctx.fillRect(0, STORY_GROUND, W, H - STORY_GROUND);
     ctx.fillStyle = "#4a332c"; ctx.fillRect(0, STORY_GROUND, W, 6);
@@ -23864,9 +23773,7 @@
   }
   // シーン5：ぶじに会えるのか——？（たそがれ・遠くを見つめる）
   function sceneCliff(f, dur) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#2b2b55"); g.addColorStop(0.5, "#5b4a77"); g.addColorStop(1, "#c98a6a");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#2b2b55"], [0.5, "#5b4a77"], [1, "#c98a6a"]]);
     for (const s of [[120, 70], [260, 50], [420, 90], [600, 60], [700, 100]]) {
       ctx.globalAlpha = 0.5 + 0.5 * Math.sin(f * 0.1 + s[0]); ctx.fillStyle = "#ffffff";
       ctx.beginPath(); ctx.arc(s[0], s[1], 1.8, 0, 7); ctx.fill();
@@ -23950,9 +23857,7 @@
   }
   // 成田空港の背景（まるりん以外）
   function storyAirportBg(f, showPlane) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#7ec2ee"); g.addColorStop(0.6, "#bfe2f5"); g.addColorStop(1, "#e6f4fb");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#7ec2ee"], [0.6, "#bfe2f5"], [1, "#e6f4fb"]]);
     storyClouds(f, 0.25);
     // ターミナル
     ctx.fillStyle = "#cfd8e0"; ctx.fillRect(0, STORY_GROUND - 64, W, 64);
@@ -23995,9 +23900,7 @@
   }
   // シーン3：飛行機に乗って飛び立つ（斜め上へ上昇）
   function sceneTakeoff(f, dur) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#5fb0ea"); g.addColorStop(0.6, "#a8d8f4"); g.addColorStop(1, "#dff0fb");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#5fb0ea"], [0.6, "#a8d8f4"], [1, "#dff0fb"]]);
     storyClouds(f, 0.9);
     // 遠ざかる地面（下へ）
     const gy = H - 40 + (f / dur) * 120;
@@ -24011,9 +23914,7 @@
   }
   // シーン4：海を越えて新しい国へ（島が見えてくる）
   function sceneOcean(f, dur) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#6bb8ec"); g.addColorStop(0.5, "#a6d8f2"); g.addColorStop(0.65, "#dff0fb");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#6bb8ec"], [0.5, "#a6d8f2"], [0.65, "#dff0fb"]]);
     storyClouds(f, 0.6);
     // 海
     const seaY = 330;
@@ -24193,9 +24094,7 @@
     ctx.restore();
   }
   function storyStarfield(f) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#0a0620"); g.addColorStop(0.6, "#161038"); g.addColorStop(1, "#241a4a");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    fillSky([[0, "#0a0620"], [0.6, "#161038"], [1, "#241a4a"]]);
     for (let i = 0; i < 60; i++) { const x = (i * 137) % W, y = (i * 89) % H; ctx.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(f * 0.05 + i)); ctx.fillStyle = i % 7 ? "#ffffff" : "#bfa0ff"; ctx.fillRect(x, y, 2, 2); }
     ctx.globalAlpha = 1;
   }
@@ -24421,8 +24320,12 @@
 
   // ---------- ループ ----------
   // ★「ときどき カクつく」の しらべ用（ユーザー報告 ver6.5）。
-  //   URL の うしろに **?fps=1** を つけた ときだけ、左下に コマ数を 出す。
+  //   URL の うしろに **?fps=1** を つけた ときだけ、コマ数を 出す。
   //   いま／さいあく／おそい コマの 数（1秒に 何回 30コマを 切ったか）が わかる。
+  // ★ver7.5：まえは **左下**に 出して いたので、スマホ／タブレットでは
+  //   じゅうじボタンに かくれて 読めなかった（オーナーに 実機の 数字を
+  //   見せて もらう ために 直した）。画面の **上・まん中**に 大きく 出す。
+  //   どの ばめんで 計ったのかも いっしょに 出す＝スクリーンショット 1まいで つたわる。
   const SHOW_FPS = /[?&]fps=1/.test(location.search);
   let fpsPrev = 0, fpsAcc = 0, fpsCnt = 0, fpsNow = 0, fpsSlow = 0, fpsSlowShown = 0, fpsT0 = 0;
   // ★ver6.8：worst は **さいきん 10びょうの さいあく**に する。
@@ -24450,19 +24353,34 @@
       fpsSlowShown = fpsSlow; fpsSlow = 0;
       fpsAcc = 0; fpsCnt = 0;
     }
+    const bw = 264, bx = (W - bw) / 2, by = 46;
     ctx.save();
-    ctx.globalAlpha = 0.85;
-    ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.fillRect(4, H - 42, 168, 38);
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = "rgba(0,0,0,0.66)"; ctx.fillRect(bx, by, bw, 52);
+    ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 1;
+    ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, 51);
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
     ctx.fillStyle = fpsNow >= 50 ? "#8fe08f" : (fpsNow >= 35 ? "#ffd85e" : "#ff8a8a");
-    ctx.font = "bold 15px 'Segoe UI', monospace"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.font = "bold 20px 'Segoe UI', monospace";
     {
       const w = fpsWorstNow();
-      ctx.fillText("fps " + fpsNow + "  worst " + (w > 900 ? "-" : w), 10, H - 25);
+      ctx.fillText("fps " + fpsNow + "   worst " + (w > 900 ? "-" : w) +
+                   "   slow/s " + fpsSlowShown, bx + 10, by + 24);
     }
     ctx.fillStyle = "#cbb8ff";
-    ctx.font = "12px 'Segoe UI', monospace";
-    ctx.fillText("slow/s " + fpsSlowShown, 10, H - 10);
+    ctx.font = "13px 'Segoe UI', monospace";
+    ctx.fillText(fpsWhere(), bx + 10, by + 43);
     ctx.restore();
+  }
+  // いま どこを 計って いるのか（スクリーンショットだけで つたわる ように）
+  function fpsWhere() {
+    if (state === "menu") return "タイトル";
+    if (state === "story") return "紙芝居";
+    if (state === "hub") return "とびらの間";
+    const st = STAGES[stageIndex];
+    const nm = st ? st.name : "?";
+    if (inBoss) return "ボス " + (bosses[0] ? (bosses[0].name || bosses[0].kind) : "") + " / " + nm;
+    return "ステージ" + (stageIndex + 1) + " " + nm;
   }
   // ★★ 処理落ち対さく（ユーザー報告「スマホで ときどき カクつく／ひどい」）★★
   //   まえは requestAnimationFrame が よばれる たびに 1コマ すすめて、まいかい 描いて いた。
