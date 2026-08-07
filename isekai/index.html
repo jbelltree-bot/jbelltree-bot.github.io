@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 7.2 (2026-08-07)";
+  const GAME_VERSION = "異世界編 ver 7.3 (2026-08-07)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -2172,6 +2172,16 @@
       b.t++; b.x += b.vx;
       for (const e of enemies) {
         if (!e.alive || !rectHit(b, e)) continue;
+        // ★ver7.3：ほしのみはりは 面に ボルトで とめた 真鍮の 像。**一歩も うごかない**。
+        //   まえは じゅうりょくだまで 天じょう⇔地面へ 飛ばせて しまい、
+        //   「たおせない」はずの てきを **どかして 無効に できて いた**（オーナー報告）。
+        //   → たまが はじかれる。金の 火花＋はじく 音で「きかない」と ひと目で 分かる ように。
+        if (e.stareye) {
+          e.hurtT = 12; e.squash = 0.92;
+          sfx.block();
+          spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#f0ce84", 6);
+          b.t = 999; break;
+        }
         liftEnemy(e);                       // ★ver6.16：ここでは たおさない。まず うかせる
         spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#a06bff", 8);
         b.t = 999; break;
@@ -2214,6 +2224,8 @@
   const GLIFT = 26;         // うきあがって いる ながさ
   function liftEnemy(e) {
     if (!e || !e.alive) return;
+    // ★ver7.3：ほしのみはりは うかない（うかせる技が ふえても ここで 止まる）。
+    if (e.stareye) return;
     e.gLift = GLIFT; e.gSlam = 0;
     e.vy = -6.6; e.onGround = false;
     beep(520, 0.1, "sine", 0.05);
@@ -2552,6 +2564,12 @@
         if (!e.alive) continue;
         const dx = h.x - (e.x + e.w / 2), dy = h.y - (e.y + e.h / 2), d = Math.hypot(dx, dy);
         if (d > R || d < 0.5) continue;
+        // ★ver7.3：ほしのみはりは ブラックホールでも うごかない（じゅうりょくだまと 同じ りゆう）。
+        //   吸われて 場所が ずれると、たおせない はずの てきを どかせて しまう。
+        if (e.stareye) {
+          if (h.t % 10 === 0) spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#f0ce84", 2);
+          continue;
+        }
         e.x += dx / d * 2.4; e.y += dy / d * 1.9; e.onGround = false;
         // ★ver6.18：いんせきは 吸いこむと **コインに なる**（よけるだけの てきに ごほうびを つける）
         if (e.meteor && !e.harmless && d < h.r + 16) {
