@@ -250,7 +250,7 @@
   </div>
   <div class="side right">
     <div id="abtns">
-      <button class="rbtn b" data-act="dash" aria-label="ダッシュ">B<small>ダッシュ</small></button>
+      <button class="rbtn b" data-act="abil" aria-label="たね">B<small>たね</small></button>
       <button class="rbtn a" data-act="jump" aria-label="ジャンプ">A<small>ジャンプ</small></button>
     </div>
   </div>
@@ -268,7 +268,7 @@
   const contNote = document.getElementById("contNote");
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
-  const GAME_VERSION = "ver 7.10 (2026-07-11)";
+  const GAME_VERSION = "ver 7.11 (2026-07-11)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -652,13 +652,20 @@
     keys[k] = true;
     if (!DOWN[k]) { DOWN[k] = true; onPress(k); }
   });
-  window.addEventListener("keyup", (e) => { const k = e.key.toLowerCase(); keys[k] = false; DOWN[k] = false; });
+  window.addEventListener("keyup", (e) => {
+    const k = e.key.toLowerCase(); keys[k] = false; DOWN[k] = false;
+    if (k === "arrowleft" || k === "a") dirReleased(-1);
+    else if (k === "arrowright" || k === "d") dirReleased(1);
+  });
 
   function onPress(k) {
     if (state === "story") {
       if ([" ", "enter", "arrowup", "w", "arrowright", "d", "z", "x"].includes(k)) advanceStory();
       return;
     }
+    // ダッシュ（方向キー2回押し）※プレイ中のみ
+    if (k === "arrowleft" || k === "a") dirPressed(-1);
+    else if (k === "arrowright" || k === "d") dirPressed(1);
     if (k === "p" && (state === "play" || state === "pause")) {
       state = state === "play" ? "pause" : "play";
       if (state === "pause") stopBGM(); else startBGM();
@@ -669,15 +676,26 @@
     }
   }
   // タッチ入力の状態
-  const touch = { left: false, right: false, up: false, down: false, dash: false };
+  const touch = { left: false, right: false, up: false, down: false, abil: false };
+
+  // ダッシュ＝方向を2回押し（カービィ方式・異世界編と同じ操作）。同じ方向を素早く2回押すと、その方向を押している間ダッシュ。Shiftも併用可。
+  let dashLatch = 0;                      // -1/1=その方向へダッシュ中, 0=なし
+  let lastDirTap = { dir: 0, t: 0 };
+  function dirPressed(dir) {
+    const now = (typeof performance !== "undefined" ? performance.now() : Date.now());
+    if (lastDirTap.dir === dir && now - lastDirTap.t < 280) dashLatch = dir;
+    lastDirTap = { dir, t: now };
+  }
+  function dirReleased(dir) { if (dashLatch === dir) dashLatch = 0; }
 
   function left()  { return keys["arrowleft"]  || keys["a"] || touch.left; }
   function right() { return keys["arrowright"] || keys["d"] || touch.right; }
   function jumpKey(){ return keys[" "] || keys["arrowup"] || keys["w"] || touch.up; }
-  function running(){ return keys["shift"] || touch.dash; }
+  function seedBtn(){ return keys["x"] || touch.abil; }   // B ボタン＝たね発射
+  function running(){ return keys["shift"] || dashLatch !== 0; }
   let jumpHeld = false;
   let jumpBuffer = 0;   // ジャンプ押下の猶予（踏みつけ高ジャンプのタイミング判定用）
-  let dashPrev = false; // Bボタン（ダッシュ）の押した瞬間を検出して種を発射
+  let seedPrev = false; // Bボタン（たね）の押した瞬間を検出して種を発射
 
   // たねまるりん：Bボタンを押した瞬間に種を前へ飛ばす
   function fireSeed() {
@@ -694,13 +712,13 @@
     spawnParticles(p.face > 0 ? p.x + p.w : p.x, p.y + p.h*0.4, "#ffd34d", 3);
   }
 
-  // タッチボタンの割り当て（A=ジャンプ, B=ダッシュ, 十字キー=移動）
+  // タッチボタンの割り当て（A=ジャンプ, B=たね, 十字キー=移動／◀▶を2回押しでダッシュ）
   function applyTouch(act, v) {
-    if (act === "left")       touch.left = v;
-    else if (act === "right") touch.right = v;
+    if (act === "left")       { touch.left = v;  if (v) dirPressed(-1); else dirReleased(-1); }
+    else if (act === "right") { touch.right = v; if (v) dirPressed(1);  else dirReleased(1); }
     else if (act === "down")  touch.down = v;
     else if (act === "up" || act === "jump") touch.up = v;   // ▲ / A ボタン
-    else if (act === "dash")  touch.dash = v;                // B ボタン
+    else if (act === "abil")  touch.abil = v;                // B ボタン（たね）
   }
   function bindTouch() {
     // どのポインタ（指/マウス）がどのボタンを押しているか記録
@@ -724,7 +742,8 @@
     // 保険：タブ切替やフォーカス喪失で全ボタンを解除
     const clearAll = () => {
       active.clear();
-      touch.left = touch.right = touch.up = touch.down = touch.dash = false;
+      touch.left = touch.right = touch.up = touch.down = touch.abil = false;
+      dashLatch = 0;
       document.querySelectorAll("#touch-controls .pressed").forEach(e => e.classList.remove("pressed"));
     };
     window.addEventListener("blur", clearAll);
@@ -984,11 +1003,12 @@
       moveAndCollide();
       return;
     }
-    // 横入力（Bボタン/Shiftでダッシュ）
+    // 横入力（方向キー2回押し／Shiftでダッシュ）
     const dashing = running();
-    // Bボタン（ダッシュ）を押した瞬間：たねまるりんは種を発射
-    if (dashing && !dashPrev) fireSeed();
-    dashPrev = dashing;
+    // Bボタン（X／たね）を押した瞬間：たねまるりんは種を発射
+    const wantSeed = seedBtn();
+    if (wantSeed && !seedPrev) fireSeed();
+    seedPrev = wantSeed;
     if (p.seedCool > 0) p.seedCool--;
     // 滑空の更新（ぷかぷか上下しながらゆっくり降下）
     if (p.gliding) {
@@ -2710,6 +2730,7 @@
 
   function resetGameAt(startIndex) {
     lives = 3; score = 0; coinsGot = 0;
+    dashLatch = 0; seedPrev = false;   // ダッシュ／たねの押しっぱなしを持ち越さない
     inBoss = false; bosses = []; cukes = []; pk = null;
     loadStage(startIndex || 0);
     saveProgress(stageIndex);       // 今いるステージを記録
