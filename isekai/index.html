@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 9.7 (2026-08-09)";
+  const GAME_VERSION = "異世界編 ver 9.8 (2026-08-09)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -5582,6 +5582,10 @@
   // ★ver8.4：ステージ8の あとの 紙芝居（s8win）の 前はん＝ようせいが まだ かわいい ところ。
   //   6まいめで ステージ9の ボス曲に 変わり、そのまま ボス戦へ つながる（オーナー指示）。
   const S9PRE_BGM = new Audio("audio/bgm_isekai_s9pre.mp3");
+  // ★ver9.8：preload を 入れ わすれて いた。ページを ひらいた しゅんかんに
+  //   1.4MBの この 曲を 落としに いって いた（ブラウザの 通信を 見て みつけた）。
+  //   さいしょに ほしいのは タイトルの 曲 だけ。
+  S9PRE_BGM.preload = "none";
   BGM.forEach(a => { a.loop = true; a.volume = 0.15; });  // 小さめ・ループ
   BGM8B.loop = true; BGM8B.volume = 0.15;
   // ボス戦BGM（ステージ別。無いステージはnull＝通常BGMのまま）
@@ -5653,12 +5657,23 @@
     // ★ver6.9：先読み（ミュートで 落として いる とちゅう）だった 曲を そのまま
     //   本ばんに する ときの あとしまつ。ミュートと 音量を かならず もどす。
     //   これを わすれると「鳴って いる ことに なって いるのに むおん」に なる。
-    if (warming === track) { warming = null; try { track.currentTime = 0; } catch (e) {} }
+    // ★ver9.8：先読みは fetch だけ に なった（ver6.10）ので、ここで 頭出しは しない。
+    //   のこって いた currentTime=0 は「つづきから 流す」はずの エンドロールの 曲まで
+    //   頭に もどして しまう ので 消した。
+    if (warming === track) warming = null;
     unmuteForPlay(track);
     // ★解禁の とちゅうの 曲は 止めない（ミュートなので 聞こえない・すぐ 自分で 止まる）
     ALL_BGM.forEach(a => { if (a !== track && priming.indexOf(a) < 0) { try { a.pause(); } catch (e) {} } });
     bgm = track;
-    try { const pr = track.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
+    // ★ver9.8：いま 解禁の とちゅう（むおんの 音に すりかえて ある）なら ここでは 鳴らさない。
+    //   解禁が おわった しゅんかんに primeOne が じぶんで 鳴らして くれる。
+    if (priming.indexOf(track) >= 0) return;
+    // ★ブロックされたら「この 音は むおんでは 解禁 できなかった」と おぼえて、
+    //   つぎの タップで ver9.7の やりかたで やり直す（primeFailed）。
+    try {
+      const pr = track.play();
+      if (pr && pr.catch) pr.catch(err => { if (err && err.name === "NotAllowedError") primeFailed(track); });
+    } catch (e) {}
   }
   function startBGM() { playTrack(currentBgm()); }
   function stopBGM()  {
@@ -5675,11 +5690,17 @@
     bgmWatchT = 0;
     warmStep();                     // ★つぎの 曲の 先読みも ここで 1本ずつ すすめる
     if (!desiredBgm || !desiredBgm.paused) return;
+    // ★ver9.8：解禁の とちゅう（むおんの 音に すりかえて ある）なら さわらない。
+    //   解禁が おわった しゅんかんに primeOne が じぶんで 鳴らして くれる。
+    if (priming.indexOf(desiredBgm) >= 0) return;
     // ★ver7.1：鳴らす べき 曲が 止まって いる＝まだ 解禁されて いない かも。
     //   つぎの タップで まっさきに 解禁する ように、列の いちばん まえに 出して おく。
     primeFirst(desiredBgm);
     unmuteForPlay(desiredBgm);      // ★ねかせて ある ミュートを ここで 外す
-    try { const pr = desiredBgm.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
+    try {
+      const t = desiredBgm, pr = t.play();
+      if (pr && pr.catch) pr.catch(err => { if (err && err.name === "NotAllowedError") primeFailed(t); });
+    } catch (e) {}
   }
 
   // iOS等で最初のタッチ/クリック時に音声を解禁しておく
@@ -5708,42 +5729,79 @@
   //   （ブラウザで 実さいに 見た：ステージ1の 曲が 0バイトの まま＝鳴りはじめて いない
   //     ＝iPhoneが 解禁して くれない → ステージ1が むおん、が これ）
   const priming = [];
-  function primeStop(a) {
-    const vol = a._vol !== undefined ? a._vol : 1;
-    // いま 鳴らす べき 曲だけは ぜったいに 止めない。
-    if (a === desiredBgm) { unmuteForPlay(a); return; }
-    try { a.pause(); a.currentTime = 0; } catch (e) {}
-    // ★ver6.11：**ミュートは そのまま のこす**。
-    //   pause() の すぐ あとに ミュートを 外すと、まだ 音の パイプラインに
-    //   のこって いた ぶんが 一瞬 鳴って しまう（iPhoneは volume を 変えられない ので
-    //   ミュートだけが たより）。ユーザー報告「うごく たびに いろんな 音が 鳴りまくる」の 正体。
-    //   ミュートを 外すのは **ほんとうに 鳴らす とき**だけ（unmuteForPlay）。
-    a.volume = vol;
+  // ★★ver9.8：解禁は **むおんの 音**で もらう（オーナー報告 ①②の 直し）。
+  //   ver6.9〜9.7は「ほんものの 曲を ミュートで 鳴らして、鳴りだしたら 止める」だった。
+  //   これが iPhoneで つぎの 3つを おこして いた（画面ろくがで 実さいに 見た）：
+  //     ① 解禁の あいだ ほんものの 曲が すすむ ので、あとで currentTime=0 が
+  //        きかないと **とちゅうから** 鳴りだす（ばつりんの まいで ボス曲が 7びょう目から 鳴った）
+  //     ② 解禁の あとしまつ（pause＋頭出し）は **さいだい4びょう おくれて** 走るので、
+  //        その ころには もう 本ばんで 鳴って いる 曲を 横から 止めて しまう
+  //        （＝一瞬 鳴って、ぷつっと 切れて、また 頭から。オーナー報告 そのもの）
+  //     ③ 曲 1本 1〜2MBを 解禁の たびに ダウンロードして いた
+  //   → 解禁に ひつような のは「タップの 中で play() が ほんとうに 成功する」ことだけ。
+  //     だから **0.05びょうの むおんの wav**（下の SILENT_SRC）に 一時的に すりかえて
+  //     鳴らし、すぐ もとの ファイル名に もどす。
+  //     ・音は ぜったいに もれない（ファイルの 中みが むおん）
+  //     ・ほんものの 曲の 再生いちは 1ミリも うごかない
+  //     ・データURLなので ダウンロードも 0バイト
+  //     ※ iPhoneの「解禁」は **音の 部品ごと**に つく しるしで、src を もどしても
+  //       きえない。ver6.7の「play() して すぐ pause()」が だめだった のは
+  //       preload="none" の 曲が **鳴りだす まえに** 止まって いた から で、
+  //       むおんの wav は その場で 鳴りだせる ので ちゃんと 解禁が もらえる。
+  const SILENT_SRC = "data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YSADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  // ★ver9.8の ほけん：むおんの 音では 解禁が もらえなかった 機種の ため。
+  //   ほんばんで 鳴らそうと して ブロックされた 曲を ここに 通すと、
+  //   つぎの タップで **ver9.7までの やりかた**（ほんものの 曲を ミュートで 鳴らす）で
+  //   もういちど 解禁を ためす。ほうって おくと その 曲だけ ずっと むおんに なる。
+  function primeFailed(a) {
+    if (!a || a._primeHard) return;
+    a._primeHard = true; a._primed = false;
+    if (primeRetry.indexOf(a) < 0) primeRetry.push(a);
+    primeFirst(a);
   }
-  // ★ver6.9：解禁は「ミュートで **ほんとうに 鳴りはじめて から** 止める」。
-  //   ver6.7〜6.8は その場で すぐ 止めて いた が、**iPhoneは それでは 解禁して くれない**。
-  //   （タップの 外から かける ステージの 曲が 鳴らなく なって いた＝ユーザー報告）
-  //   ver6.6は これで 正しかったが、69コを いちどに さわって いた ので
-  //   ノイズと 16MBの いっき読みが おきた。**1回の タップで 6コまで**に して 両立させる。
   function primeOne(a) {
     if (!a) return;
+    if (a._primed) return;              // もう 解禁ずみ
+    // 鳴って いる＝もう 解禁されて いる。さわると 音が とぎれる ので 何も しない。
+    if (!a.paused) { a._primed = true; return; }
+    const real = a._realSrc || (a._realSrc = a.getAttribute("src") || a.src);
+    const hard = !!a._primeHard;        // むおんでは だめだった 音（ver9.7の やりかたで）
+    let done = false;
+    const finish = () => {
+      if (done) return; done = true;
+      const i = priming.indexOf(a); if (i >= 0) priming.splice(i, 1);
+      if (a !== desiredBgm) { try { a.pause(); } catch (e) {} }
+      // もとの 曲に もどす（preload="none" なので 落ちてこない）。
+      // ver9.7の やりかたの ときは src を さわって いない ので 頭出しだけ。
+      if (!hard) { try { a.src = real; } catch (e) {} }
+      else if (a !== desiredBgm) { try { a.currentTime = 0; } catch (e) {} }
+      // ★むおんで 解禁した ときは src を 入れ直して いる＝音の パイプラインは からっぽ
+      //   なので ミュートを 外して よい。ver9.7の やりかた（hard）の ときは、
+      //   ver6.11の とおり **ミュートを のこす**（外すと のこった 音が 一瞬 もれる）。
+      if (!hard) { try { a.muted = false; } catch (e) {} }
+      if (a._vol !== undefined) { try { a.volume = a._vol; } catch (e) {} }
+      // 解禁の あいだに「この 曲を 鳴らせ」に なって いたら、ここで 鳴らす。
+      if (a === desiredBgm) {
+        unmuteForPlay(a);
+        try { const pr = a.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
+      }
+    };
     try {
-      a.muted = true; a.volume = 0;   // 二重に 消す（一瞬でも 音が もれない ように）
+      a._primed = true;
+      a.muted = true;                   // ねんの ため（中みが むおんなので これが きかなくても よい）
       if (priming.indexOf(a) < 0) priming.push(a);
-      let stopped = false;
-      const stop = () => {
-        if (stopped) return; stopped = true;
-        const i = priming.indexOf(a); if (i >= 0) priming.splice(i, 1);
-        primeStop(a);
-      };
-      a.addEventListener("playing", stop, { once: true });   // 鳴りだした しゅんかんに 止める
+      if (!hard) a.src = SILENT_SRC;
+      // 鳴りだした しゅんかんに もとの 曲へ もどす。
+      // ★ここまで 来たら 解禁は もう もらえて いる（タップの 中で 鳴りだした ので）。
+      a.addEventListener("playing", finish, { once: true });
       const pr = a.play();
-      if (pr && pr.then) pr.then(stop, function (err) {
-        stop();
+      if (pr && pr.then) pr.then(finish, function (err) {
+        a._primed = false;              // 解禁 できなかった＝つぎの タップで もういちど
+        finish();
         if (err && err.name === "NotAllowedError" && primeRetry.indexOf(a) < 0) primeRetry.push(a);
       });
-      setTimeout(stop, 4000);         // 鳴りださない ときの ほけん
-    } catch (e) { a.muted = false; if (a._vol !== undefined) a.volume = a._vol; }
+      setTimeout(finish, 1500);         // 鳴りださない ときの ほけん
+    } catch (e) { finish(); }
   }
   // ★ver6.9：さわる じゅんばん＝「すぐ 要る もの」から。
   //   1回の タップで さわるのは **6コまで**（iPhoneは <audio> を さわるのが とても おそく、
@@ -5753,13 +5811,27 @@
   //     解禁の あいだ ダウンロードが はしる ので、いちばん こみあう
   //     「はじめから」の しゅんかんに 何本も 走らせると かえって おそく なる。
   //     ＝1ばん（いま かける オープニング）＋2ばん（すぐ 要る ステージ1）だけ。
+  // ★★ver9.8：**エンディングの 曲が ここに 入って いなかった**（オーナー報告 ③の 直し）。
+  //   S9PRE_BGM / END_BGM / LAST_BGM / ENDING_BGM は 解禁の 列に 1本も 無かった ので、
+  //   iPhoneでは「タップの 外から は 鳴らせない 音」の まま だった。
+  //   画面ろくがで 実さいに 見た：エンディングの 曲は **100びょう むおん**で、
+  //   子どもが 画面を さわった しゅんかんに やっと 頭から 鳴りだして いた。
+  //   （ver9.8で 解禁は タダに なった＝むおんの 音でやる ので、ぜんぶ 入れて よい）
   const PRIME_ALL = [OPENING_BGM, BGM[0], VOICE.get, VOICE.sad, STAGE_JINGLE]
-    .concat(SE_FIRST, [TITLE_BGM, STORY3_BGM], BGM.slice(1), [BGM8B], BOSS_BGM.filter(Boolean), SE_REST);
+    .concat(SE_FIRST, [TITLE_BGM, STORY3_BGM], BGM.slice(1),
+            [BGM8B, S9PRE_BGM, END_BGM, LAST_BGM, ENDING_BGM],
+            BOSS_BGM.filter(Boolean),
+            [VOICE.tiger, VOICE.gtiger, VOICE.upper], SE_REST)
+    .filter((a, i, arr) => a && arr.indexOf(a) === i);
   // ★ver6.9：解禁は「ほんとうに 鳴りはじめて から 止める」ので、1コ あたり 数ミリびょう かかる。
   //   ＝「はじめから」の タップは **2コだけ**（オープニングの 曲＋ステージ1の 曲）。
   //   そのあとは ボタンを おす たびに 3コずつ。ゲーム中に カクつかない ように 小さくする。
-  const PRIME_BATCH_FIRST = 2;
-  const PRIME_BATCH = 3;
+  // ★ver9.8：解禁が「むおんの 音を 0.05びょう 鳴らす だけ」に なって、
+  //   ダウンロードも ノイズも 無く なった ので、まとめて 数を ふやせる。
+  //   （まえは 1コ さわる たびに 1〜2MBの 曲が 落ちて きて いた）
+  //   ＝エンディングの 曲まで 早めに 解禁が すむ。
+  const PRIME_BATCH_FIRST = 6;
+  const PRIME_BATCH = 10;
   let primeTaps = 0;
   // ★ver6.12：解禁は 1個 さわるのに 数ミリびょう かかる（ほんとうに 鳴りはじめるまで 待つ ため）。
   //   ボタンの pointerdown ごとに 3個 さわると、ボス戦の 連打で まいかい コマ落ちする
@@ -5785,7 +5857,7 @@
     // ★ver6.7：タップの **中で**「いま 鳴らす べき 曲」を もういちど けとばす。
     //   タップの 外から の 鳴らし直し（watchBGM）は スマホに ブロックされる ことが あるので、
     //   ここが いちばん たしかな タイミング。紙芝居の 曲が むおんの ままに ならない ための 保険。
-    if (desiredBgm && desiredBgm.paused) {
+    if (desiredBgm && desiredBgm.paused && priming.indexOf(desiredBgm) < 0) {
       unmuteForPlay(desiredBgm);
       try { const pr = desiredBgm.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
     }
@@ -5861,6 +5933,15 @@
     try { primeFirst(BGM[i]); primeFirst(BOSS_BGM[i]); primeFirst(BGM[i + 1]); } catch (e) {}
     // ★ステージ8は 後半の 曲も いっしょに 解禁する（ついた とき むおんだと こまる）
     if (i === 7) { try { primeFirst(BGM8B); warmBgm(BGM8B); } catch (e) {} }
+    // ★★ver9.8：ステージ9の あとは そのまま エンディング＋エンドロール。
+    //   エンドロールの 75びょうは **タップが 1回も ない**ので、そこで 解禁は できない。
+    //   ＝ここで さきに 列の いちばん まえに 出して、先読みも はじめて おく。
+    if (i === 8) {
+      try {
+        primeFirst(LAST_BGM); primeFirst(END_BGM); primeFirst(S9PRE_BGM);
+        warmBgm(S9PRE_BGM); warmBgm(END_BGM); warmBgm(LAST_BGM);
+      } catch (e) {}
+    }
     // ★loadStage(0) は この 行より **まえ**（ページを ひらいた すぐ）にも 走るので、
     //   まだ 曲が つくられて いない ことが ある。その ときは 何も しない。
     try {
@@ -7468,7 +7549,10 @@
       // ★ここで かたづけないと、たおれた ばつりんが 紙芝居の 上に のこる。
       inBoss = false; bosses = []; cukes = []; sps = []; jets = []; maFx = [];
       particles = []; missiles = []; blasts = [];
-      stopBGM();
+      // ★ver9.8：ここで stopBGM() しない（オーナー報告 ①の 直し）。
+      //   この あとの 紙芝居は 1まいめから **同じ ボス曲**を つかう ので、
+      //   止めると そのぶん ぷつっと 切れる だけ。曲は startStory の
+      //   applySceneBgm が ちゃんと 決めて くれる。
       startStory(k);
       return;
     }
@@ -12732,7 +12816,18 @@
     stopStoryWind();
     const track = sceneTrack(def, story.scene);
     if (!track) return;
-    if (track === bgm && !storyHushed) return;   // 同じ曲なら 鳴らし直さない（ぷつっと 切れないように）
+    if (track === bgm && !storyHushed) {
+      // ★★ver9.8：**止まって いる ときは 鳴らし直す**（オーナー報告 ①の 直し）。
+      //   afterBossWin / stageCleared は stopBGM() して から 紙芝居を はじめる のに、
+      //   `bgm` は 止めた あとも その 曲を さした まま。だから ここで
+      //   「同じ 曲だから 何も しない」と 帰って しまい、**紙芝居が まるごと むおん**に
+      //   なって いた（画面ろくが：ようせいに 勝った あとの 紙芝居が 54びょう むおん）。
+      //   desiredBgm も null の ままなので 見張り番も 気づけなかった。
+      //   ★頭出しは しない＝ボス曲が 切れめなく 紙芝居へ つづく。
+      if (!track.paused && desiredBgm === track) return;
+      playTrack(track);
+      return;
+    }
     storyHushed = false;
     stopBGM();
     try { track.currentTime = 0; } catch (e) {}
