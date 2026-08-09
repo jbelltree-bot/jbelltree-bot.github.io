@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 7.5 (2026-08-07)";
+  const GAME_VERSION = "異世界編 ver 7.7 (2026-08-07)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -615,6 +615,52 @@
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
       ]
+    },
+    {
+      // ★ver7.6 ステージ8「神殿」＝**前半／後半の 2つの 面**（オーナー指示）。
+      //   前半「星の参道」＝外。今までの スキルを 順に 思い出す 道。ドラゴンは まだ 使える。
+      //   後半「神殿の中」＝内。**ドラゴン封印**。2つの スキルを 組み合わせて 進む。
+      //   ボス（ばつりん）は これから。
+      name: "ステージ8 星の参道",
+      theme: "temple",
+      skill: null,
+      level: [
+        "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "----------------------------------------------#######--o-o-o----------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "----------------------------------------------#-----#XXXXXXXNXX----------------o-o-o--o----o-o-o----------------##----o-o-o-o---N-------------------------------------------------------------------------------------------------------",
+        "----------------------------------------------#-o-o-#-----------------------XXXXXXXXX-XX--XXXXXX----------------II--XXXXXXXXXXX-XX--------------------------------------XXXXXXXXX--------------------------o-o-o------------------------",
+        "----------------------------------------------#-ooo-#-----------------------##----------------------------------II------------------------------------------------------*--------*------------------------XXXXXXX-----------------------",
+        "--------------------##------------------------#-----#-----------------------##----------------------------------II------------------------------------------------------*--------*------------------------------------------------------",
+        "--------------------##------------------------#-ooo-#-----------------------##----------------------------------II-------------------------#--o-o-o-o--#----------------*--------*---------------W------W-------------------------------",
+        "--------------------##------------ooo---------#-----#-----------------------##----------------------------------II-------------------------#-----------#----------------*---U-V--*------------------------------------------------------",
+        "--P-----oooo--N-----LL--ooo---?---------q-----#-----#-------------T--oo-----##----d---------d-----ooo----!------II-----------------ooo-----#-----------#---%%%--oo------*--------*--ooo-q-----K-----K--------M----oo----------------G---",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX-----------XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      ],
+      part2: {
+        name: "ステージ8 神殿の中",
+        theme: "templein",
+        sealDragon: true,     // ★ここでは 空を とべない（神殿の 結界）
+        level: [
+          "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+          "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+          "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+          "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+          "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+          "----------------------------o-o-o-o-o---N-------o-o-o-o-----------o-o-o-o-------------------------##----o-o-o-o----N--------------#-----#XXoXoXoXXX---------------------o------o------o------o------o------o------o---------------------",
+          "------------------------##------------------##----------------------------------------------------II---XXXXXXXXXX--XX-------------#-----#---------------------------XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX-------------------",
+          "------------------------##------------------##----------------------------------------------------II------------------------------#-ooo-#-----------------------------------------------------------------------------------------------",
+          "------------------------##------------------##----------------------------------------------------II------------------------------#-----#-----------------------------------------------------------------------------------------------",
+          "------------------------##------------------##-----------------#-----------#----------------------II------------------------------#-ooo-#---------------W-------------------------------------------------------------------------------",
+          "------------------------##------------------##-----------------#-----------#----------------------II------------------------------#-----#---------------------------------V-------------------------------------------------------------",
+          "--P----ooo--N-----------##------------------##----------oo-----#-----------#----T---oo----!-------II--------------------d-oo------#-----#-----------K------oo---------o------o------N------o------o-----Uo------o-------------------G---",
+          "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX-----------XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+          "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        ]
+      }
     }
   ];
   let stageIndex = 0;
@@ -705,8 +751,29 @@
   }
   // ぜんぶの ステージの ベストを 足した もの（タイトルに 出す）
   function bestTotal() { return bestScores.reduce((a, b) => a + (b || 0), 0); }
+  // ★ver7.6：1つの ステージを **前半／後半**に 分ける（オーナー指示）。
+  //   0＝前半（STAGES[i] そのもの）／1＝後半（STAGES[i].part2）。
+  //   part2 が ない ステージは ずっと 0 の まま＝今までと まったく 同じ。
+  let stagePart = 0;
+  // いま あそんで いる 面の 定義（前半か 後半か）
+  function partDef() {
+    const s = STAGES[stageIndex];
+    return (stagePart === 1 && s.part2) ? s.part2 : s;
+  }
+  function stageNameNow() { return partDef().name; }
+  // 面の 地形・テーマを いまの stagePart に 合わせて 読みこむ
+  function applyPart() {
+    const p = partDef();
+    LEVEL = p.level;
+    theme = p.theme;
+    ROWS = LEVEL.length;
+    COLS = LEVEL[0].length;
+    LEVEL_W = COLS * TILE;
+    LEVEL_H = ROWS * TILE;
+  }
   function loadStage(i) {
     stageIndex = i;
+    stagePart = 0;     // ★ステージを 読みなおしたら かならず 前半から
     warmForStage(i);   // ★ver6.7：あそんで いる あいだに つぎの 曲を 先読み
 
     cpReached = null; cpFx = 0;   // ★ステージが かわったら 中間地点は リセット
@@ -714,12 +781,7 @@
     //   とびらの間から まえの ステージも 遊べる ように なったので、通しで ためると
     //   「ステージ1の ベスト」と「ステージ6の ベスト」が くらべられない 数に なる。
     score = 0; bestNewFx = false;
-    LEVEL = STAGES[i].level;
-    theme = STAGES[i].theme;
-    ROWS = LEVEL.length;
-    COLS = LEVEL[0].length;
-    LEVEL_W = COLS * TILE;
-    LEVEL_H = ROWS * TILE;
+    applyPart();
   }
   loadStage(0);
 
@@ -1616,8 +1678,16 @@
   let dragonMode = false;
   let dragonGauge = DRAGON_MAX;
   let gaugeFlash = 0;              // ゲージ不足の点滅
+  // ★ver7.6：ここでは 空を とべない（神殿の 結界）。
+  //   ドラゴンモードは あまりに べんりで、しかけを ぜんぶ 飛びこえて しまう ので、
+  //   後半＝神殿の 中 だけ 使えなく する（オーナー指示「後半からでいい」）。
+  function dragonSealed() {
+    const s = STAGES[stageIndex];
+    return !!(stagePart === 1 && s.part2 && s.part2.sealDragon);
+  }
   function startDragonMode(p) {
     if (dragonMode) return;
+    if (dragonSealed()) { gaugeFlash = 45; sfx.block(); return; }
     if (dragonGauge < DRAGON_NEED) { gaugeFlash = 45; return; }   // ゲージがたりない
     dragonMode = true;
     p.vy = -3; p.squash = 0.7;
@@ -4732,7 +4802,12 @@
     new Audio("audio/bgm_isekai4.mp3"),     // ステージ4 あの世行きの汽車（ghost-dance）
     new Audio("audio/bgm_isekai5.mp3"),     // ステージ5 ネオ・ハムシティ（Es-STAGE4）
     new Audio("audio/bgm_isekai6.mp3"),    // ステージ6 氷のお城（Everlasting-Snow）
-    new Audio("audio/bgm_isekai7.mp3")     // ステージ7 星の天文台（Moon-ruins）
+    new Audio("audio/bgm_isekai7.mp3"),    // ステージ7 星の天文台（Moon-ruins）
+    // ★ver7.6 ステージ8 神殿。**まだ 専用の 曲が ない**。
+    //   いまは bgm_isekai8.mp3 に ステージ7の 曲を コピーして 置いて ある＝
+    //   **あたらしい 曲が できたら、この ファイルを 差しかえる だけ**（コードは さわらない）。
+    //   （まだ ない ファイル名を 書くと 公開サイトで 404＝むおんに なる。ver7.2の 教訓）
+    new Audio("audio/bgm_isekai8.mp3")     // ステージ8 神殿（いまは ステージ7の 曲の コピー）
   ];
   BGM.forEach(a => { a.loop = true; a.volume = 0.15; });  // 小さめ・ループ
   // ボス戦BGM（ステージ別。無いステージはnull＝通常BGMのまま）
@@ -6494,11 +6569,31 @@
     enemies = enemySpawns.map(s => makeEnemy(s.x, s.y, s));
   }
 
-  // ゴール到達：ボスがいれば画面を切り替えてボス戦へ。いなければ従来どおりクリア
+  // ゴール到達：
+  //   ★ver7.6：前半の ゴールなら **後半の 面**へ（ボス戦と 同じで 画面が 切りかわる）。
+  //   そのあとは いままでどおり、ボスが いれば ボス戦／いなければ クリア。
   function winGame() {
     if (state === "clear" || state === "stageclear" || state === "boss") return;
-    if (STAGES[stageIndex].boss) { startBoss(); }
+    const s = STAGES[stageIndex];
+    if (stagePart === 0 && s.part2) { startPart2(); return; }
+    if (s.boss) { startBoss(); }
     else { stageCleared(); }
+  }
+  // 前半の ゴール → 後半の 面へ。スキル・ざんき・スコアは そのまま つづく。
+  function startPart2() {
+    stagePart = 1;
+    cpReached = null; cpFx = 0;        // 中間の はたは 後半で 立て直す
+    replayStage = true;               // 後半に スキル台は ない（もう ぜんぶ 持って いる）
+    applyPart();
+    // ★advanceStage と 同じ 手つづき：buildLevel は まるりんを 作りなおすので、
+    //   大きさ（ナッツ）と たね・はねは 取りおいて から もどす。
+    const keepPowered = player.powered, keepSeed = player.seed, keepWing = player.wing;
+    buildLevel();
+    if (keepPowered) setPowered(true);
+    player.seed = keepSeed; player.wing = keepWing;
+    elapsed = 0;
+    sfx.win();
+    showStageName();                  // 「ステージ8 神殿の中」を 出して から はじまる
   }
 
   // ボス撃破 or ボス無しステージ：クリア処理
@@ -6515,11 +6610,9 @@
     } else if (stageIndex < STAGES.length - 1) {
       state = "stageclear";     // まだ次のステージがある
       stageClearT = 0;
-    // ★ver6.22：つぎの ステージは まだ 作って いないが、その まえの 紙芝居は もう ある。
-    //   （ステージ7の あと＝「7つ そろった／神殿へ」）
-    //   ステージ8が できたら この 分岐を 消す＝advanceStage が ふつうに 出す ように なる。
-    } else if (STORIES[stageIndex + 1]) {
-      startStory(stageIndex + 1);
+    // ★ver7.6：ステージ8が できたので、ver6.22の 暫定の 分岐は 消した。
+    //   ステージ7を クリア → stageclear → advanceStage が STORIES[7]（S7あと）を
+    //   ふつうに 出して、そのまま ステージ8へ つながる。
     } else {
       state = "clear";          // 全ステージクリア
     }
@@ -11311,6 +11404,71 @@
         fg.addColorStop(1, "rgba(190,245,255,0.75)");
         ctx.fillStyle = fg; ctx.fillRect(fx, fy, 34, 2);
       }
+    } else if (theme === "temple") {
+      // ★ver7.7 ステージ8前半「星の参道」＝星の海の 上に かかった 石の 道。
+      //   ステージ7（藍＋真鍮）から つづく 色。ただし ゆく先＝神殿の ほうだけ
+      //   **金いろに 明るい**＝「あそこへ 行くんだ」と 見ただけで わかる。
+      fillSky([[0, "#0a0d26"], [0.45, "#161d4a"], [0.78, "#3a2f63"], [1, "#6b4b6e"]]);
+      // 地平の 金の 光（神殿の ほう）
+      const hg = ctx.createLinearGradient(0, H * 0.52, 0, H);
+      hg.addColorStop(0, "rgba(255,206,132,0)");
+      hg.addColorStop(1, "rgba(255,206,132,0.16)");
+      ctx.fillStyle = hg; ctx.fillRect(0, H * 0.52, W, H * 0.48);
+      // 星（2そう・まとめて 2回の fill）
+      for (let L = 0; L < 2; L++) {
+        const par = L ? 0.05 : 0.02, n = L ? 26 : 20, sp = L ? 3 : 2;
+        ctx.fillStyle = L ? "rgba(255,246,214,0.75)" : "rgba(190,205,255,0.5)";
+        ctx.beginPath();
+        for (let i = 0; i < n; i++) {
+          const sx = (((i * 173 + L * 61) - camX * par) % (W + 40) + W + 40) % (W + 40) - 20;
+          const sy = 14 + ((i * 97 + L * 37) % Math.floor(H * 0.5));
+          const tw = 0.5 + Math.sin(elapsed * 0.04 + i * 1.7) * 0.5;
+          ctx.rect(sx, sy, sp, sp * (0.6 + tw * 0.6));
+        }
+        ctx.fill();
+      }
+      // とおくの 神殿（ずっと 先に 見えて いる＝目じるし。近づくほど 大きい）
+      {
+        const par = 0.10;
+        const tx = 1200 - camX * par;          // 参道の おわりに 立って いる
+        if (tx > -320 && tx < W + 320) drawFarTemple(tx, H * 0.60);
+      }
+      // うかんで いる 石のかけら（おくの そう）
+      ctx.fillStyle = "rgba(120,110,150,0.45)";
+      ctx.beginPath();
+      for (let i = 0; i < 7; i++) {
+        const fx = (((i * 233) - camX * 0.16) % (W + 260) + W + 260) % (W + 260) - 130;
+        const fy = H * 0.34 + ((i * 71) % 90) + Math.sin(elapsed * 0.012 + i) * 5;
+        const fw = 40 + (i % 3) * 26;
+        ctx.rect(fx, fy, fw, 9 + (i % 2) * 5);
+      }
+      ctx.fill();
+    } else if (theme === "templein") {
+      // ★ver7.7 ステージ8後半「神殿の中」＝松明だけの 暗い 石の 回廊。
+      //   ここは **ドラゴンモードが 封じられる** ところ。空が 見えない のが その 理由に なる。
+      fillSky([[0, "#0b0910"], [0.5, "#171220"], [1, "#241a24"]]);
+      // おくの かべ（大きな 石づみ。1つの みちすじに まとめて 1回 stroke）
+      const bw = 120, bh = 56;
+      const ox = (camX * 0.22) % (bw * 2), oy = (camY * 0.22) % bh;
+      ctx.strokeStyle = "rgba(120,98,86,0.22)"; ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let yy = -bh; yy < H + bh; yy += bh) {
+        const row = Math.floor((yy + oy) / bh);
+        const sx = (row % 2 ? bw / 2 : 0) - ox;
+        for (let xx = sx - bw; xx < W + bw; xx += bw) ctx.rect(xx, yy - oy, bw, bh);
+      }
+      ctx.stroke();
+      // 松明の 明かりが かべに おとす まるい ぼんやり（画面ざひょう・3つだけ）
+      for (let i = 0; i < 3; i++) {
+        const lx = ((i * 300 - camX * 0.35) % (W + 300) + W + 300) % (W + 300) - 150;
+        const ly = H * 0.30;
+        const fl = 0.82 + Math.sin(elapsed * 0.11 + i * 2.1) * 0.18;
+        const rg = ctx.createRadialGradient(lx, ly, 6, lx, ly, 150);
+        rg.addColorStop(0, "rgba(255,186,96," + (0.22 * fl).toFixed(3) + ")");
+        rg.addColorStop(1, "rgba(255,150,60,0)");
+        ctx.fillStyle = rg;
+        ctx.fillRect(lx - 150, ly - 150, 300, 300);
+      }
     } else if (theme === "town") {
       // 街の空（少しやわらかい水色）
       fillSky([[0, "#9fd8f2"], [0.55, "#cdeaf6"], [1, "#eef7fb"]]);
@@ -11351,6 +11509,8 @@
     else if (theme === "neon") drawNeonDecor();
     else if (theme === "ice") { if (iceIndoor()) drawIceInsideDecor(); else drawIceDecor(); }
     else if (theme === "stargaze") drawStargazeDecor();
+    else if (theme === "temple") drawTempleDecor();
+    else if (theme === "templein") drawTempleInDecor();
     drawSolids();
     drawSigns();        // 「ちかへ」の 案内板
     drawShutters();     // 電動シャッター（開くと 上へ 引きこまれる）
@@ -11523,6 +11683,93 @@
         ctx.drawImage(t.cv, sx, 0, w, t.h, dx, t.y0, w, t.h);
         dx += w; sx = 0;
       }
+    }
+  }
+
+  // ---------- ステージ8「神殿」の 絵（ver7.7）----------
+  // とおくに 見えて いる 神殿（前半の 目じるし。ちかづくほど 大きく 見える）
+  function drawFarTemple(cx, gy) {
+    const s = 1;
+    ctx.save(); ctx.translate(cx, gy);
+    // 台
+    ctx.fillStyle = "rgba(226,214,196,0.30)";
+    ctx.fillRect(-150 * s, -8, 300 * s, 18);
+    ctx.fillRect(-132 * s, -20, 264 * s, 14);
+    // はしら 6本
+    ctx.fillStyle = "rgba(238,228,210,0.34)";
+    for (let i = 0; i < 6; i++) ctx.fillRect((-118 + i * 47) * s, -108, 17 * s, 90);
+    // 屋根（三角）
+    ctx.fillStyle = "rgba(244,236,220,0.38)";
+    ctx.beginPath();
+    ctx.moveTo(-138 * s, -108); ctx.lineTo(0, -166); ctx.lineTo(138 * s, -108);
+    ctx.closePath(); ctx.fill();
+    // 屋根の 下の おび
+    ctx.fillStyle = "rgba(255,214,150,0.30)";
+    ctx.fillRect(-138 * s, -114, 276 * s, 8);
+    ctx.restore();
+  }
+  // 前半「星の参道」の かざり（世界ざひょう。見えて いる ぶんだけ）
+  function drawTempleDecor() {
+    const L = camX - 160, R = camX + W + 160;
+    // 参道の りょうわきの こわれた はしら（240px おき）
+    for (let x = Math.floor(L / 240) * 240; x < R; x += 240) {
+      const k = Math.abs(Math.floor(x / 240)) % 3;
+      const gy = 11 * TILE;                    // ゆかの 上
+      const hgt = 72 + k * 26;
+      ctx.fillStyle = "#d9cdb4";
+      ctx.fillRect(x + 8, gy - hgt, 20, hgt);
+      ctx.fillStyle = "#bfb098";
+      ctx.fillRect(x + 8, gy - hgt, 6, hgt);   // かげ
+      ctx.fillStyle = "#efe6d2";
+      ctx.fillRect(x + 2, gy - hgt - 9, 32, 9);   // かしら
+      ctx.fillRect(x + 2, gy - 8, 32, 8);          // 土台
+      // 石どうろう（1つ おきに 火が ともる）
+      if (k === 1) {
+        const fx = x + 150, fy = gy - 34;
+        ctx.fillStyle = "#cfc3aa"; ctx.fillRect(fx - 9, fy, 18, 34);
+        ctx.fillRect(fx - 13, fy - 8, 26, 9);
+        const fl = 0.7 + Math.sin(elapsed * 0.13 + x) * 0.3;
+        ctx.fillStyle = "rgba(255,196,110," + (0.85 * fl).toFixed(2) + ")";
+        ctx.beginPath();
+        ctx.ellipse(fx, fy - 15, 5 + fl * 2, 9 + fl * 4, 0, 0, 7);
+        ctx.fill();
+      }
+    }
+  }
+  // 後半「神殿の中」の かざり（松明・はしら・7つの スキルの ほりもの）
+  const TEMPLE_CARVE = ["\ud83d\udc39", "\ud83d\udc09", "\u2728", "\u2694\ufe0f", "\ud83d\udc80", "\ud83e\udd16", "\u2744\ufe0f", "\ud83e\ude90"];
+  function drawTempleInDecor() {
+    const L = camX - 160, R = camX + W + 160;
+    for (let x = Math.floor(L / 200) * 200; x < R; x += 200) {
+      const gy = 11 * TILE;
+      // ふとい はしら（ゆかから 天じょうまで）
+      ctx.fillStyle = "rgba(78,64,58,0.85)";
+      ctx.fillRect(x + 10, 4 * TILE, 26, gy - 4 * TILE);
+      ctx.fillStyle = "rgba(104,86,74,0.85)";
+      ctx.fillRect(x + 10, 4 * TILE, 8, gy - 4 * TILE);
+      ctx.fillStyle = "rgba(126,104,88,0.9)";
+      ctx.fillRect(x + 4, 4 * TILE, 38, 10);
+      ctx.fillRect(x + 4, gy - 10, 38, 10);
+      // 松明
+      const tx = x + 110, ty = gy - 96;
+      ctx.fillStyle = "#5a4a40"; ctx.fillRect(tx - 3, ty, 6, 26);
+      const fl = 0.7 + Math.sin(elapsed * 0.15 + x * 0.01) * 0.3;
+      ctx.fillStyle = "rgba(255,208,120,0.95)";
+      ctx.beginPath(); ctx.ellipse(tx, ty - 8, 5 + fl * 2, 11 + fl * 5, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "rgba(255,250,220,0.9)";
+      ctx.beginPath(); ctx.ellipse(tx, ty - 6, 2.4, 5 + fl * 2, 0, 0, 7); ctx.fill();
+      // かべの ほりもの（スキルの しるし。8つを じゅんぐりに）
+      const ci = ((Math.floor(x / 200) % 8) + 8) % 8;
+      ctx.fillStyle = "rgba(40,32,30,0.55)";
+      ctx.fillRect(x + 138, gy - 130, 44, 44);
+      ctx.strokeStyle = "rgba(150,124,98,0.6)"; ctx.lineWidth = 2;
+      ctx.strokeRect(x + 138, gy - 130, 44, 44);
+      ctx.font = "22px 'Segoe UI Emoji', sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.globalAlpha = 0.55;
+      ctx.fillText(TEMPLE_CARVE[ci], x + 160, gy - 107);
+      ctx.globalAlpha = 1;
+      ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
     }
   }
 
@@ -12471,6 +12718,38 @@
           }
         }
         ctx.strokeStyle = "rgba(30,60,90,0.18)"; ctx.lineWidth = 1;
+        ctx.strokeRect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);
+        continue;
+      }
+      // ★ver7.7 ステージ8：神殿の 石。前半は 白い 大理石＋金の ふち、
+      //   後半は 松明で あたたまった 暗い 石。どちらも fillTileGrad＝作りなおさない。
+      if ((theme === "temple" || theme === "templein") &&
+          (s.type === "ground" || s.type === "stone")) {
+        const inside = (theme === "templein");
+        if (inside) fillTileGrad(s, "tin_" + s.type,
+          s.type === "stone" ? [0, "#584a42", 1, "#3b312c"] : [0, "#4b3f39", 1, "#2f2723"]);
+        else fillTileGrad(s, "tout_" + s.type,
+          s.type === "stone" ? [0, "#e8dfc9", 1, "#c3b79c"] : [0, "#ded3ba", 1, "#b8ab90"]);
+        // すじ（石づみに 見える ように 1本だけ）
+        ctx.fillStyle = inside ? "rgba(20,14,12,0.35)" : "rgba(120,104,76,0.22)";
+        ctx.fillRect(s.x, s.y + s.h / 2 - 1, s.w, 2);
+        ctx.strokeStyle = inside ? "rgba(18,12,10,0.5)" : "rgba(140,124,96,0.35)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);
+        if (!isSolidAt(s.x, s.y - TILE)) {
+          // いちばん 上＝わたる 面。金の ふちで はっきり させる
+          ctx.fillStyle = inside ? "#6d5a4a" : "#f3ebd6";
+          ctx.fillRect(s.x, s.y, s.w, 5);
+          ctx.fillStyle = inside ? "rgba(255,186,96,0.55)" : "rgba(214,176,96,0.75)";
+          ctx.fillRect(s.x, s.y, s.w, 2);
+        }
+        continue;
+      }
+      // ★ver7.7 神殿の 天じょう（さかさまで 立つ 面）
+      if (theme === "templein" && s.type === "starceil") {
+        fillTileGrad(s, "tin_ceil", [0, "#241c1a", 1, "#4b3d35"]);
+        ctx.fillStyle = "rgba(255,186,96,0.45)"; ctx.fillRect(s.x, s.y + s.h - 5, s.w, 5);
+        ctx.strokeStyle = "rgba(18,12,10,0.5)"; ctx.lineWidth = 1;
         ctx.strokeRect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);
         continue;
       }
@@ -14135,12 +14414,63 @@
     }
   }
 
+  // 前半の ゴール＝神殿の 門（七つの くぼみが 光って いる）
+  function drawTempleGate(gl) {
+    const cx = gl.x + gl.w / 2, gy = gl.y + gl.h;
+    ctx.save();
+    ctx.fillStyle = "#efe6d2";
+    ctx.fillRect(cx - 96, gy - 210, 30, 210);      // 左の はしら
+    ctx.fillRect(cx + 66, gy - 210, 30, 210);      // 右の はしら
+    ctx.fillStyle = "#d9cdb4";
+    ctx.fillRect(cx - 96, gy - 210, 9, 210);
+    ctx.fillRect(cx + 66, gy - 210, 9, 210);
+    ctx.fillStyle = "#f6efdd";
+    ctx.fillRect(cx - 112, gy - 236, 224, 28);     // かもい
+    ctx.beginPath();                                // 屋根
+    ctx.moveTo(cx - 116, gy - 236); ctx.lineTo(cx, gy - 290); ctx.lineTo(cx + 116, gy - 236);
+    ctx.closePath(); ctx.fill();
+    // おくの くらやみ（ここを くぐる）
+    ctx.fillStyle = "rgba(20,16,30,0.85)";
+    ctx.fillRect(cx - 66, gy - 200, 132, 200);
+    // 七つの くぼみ（かもいに ならぶ。じゅんぐりに 光る）
+    for (let i = 0; i < 7; i++) {
+      const k = (Math.sin(elapsed * 0.06 - i * 0.7) + 1) / 2;
+      ctx.fillStyle = "rgba(255,214,140," + (0.35 + k * 0.6).toFixed(2) + ")";
+      ctx.beginPath(); ctx.arc(cx - 84 + i * 28, gy - 222, 6, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = "#e8dcc0"; ctx.fillRect(cx - 120, gy - 8, 240, 8);
+    ctx.restore();
+  }
+  // 後半の ゴール＝奥の とびら（すきまから 光が もれて いる）
+  function drawInnerDoor(gl) {
+    const cx = gl.x + gl.w / 2, gy = gl.y + gl.h;
+    ctx.save();
+    ctx.fillStyle = "#3a2f2a";
+    ctx.fillRect(cx - 78, gy - 220, 156, 220);
+    ctx.fillStyle = "#241c19";
+    ctx.fillRect(cx - 64, gy - 204, 128, 204);
+    // まん中の すきま から もれる 光
+    const k = 0.6 + Math.sin(elapsed * 0.05) * 0.4;
+    ctx.fillStyle = "rgba(255,226,168," + (0.55 + k * 0.35).toFixed(2) + ")";
+    ctx.fillRect(cx - 3, gy - 204, 6, 204);
+    ctx.fillStyle = "rgba(255,226,168,0.25)";
+    ctx.fillRect(cx - 12, gy - 204, 24, 204);
+    // わく の かざり
+    ctx.strokeStyle = "rgba(214,176,96,0.8)"; ctx.lineWidth = 3;
+    ctx.strokeRect(cx - 78.5, gy - 220.5, 157, 220);
+    ctx.fillStyle = "rgba(214,176,96,0.85)";
+    ctx.fillRect(cx - 90, gy - 232, 180, 12);
+    ctx.restore();
+  }
+
   function drawGoal(gl) {
     // ★ver6.13：画面から とおい ゴールは 描かない。
     //   まえは ステージ5で カメラが x=4700 の ときにも x=9900 の ゴールを 描いて いた。
     //   ゴールは 大きい（お城・タワー）ので よゆうを **画面 1つぶん より 広く** とる。
     //   （ゴールの 絵の 大きさを 測ったら よこ 120〜310px だった ので 1200px なら たっぷり）
     if (gl.x < camX - 1200 || gl.x > camX + W + 1200) return;
+    if (theme === "temple") { drawTempleGate(gl); return; }
+    if (theme === "templein") { drawInnerDoor(gl); return; }
     if (theme === "town") { drawGate(gl); return; }
     if (theme === "narita") { drawAirport(gl); return; }
     if (theme === "hawaii") { drawHawaiiGoal(gl); return; }
@@ -21168,14 +21498,28 @@
       ctx.fillText(ab ? ("B " + ab.icon + " " + ab.name) : "スキル：まだなし", 16, 51);
       // ドラゴンモードのゲージ（ドラゴンを選んでいるときだけ。他のスキル中は出さない）
       if (isDragonForm()) {
+        const sealed = dragonSealed();
         ctx.fillStyle = (gaugeFlash > 0 && Math.floor(gaugeFlash / 5) % 2 === 0) ? "rgba(255,80,80,0.6)" : "rgba(0,0,0,0.28)";
         ctx.fillRect(8, 66, 130, 12);
-        const frac = dragonGauge / DRAGON_MAX;
-        ctx.fillStyle = dragonMode ? "#ffb545" : (dragonGauge >= DRAGON_NEED ? "#7fe8c9" : "rgba(140,230,200,0.5)");
-        ctx.fillRect(9, 67, 128 * frac, 10);
-        ctx.font = "bold 9px 'Segoe UI', sans-serif";
-        ctx.fillStyle = "rgba(0,0,0,0.75)";
-        ctx.fillText(dragonMode ? "🐲 ドラゴンモード中！" : "B長押しでドラゴンモード", 14, 72.5);
+        if (sealed) {
+          // ★ver7.6：封印中は ゲージを ぬらずに **×**を 出す＝
+          //   「たまって いない」のでは なく「ここでは つかえない」と 分かる ように。
+          ctx.strokeStyle = "rgba(255,120,120,0.9)"; ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(11, 68); ctx.lineTo(21, 76);
+          ctx.moveTo(21, 68); ctx.lineTo(11, 76);
+          ctx.stroke();
+          ctx.font = "bold 9px 'Segoe UI', sans-serif";
+          ctx.fillStyle = "rgba(255,215,215,0.95)";
+          ctx.fillText("ここでは 空を とべない", 26, 72.5);
+        } else {
+          const frac = dragonGauge / DRAGON_MAX;
+          ctx.fillStyle = dragonMode ? "#ffb545" : (dragonGauge >= DRAGON_NEED ? "#7fe8c9" : "rgba(140,230,200,0.5)");
+          ctx.fillRect(9, 67, 128 * frac, 10);
+          ctx.font = "bold 9px 'Segoe UI', sans-serif";
+          ctx.fillStyle = "rgba(0,0,0,0.75)";
+          ctx.fillText(dragonMode ? "🐲 ドラゴンモード中！" : "B長押しでドラゴンモード", 14, 72.5);
+        }
       }
       // まほうじんのクールダウン（まほうを選んでいるときだけ）
       if (isMagicForm()) {
@@ -21647,7 +21991,7 @@
       ctx.fillStyle = "rgba(0,0,0,0.35)";
       ctx.fillRect(W/2 - 170, H/2 - 34, 340, 54);
       ctx.fillStyle = "#fff"; ctx.font = "bold 28px 'Segoe UI', sans-serif";
-      ctx.fillText(STAGES[stageIndex].name, W/2, H/2 - 6);
+      ctx.fillText(stageNameNow(), W/2, H/2 - 6);
       ctx.restore();
     }
   }
@@ -21903,7 +22247,7 @@
       ctx.fillRect(x, y, 2, 2);
     }
     ctx.globalAlpha = a;
-    const full = STAGES[stageIndex].name;
+    const full = stageNameNow();
     const sp = full.indexOf(" ");
     const no = sp > 0 ? full.slice(0, sp) : "";
     const nm = sp > 0 ? full.slice(sp + 1) : full;
