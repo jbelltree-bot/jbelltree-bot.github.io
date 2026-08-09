@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 9.9 (2026-08-09)";
+  const GAME_VERSION = "異世界編 ver 9.12 (2026-08-09)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -328,7 +328,7 @@
   // ★石の守り手（ステージ8 後半）。英数字が もう 空いて いないので きごうを つかう
   // >=石の射手（動かない・弾を連射）  _=石のこま犬（突進・ふめない）  :=うかぶ石像（上下にふわふわ・止めると足場）
   // |=ふりこの石おもり（天じょうから ぶら下がって 左右にふれる・ふめない）
-  // )=かがみのまもり手（**飛び道具が ぜんぶ きかない**・近づいて斬るしかない）
+  // )=かがみのまもり手（**かがみの がわからは 飛び道具が きかない**・うしろから撃つ／ふむ／斬る）
   // 1/2/3=でんげんスイッチ（ロボットのビームでだけONにできる）  7/8/9=電動シャッター（同じ番号のスイッチで開く。1↔7・2↔8・3↔9）
   // 0=石スイッチ（**石(M)を のせないと ONに ならない**。ビームでは 押せない。番号は 3＝シャッター9と ペア）
   // <=天じょうトゲ（動かない トゲトゲ。天じょうに ならべると **さかさまで 歩けなく なる**）
@@ -1517,12 +1517,14 @@
                fixed: true, ax: x + TILE / 2, ay: y, len, amp: 0.85, spd: 0.028 };
     }
     if (kind === "mirror") {
-      // かがみの まもり手：**飛び道具が ぜんぶ きかない**。近づいて 斬るしかない。
-      // ★ゆっくり 歩く（近づく のを こわく する）。ふめない。
-      // ★ふめない のは `noStomp`。`spiky` に すると 刀でも 斬れなく なる（＝この てきの
-      //   ねらい「近づいて 斬るしかない」が こわれる）。
+      // かがみの まもり手：**かまえた かがみの がわからは 飛び道具が きかない**。
+      // ★ver9.10（オーナー指示）：
+      //   ・かがみの **反対がわ（うしろ）からは 飛び道具が とおる**
+      //   ・**ふみつけでも たおせる**（noStomp を やめた）
+      //   まえは「近づいて 斬るしかない」だった＝刀いがいの スキルで 入ると 手が なかった。
+      // ★`spiky` には しない こと（刀でも 斬れなく なる）。
       return { kind, x: x + 2, y: y + TILE - 38, w: 36, h: 38, vx: opts.slow ? 0 : -0.7,
-               alive: true, t: Math.random()*6, squash: 1, noStomp: true, stone: true,
+               alive: true, t: Math.random()*6, squash: 1, stone: true,
                mirror: true, hp: 3, slow: !!opts.slow };
     }
     if (kind === "ashigaru") {
@@ -2233,7 +2235,7 @@
 
   // ---------- 敵へのダメージ ----------
   // 倒せたら true。hpが残っている敵（デカスライムなど）は1回では倒れない。
-  // ★かがみの まもり手：**飛び道具が ぜんぶ きかない**。近づいて 斬るしかない。
+  // ★かがみの まもり手：**かがみを かまえた がわからは 飛び道具が きかない**（ver9.10）。
   //   「飛び道具か 近接か」を 見わける ため、たま側の 何十か所に 引数を くばるのでは なく、
   //   **いま プレイヤーが 近接の 技を 出して いるか**を ここ 1か所で 見る。
   //   （たき火オバケの iceProofEnemy と 同じ「はじく 場所を 1つに しぼる」やりかた）
@@ -2250,6 +2252,19 @@
   //   ＝撃てば 撃つほど 自分が いたい。近づいて 斬るしか ない、を 体で おぼえる。
   //   ★たま側の 何十か所に 引数を くばらない ため、はじいた ことを ここに 書きのこして、
   //     たま側は「はじかれた？」と 1行 きくだけで すむ ように した。
+  // ★ver9.10（オーナー指示「ミラーの 反対がわからは 飛び道具が きく ように」）：
+  //   かがみは **かまえて いる がわ だけ** ふせぐ。うしろに まわりこめば 玉が とおる。
+  //   かがみの むきは 絵と 同じ しき（drawMirrorGuard と かならず そろえる こと）。
+  //   ★これで「近づいて 斬る」いがいに「うしろに まわって 撃つ」が できる。
+  function mirrorSide(e) { return e.vx > 0 ? 1 : -1; }
+  function mirrorGuards(e) {
+    if (!e || !e.mirror) return false;
+    const p = player;
+    if (!p) return true;
+    const d = (p.x + p.w / 2) - (e.x + e.w / 2);
+    if (Math.abs(d) < 8) return true;      // ま上・ま下は かがみの がわ あつかい
+    return (d > 0 ? 1 : -1) === mirrorSide(e);
+  }
   let mirrorBlocked = null;
   function mirrorGuardBlock(e) {
     mirrorBlocked = e;
@@ -2279,13 +2294,16 @@
     hurtPlayer(1);
     return true;
   }
-  function damageEnemy(e, color) {
+  // ★ver9.10：byStomp＝ふみつけ。かがみの まもり手は **ふめば たおせる**（オーナー指示）。
+  function damageEnemy(e, color, byStomp) {
     if (!e.alive) return false;
     // ★石の はしに なった 石像は **もう こわせない**。
     //   こわして しまうと 谷の まん中で 足場が 消えて 落ちる。
     if (e.stopped) { e.squash = 0.95; sfx.block(); return false; }
     // ★かがみの まもり手は 飛び道具を はね返す（近接の 技だけ 通る）
-    if (e.mirror && !meleeNow()) return mirrorGuardBlock(e);
+    // ★ver9.10：はね返すのは **かがみを かまえて いる がわ だけ**。
+    //   うしろから 撃てば とおる／**ふみつけ（byStomp）も とおる**。
+    if (!byStomp && !meleeNow() && mirrorGuards(e)) return mirrorGuardBlock(e);
     // ★分かれた ばかりの ゆきだまは ほんの すこし むてき。
     //   そうしないと ゆきだるまを たたいた その 一ふりで、生まれた ゆきだまも
     //   いっしょに 消えて しまい「2つに 分かれた」のが 見えない。
@@ -2771,8 +2789,8 @@
         // ★ver7.9：かがみの まもり手には **じゅうりょくだまも きかない**（オーナー報告）。
         //   liftEnemy は damageEnemy を とおらない ので、ここにも せきとめが いる。
         //   きかない だけ では なく **打ち返す**＝たまは 消えずに まるりんへ もどる。
-        if (e.mirror && !b.foe) { mirrorGuardBlock(e); reflectByMirror(b); break; }
-        if (e.mirror) break;
+        if (mirrorGuards(e) && !b.foe) { mirrorGuardBlock(e); reflectByMirror(b); break; }
+        if (mirrorGuards(e)) break;
         if (e.stopped) { b.t = 999; break; }   // ★石の はしは うかない
         liftEnemy(e);                       // ★ver6.16：ここでは たおさない。まず うかせる
         spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#a06bff", 8);
@@ -3171,7 +3189,7 @@
         }
         if (e.stopped) continue;      // ★石の はしは 吸えない
         // ★ver7.9：かがみの まもり手も 吸えない（じゅうりょくの 技は ぜんぶ きかない）
-        if (e.mirror) {
+        if (mirrorGuards(e)) {
           if (h.t % 10 === 0) spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#dfe8ff", 2);
           continue;
         }
@@ -4253,7 +4271,7 @@
     if (e.crystal) return returnCrystal(e);
     // ★ver7.9：かがみの まもり手には **こおりも きかない**（オーナー報告：氷だけ 通って いた）。
     //   こおりは damageEnemy を とおらない ので、ここにも 同じ せきとめが いる。
-    if (e.mirror) return mirrorGuardBlock(e);
+    if (mirrorGuards(e)) return mirrorGuardBlock(e);
     if (iceProofEnemy(e)) {
       // じゅうっ、と 消える だけ。たき火オバケは 氷では どうにも ならない
       e.squash = 0.9;
@@ -5001,7 +5019,7 @@
       for (const e of enemies) {
         if (!e.alive || !rectHit(box, e)) continue;
         // ★かがみの まもり手：ばくはつせずに **来た むきへ はじき返される**
-        if (e.mirror && !m.foe) { mirrorGuardBlock(e); reflectByMirror(m); break; }
+        if (mirrorGuards(e) && !m.foe) { mirrorGuardBlock(e); reflectByMirror(m); break; }
         hit = true; break;
       }
       if (!hit) for (const b of bosses) { if (b.alive && !b.hidden && rectHit(box, b)) { hit = true; break; } }
@@ -7401,7 +7419,7 @@
           if (timed) { p.vy = -16 * _g; p.bounceLock = 14; jumpBuffer = 0; p.squash = 0.7; sfx.jump(); }
           else p.vy = -9 * _g;
         } else if (fromAbove) {
-          damageEnemy(e, "#8a6d5a");
+          damageEnemy(e, "#8a6d5a", true);   // ★ver9.10：ふみつけ＝かがみでも とおる
           // タイミングよくジャンプを押していれば高くジャンプ
           const timed = jumpKey() || jumpBuffer > 0;
           if (timed) {
@@ -7796,8 +7814,9 @@
       batsuHelp = null;
       for (let x = 0; x < W; x += TILE) solids.push({ x, y: TILE, w: TILE, h: TILE, type: "starceil" });
       ceilFloorY = TILE * 2;
-      for (const px of [80, W - 80 - TILE * 3]) {
-        for (let i = 0; i < 3; i++) solids.push({ x: px + i * TILE, y: 252, w: TILE, h: TILE, type: "ground" });
+      // ★ver9.11：台座の 場しょは youseiDecks() が 正（🐲の 台座せめと かならず そろえる）
+      for (const px of youseiDecks()) {
+        for (let i = 0; i < 3; i++) solids.push({ x: px + i * TILE, y: YO_DECK_Y, w: TILE, h: TILE, type: "ground" });
       }
     } else if (type === "batsurin") {
       // ★ばつりん（ステージ8）＝ノーマルまるりんの 強化ばん。
@@ -8031,7 +8050,7 @@
         techHit: false,          // ★どの 技も きかない（金の わっかが はじく）
         side: 1,                 // +1＝ゆかがわ／-1＝天じょうがわ
         moveT: 0, fromY: 0, toY: 0, arrow: 0,
-        rot: 0, phase2: false, orbs,
+        rot: 0, phase2: false, orbs, walk: 1,   // ★ver9.10：前半も ゆっくり 左右に 歩く
         // ★はじめの 2びょうちょっとは こうげきしない（案内を 読む 時間）。
         //   ver6.19では 長すぎて「よわい」と 言われた ので みじかく した。
         beamCd: 210, beamChg: 0, beamT: 0, beamX: 0, beamDir: 1,
@@ -8066,6 +8085,8 @@
         mode: "idle", skill: "", tell: 0, actCd: 110, windup: 0, rest: 0,
         homeX: x, floatT: 0, dashT: 0, dashN: 0, gone: 0, goneN: 0,
         beamT: 0, beam2: 0, flipT: 0,
+        pillarN: 0, pillarT: 0, markX: 0,
+        gballN: 0, gballT: 0,          // ★ver9.10：さかさま中に 投げる じゅうりょくだま
         lvShown: 1, swordFx: 0,
         nutCd: YO_NUT_CD };
     }
@@ -8503,13 +8524,19 @@
   // ★7つの スキルを ぜんぶ つかって くる。makeBoss("yousei") の コメントも 見る こと。
   //
   //   しるし → こうげき → すき、の くり返し。しるしは 40コマ 出る。
-  //     🐲 ドラゴン … 地めんを はしる ほのお 2本  → **ジャンプ**で こえる
+  //     🐲 ドラゴン … lv1＝地めんを はしる ほのお 2本  → **ジャンプ**で こえる
+  //                   ★lv2〜＝**左右の 台が 1びょう 光って から 燃える**（ver9.11）＋
+  //                     火が ついた その コマに **地めんの ほのおも 来る**（ver9.12）
+  //                     → 「**台から 降りる**」→「**地めんの 火を ジャンプで こえる**」の 2てまえ
+  //                     （台は みじかいので、台の 上で よこに よける ことは できない）
   //     🔮 まほう …… 下に しるしが 出て ひかりの 柱  → **そこから はなれる**
   //     🗡 さむらい … голの 高さまで おりて 一気に つっこむ → **もぐる**（むてき）
   //     💀 しにがみ … すがたが 消えて **まるりんの 上**に 出る → よこへ にげる
-  //     🤖 ロボット … よこ 1本の ビーム       → **ころがる**（せが ひくく なる）／台座
+  //     🤖 ロボット … よこ 1本の ビーム       → **ころがる**（せが ひくく なる）／高さを 変える
+  //                   ★lv2は 2本目が **台座の 高さ**（ver9.10）＝台の上も 安全では ない
   //     ❄ こおり …… 天じょうから つらら 3本   → しるしの 下から どく
-  //     🪐 さかさま … 重力が ひっくり返る      → 天じょうに 立って やりすごす
+  //     🪐 さかさま … 重力が ひっくり返る ＋ **じゅうりょくだま**（ver9.10）
+  //                   → 天じょうを 走って よける／たねで 撃ち落とす
   //
   //   ★ライフが へると つよく なる（lv）。ハート9こ →6こで lv2 →3こで lv3。
   //     lv3 では **たねが まったく 通らない**（さむらいの 力で はじく）。
@@ -8520,6 +8547,23 @@
   const YO_SKILLS = ["dragon", "magic", "samurai", "reaper", "robot", "ice", "gravity"];
   const YO_ICON = { dragon: 0, magic: 1, samurai: 2, reaper: 3, robot: 4, ice: 5, gravity: 6 };
   const YO_TELL = 40;          // しるしを 出して いる ながさ＝読む 時間
+  // ★ver9.10：まほうの しるし（魔法陣）が 出てから **柱が おちる まで**の コマ数。
+  //   ここが みじかいと「見えて いるのに よけられない」に なる（オーナー報告）。
+  const YO_MARK_LEAD = 48;     // 48コマ＝0.8びょう
+  // ★★ver9.11（オーナー確定・案⑥）：🐲の 台座せめ。
+  //   台座は 3マス（120px）しか ない ので「よこに よける」が そもそも できない。
+  //   だから **走る ほのおを 台に のせる のは やめ**、
+  //   **台が 1びょう 赤く 光って から 台ぜんたいが 燃える**に した。
+  //     ・lv1  … いままで どおり **地めんを 走る ほのお**（台の 上は にげ場）
+  //     ・lv2〜… **地めんの ほのおは 出さない**。かわりに **左右 両ほうの 台が 燃える**
+  //              ＝にげ場は 地めん。「よける」では なく「**降りる**」技。
+  //   ★1回の 火で 当たるのは 1ダメージまで（cu.hit）。燃えて いる あいだ ずっと
+  //     けずられると、気づいた ときには 手おくれで きびしすぎる。
+  const YO_DECK_Y = 252;              // 台座の 上の 面
+  const YO_DECK_W = TILE * 3;         // 台座の 幅（3マス）
+  const YO_DECK_WARN = 60;            // 赤く 光って いる ながさ＝にげる 時間（1びょう）
+  const YO_DECK_BURN = 96;            // 燃えて いる ながさ（1.6びょう＝ジャンプでは やりすごせない）
+  function youseiDecks() { return [80, W - 80 - YO_DECK_W]; }
   // ★ver8.8（オーナー指示「どんぐりの数が多すぎます。30秒に1回でいいです」）
   const YO_NUT_CD = 1800;      // 30びょう（60コマ×30）
 
@@ -8660,7 +8704,8 @@
     let k = YO_SKILLS[Math.floor(Math.random() * n)];
     if (k === b.skill) k = YO_SKILLS[(YO_SKILLS.indexOf(k) + 1) % n];   // 同じ 技の れんぞくは さける
     b.skill = k; b.mode = "tell"; b.tell = YO_TELL;
-    b.windup = 0; b.dashT = 0; b.beamT = 0; b.gone = 0; b.flipT = 0;
+    b.windup = 0; b.dashT = 0; b.beamT = 0; b.beam2 = 0; b.gone = 0; b.flipT = 0;
+    b.pillarN = 0; b.pillarT = 0; b.gballN = 0; b.gballT = 0;
     beep(880, 0.06, "sine", 0.05);
   }
 
@@ -8673,15 +8718,39 @@
     const lv = b.lv;
     if (b.skill === "dragon") {
       // 地めんを はしる ほのお（左右へ）→ ジャンプで こえる。lv2＝はやいのが もう 1組
-      for (const dir of [-1, 1]) {
-        cukes.push({ kind: "yfire", x: b.x + b.w / 2, y: BOSS_GROUND - 14, vx: dir * 5.4, t: 0 });
-        if (lv > 1) cukes.push({ kind: "yfire", x: b.x + b.w / 2, y: BOSS_GROUND - 14, vx: dir * 8.2, t: 0 });
+      // ★ver9.11（オーナー確定・案⑥）：lv で **技そのものが 入れかわる**。
+      //   lv1  … 地めんを 走る ほのお（ジャンプで こえる／台に のぼれば にげられる）
+      //   lv2〜… 地めんには 出さず、**左右 両ほうの 台が 光って から 燃える**（降りる）
+      //   ★ver9.10 の「はやい ほのおが 台を かけ上がる」は やめた。
+      //     地めんの 火が いきなり 台の 上に 出て 見えて、しかも 台が みじかいので
+      //     一しゅんで 通りすぎて よけられなかった（オーナー報告）。
+      if (lv > 1) {
+        // ★ver9.12（オーナー指示「lv2でも 地めんの ほのおは のこす」）：
+        //   台が 光る（60コマ）→ **台が 燃えだすのと 同時に 地めんの ほのおも 来る**。
+        //   ＝「台から 降りる」→「地めんの ほのおを ジャンプで こえる」の 2てまえ。
+        //   ★ほのおを ここでは 出さない のが 大事。光って いる あいだに 出すと、
+        //     降りた ところに ちょうど 火が いて「降りたら やられた」に なる。
+        for (const dx of youseiDecks()) {
+          cukes.push({ kind: "ydeck", x: dx, w: YO_DECK_W, y: YO_DECK_Y, t: 0,
+                       wait: YO_DECK_WARN, life: YO_DECK_BURN, hit: false });
+        }
+        beep(180, 0.5, "sawtooth", 0.05);
+        b.windup = YO_DECK_WARN + YO_DECK_BURN + 10;
+      } else {
+        for (const dir of [-1, 1]) {
+          cukes.push({ kind: "yfire", x: b.x + b.w / 2, y: BOSS_GROUND - 14, vx: dir * 5.4, t: 0 });
+        }
+        sfx.seed(); b.windup = 40;
       }
-      sfx.seed(); b.windup = lv > 1 ? 54 : 40;
     } else if (b.skill === "magic") {
       // まるりんの 足もとに しるし → ひかりの 柱。lv2＝3本 つづけて おちる
-      b.markX = pcx; b.windup = lv > 1 ? 150 : 74; b.pillarN = lv > 1 ? 3 : 1;
-      cukes.push({ kind: "ymark", x: b.markX, y: BOSS_GROUND, t: 0, life: 56 });
+      // ★ver9.10（オーナー報告「まほうが ほぼ 避けられない」）：
+      //   しるしが 出てから 柱が おちる までを **YO_MARK_LEAD コマ**に そろえた。
+      //   まえは 出た 10コマ後（0.17びょう）に おちて いた＝どく ひまが なかった。
+      b.markX = pcx; b.pillarN = lv > 1 ? 3 : 1;
+      b.pillarT = YO_MARK_LEAD;
+      b.windup = YO_MARK_LEAD * b.pillarN + 26;
+      cukes.push({ kind: "ymark", x: b.markX, y: BOSS_GROUND, t: 0, life: YO_MARK_LEAD + 6 });
     } else if (b.skill === "samurai") {
       // 高さを そろえて 一気に つっこむ → もぐる（むてき）で やりすごす。lv2＝2往復
       b.y = BOSS_GROUND - b.h - 6; b.face = pcx < b.x + b.w / 2 ? -1 : 1;
@@ -8694,7 +8763,15 @@
       spawnParticles(b.x + b.w / 2, b.y + b.h / 2, "#b9a7ff", 14);
     } else if (b.skill === "robot") {
       // よこ 1本の ビーム → ころがる／台座。lv2＝高さ ちがいで もう 1本
-      b.y = 236; b.beamT = 56; b.beam2 = lv > 1 ? 56 + 46 : 0;
+      // ★ver9.10（オーナー報告「レーザーが 台の上に いる かぎり ぜったい 食らわない」）：
+      //   ビームの おびは ようせいの まん中（b.y + 31）を 中心に たて22。
+      //     1本目 b.y=291 → おび 311〜333 … **地めんに 立って いると 当たる**
+      //                                      （ころがる／台座に のぼる／ジャンプ で よける）
+      //     2本目 b.y=185 → おび 205〜227 … **台座に 立って いると 当たる**
+      //                                      （台の上で ころがる／台から おりる で よける）
+      //   まえは 1本目 236（おび 256〜278）＝どこに 立って いても 当たらない、
+      //   2本目 300（おび 320〜342）＝地めんだけ、で 台座が 安全地帯に なって いた。
+      b.y = 291; b.beamT = 56; b.beam2 = lv > 1 ? 56 + 46 : 0;
       b.windup = lv > 1 ? 56 + 46 : 56;
       beep(180, 0.5, "sawtooth", 0.07);
     } else if (b.skill === "ice") {
@@ -8706,15 +8783,17 @@
       }
       b.windup = 96 + (lv > 1 ? 20 : 0);
     } else {
-      // さかさま：まるりんの 重力を ひっくり返す。lv2＝ながく＋つららも おちて くる
+      // さかさま：まるりんの 重力を ひっくり返す。
+      // ★ver9.10（オーナー指示「重力の lv1 が こうげきして こない。
+      //   反対に しつつ 重力玉を 投げて くる 感じに。lv2 は 玉の 数を ふやす」）：
+      //   さかさまに した うえで **じゅうりょくだまを 投げこむ**。
+      //   まえは lv1＝ひっくり返すだけ（何も 来ない）、lv2＝つらら だった。
+      //   つららは「こおり」の 技と かぶって いた ので、ここは 玉に とりかえる。
       setGdir(player, -1);
       b.flipT = lv > 1 ? 260 : 190; b.windup = b.flipT;
-      if (lv > 1) {
-        for (let i = 0; i < 3; i++) {
-          const x = Math.max(60, Math.min(W - 60, pcx + (i - 1) * 130));
-          cukes.push({ kind: "yice", x: x, y: TILE * 2, t: 0, wait: 90 + i * 26, vy: 0 });
-        }
-      }
+      // ★ver9.11（オーナー報告「5発 撃たれると ほぼ よけられない」）：lv1＝2発／lv2〜＝4発
+      b.gballN = lv > 1 ? 4 : 2;      // 投げる かず
+      b.gballT = 34;                  // さかさまに なって すぐは 投げない（立て直す 時間）
       beep(120, 0.4, "triangle", 0.08);
     }
   }
@@ -8757,14 +8836,37 @@
       // ★lv2：ようせいが 下がって もう 1本（高さが ちがう＝おなじ よけかたが 通じない）
       if (b.beam2 > 0) {
         b.beam2--;
-        if (b.beam2 === 46) { b.y = 300; b.beamT = 46; }
+        if (b.beam2 === 46) { b.y = 185; b.beamT = 46; }   // ★ver9.10：2本目は 台座の 高さ
       }
-    } else if (b.skill === "magic" && b.windup % 46 === 18 && b.pillarN > 0) {
-      b.pillarN--;
-      if (b.pillarN > 0) { b.markX = pcx; cukes.push({ kind: "ymark", x: b.markX, y: BOSS_GROUND, t: 0, life: 40 }); }
-      fireYouseiPillar(b);
+    } else if (b.skill === "magic" && b.pillarN > 0) {
+      // ★ver9.10：しるし → YO_MARK_LEAD コマ まって → 柱。
+      //   2本目・3本目も 同じ 間かく＝「しるしが 出たら はなれる」で ずっと よけられる。
+      if (--b.pillarT <= 0) {
+        b.pillarN--;
+        fireYouseiPillar(b);
+        if (b.pillarN > 0) {
+          b.markX = pcx; b.pillarT = YO_MARK_LEAD;
+          cukes.push({ kind: "ymark", x: b.markX, y: BOSS_GROUND, t: 0, life: YO_MARK_LEAD + 6 });
+        }
+      }
+    } else if (b.skill === "dragon") {
+      // ★ver9.12：lv2 いじょう＝台が 燃えだす その コマに 地めんの ほのおを 出す。
+      //   windup は YO_DECK_WARN + YO_DECK_BURN + 10 から へって いく ので、
+      //   のこりが (BURN + 10) に なった しゅんかん＝台の 火が つく タイミング。
+      if (b.lv > 1 && b.windup === YO_DECK_BURN + 10) {
+        for (const dir of [-1, 1]) {
+          cukes.push({ kind: "yfire", x: b.x + b.w / 2, y: BOSS_GROUND - 14, vx: dir * 5.4, t: 0 });
+        }
+        sfx.seed();
+      }
     } else if (b.skill === "gravity") {
       if (b.flipT > 0) b.flipT--;
+      // ★ver9.10：さかさまの あいだ、じゅうりょくだまを 投げこむ（lv1＝3こ／lv2いじょう＝5こ）
+      if (b.gballN > 0 && --b.gballT <= 0) {
+        b.gballN--;
+        b.gballT = b.lv > 1 ? 32 : 46;
+        throwYouseiGball(b);
+      }
       if (b.flipT === 0) setGdir(player, 1);
     }
     if (b.windup <= 0) {
@@ -8772,8 +8874,22 @@
       // ★技が おわったら **すき**。長い 技ほど すきは みじかい。
       b.rest = (b.skill === "gravity" || b.skill === "ice") ? 54 : 74;
       b.mode = "idle"; b.dashT = 0; b.beamT = 0; b.beam2 = 0; b.gone = 0;
-      b.dashN = 0; b.goneN = 0; b.pillarN = 0;
+      b.dashN = 0; b.goneN = 0; b.pillarN = 0; b.gballN = 0;
     }
+  }
+
+  // ★ver9.10：ようせいの じゅうりょくだま。まるりんの ほうへ まっすぐ ゆっくり 飛ぶ。
+  //   さかさまの あいだに 来る ので、天じょうを 走って よける／ジャンプで よける。
+  //   （まるりんの じゅうりょくだまと 同じ 見た目＝「ぬすまれた 力」だと わかる）
+  function throwYouseiGball(b) {
+    const p = player;
+    const ox = b.x + b.w / 2, oy = b.y + b.h / 2;
+    const dx = (p.x + p.w / 2) - ox, dy = (p.y + p.h / 2) - oy;
+    const d = Math.hypot(dx, dy) || 1;
+    const sp = b.lv > 1 ? 4.6 : 3.8;
+    cukes.push({ kind: "ygball", x: ox, y: oy, vx: dx / d * sp, vy: dy / d * sp, t: 0 });
+    playSE("gball");
+    spawnParticles(ox, oy, "#a06bff", 6);
   }
 
   function fireYouseiPillar(b) {
@@ -9002,7 +9118,15 @@
   // =====================================================================
   const FD_HOVER_L = 150, FD_HOVER_R = W - 200;
   const FD_WALL_L = -46, FD_WALL_R = W + 46;    // ここまで つっこむと かべに 激とつ
-  const FD_CRASH_REST = 120;                    // 激とつして たおれて いる 長さ
+  // ★ver9.10（オーナー指示「フロストドラゴンが 強すぎるので 少しだけ 弱く」）：
+  //   よけかた・技の じゅんばんは そのまま。**当てられる 時間を のばして、
+  //   来る はやさを ほんの すこし ゆるめた** だけ。
+  //     ・かべに 激とつして たおれて いる 長さ  120 → 156（＝2びょう → 2.6びょう）
+  //     ・とっしんの はやさ                      7.4 → 6.6
+  //     ・こおりのいきの 間かく                  16 → 20コマ
+  //     ・つららの雨の 本数                      3 → 2
+  //     ・つぎの 技までの まち                   すこしずつ 長く
+  const FD_CRASH_REST = 156;                    // 激とつして たおれて いる 長さ
   function fdPickNext(b) {
     b.act = (b.act + 1) % 6;
     const order = ["breath", "dive", "icefall", "breath", "dive", "breath"];
@@ -9058,7 +9182,7 @@
       b.fxT = ((b.fxT || 0) + 1) % 10;
       if (b.fxT === 0) particles.push({ x: b.x + (b.face > 0 ? b.w + 6 : -6), y: b.y + b.h * 0.42,
                                         vx: b.face * 0.8, vy: -0.4, life: 22, color: "#e8fbff" });
-      if (--b.restT <= 0) { b.guardAll = true; b.mode = "hover"; b.actCd = 60; }
+      if (--b.restT <= 0) { b.guardAll = true; b.mode = "hover"; b.actCd = 76; }
       return;
     }
 
@@ -9110,13 +9234,13 @@
       //   `b.t % 16 === 0` は ぜったいに 当たらないので、ここは 整数の カウンタで はかる。
       b.breathT = (b.breathT || 0) - 1;
       if (b.breathT <= 0) {
-        b.breathT = 16;
+        b.breathT = 20;
         const mx = b.x + (b.face > 0 ? b.w : 0);
         hazards.push({ kind: "frostw", x: mx, y: BOSS_GROUND - 14, vx: b.face * 4.2, t: 0 });
         growCeilIce(0.2);
         playSE("reflect");
         spawnParticles(mx, b.y + b.h * 0.42, "#dff6ff", 6);
-        if (--b.breathN <= 0) { b.mode = "hover"; b.actCd = 70; }
+        if (--b.breathN <= 0) { b.mode = "hover"; b.actCd = 86; }
       }
       b.y += (110 - b.y) * 0.06;
       return;
@@ -9128,7 +9252,7 @@
       //   ここが「どの スキルでも つかえる こうげきの チャンス」＝この 戦いの 本すじ。
       //   （まえは かべで はねかえって 何ごとも なく とびつづけて いた）
       b.y += ((p.y - 18) - b.y) * 0.12;
-      b.x += b.diveDir * 7.4;
+      b.x += b.diveDir * 6.6;
       b.fxT = ((b.fxT || 0) + 1) % 3;
       if (b.fxT === 0) particles.push({ x: b.x + b.w/2, y: b.y + b.h/2, vx: 0, vy: 0.4, life: 16, color: "#cfe9f7" });
       if (b.x < FD_WALL_L || b.x + b.w > FD_WALL_R) fdCrash(b);
@@ -9139,11 +9263,11 @@
       // ③ つららの雨：じぶんで つららを 落として くる（当たると すべる）
       const mid = ceilIce.filter(ic => !ic.dead && !ic.fall);
       for (let i = 0; i < mid.length; i += 2) dropCeilIce(mid[i], true);   // 自分の 頭には 当たらない
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 2; i++) {
         hazards.push({ kind: "ice", x: 80 + Math.random() * (W - 160), y: 40, vy: 2, t: 0 });
       }
       screenShake = Math.max(screenShake, 8);
-      b.mode = "hover"; b.actCd = 80;
+      b.mode = "hover"; b.actCd = 96;
       return;
     }
   }
@@ -10440,6 +10564,36 @@
         if (cu.t > 150 || cu.x < -40 || cu.x > W + 40) cu.dead = true;
         continue;
       }
+      if (cu.kind === "ydeck") {   // ★ver9.11 ようせい：台座ぜんたいが 燃える（lv2〜）
+        // 光って いる あいだ（wait）は まだ 当たらない＝ここが 降りる 時間。
+        if (cu.wait > 0) { cu.wait--; continue; }
+        cu.life--;
+        const box = { x: cu.x, y: cu.y - 34, w: cu.w, h: 38 };
+        if (!cu.hit && rectHit(p, box) && p.invuln <= 0 && p.burrow <= 0) {
+          cu.hit = true; hurtPlayer(1);      // ★1回の 火で 1ダメージまで
+        }
+        if (cu.life <= 0) cu.dead = true;
+        continue;
+      }
+      if (cu.kind === "ygball") {   // ★ようせいの じゅうりょくだま（さかさま中に 飛んで くる）
+        cu.x += cu.vx; cu.y += cu.vy;
+        const box = { x: cu.x - 11, y: cu.y - 11, w: 22, h: 22 };
+        if (rectHit(p, box) && p.invuln <= 0 && p.burrow <= 0) {
+          cu.dead = true; hurtPlayer(1); spawnParticles(cu.x, cu.y, "#a06bff", 10);
+        }
+        // たねで 消せる（lv3 でも たねの つかいみちが のこる）
+        else for (const sd of seeds) {
+          if (sd.life <= 0) continue;
+          if (!rectHit({ x: sd.x - 5, y: sd.y - 5, w: 10, h: 10 }, box)) continue;
+          cu.dead = true; sd.life = 0; score += 50; sfx.stomp();
+          spawnParticles(cu.x, cu.y, "#a06bff", 8); break;
+        }
+        if (!cu.dead && (cu.t > 200 || cu.x < -30 || cu.x > W + 30 ||
+                         cu.y > BOSS_GROUND - 2 || cu.y < TILE + 4)) {
+          cu.dead = true; spawnParticles(cu.x, cu.y, "#a06bff", 5);
+        }
+        continue;
+      }
       if (cu.kind === "ymark") {    // まほうの しるし（当たり判定なし・見て どく ための 目じるし）
         if (--cu.life <= 0) cu.dead = true;
         continue;
@@ -10933,7 +11087,7 @@
     // ── うごき：前半は その場／後半は 走って 追ってくる
     if (b.phase2) {
       const dir = (p.x + p.w / 2 < b.x + b.w / 2) ? -1 : 1;
-      b.x += dir * 2.15;
+      b.x += dir * 2.5;   // ★ver9.10：後半の 追いかけも すこし はやく（2.15 → 2.5）
       b.face = dir;
       if (b.x < 16) b.x = 16;
       if (b.x + b.w > W - 16) b.x = W - 16 - b.w;
@@ -10947,13 +11101,23 @@
         beep(150, 0.3, "sawtooth", 0.09);
         spawnParticles(p.x + p.w / 2, p.y + p.h / 2, "#a06bff", 18);
       }
+    } else {
+      // ★ver9.10（オーナー報告「まん中から まったく 動かないと よわすぎる」）：
+      //   前半は **ゆっくり 左右に 行ったり 来たり** する。
+      //   後半の「走って 追ってくる」とは べつ もの＝おそいので 読める。
+      //   これで「まん中で ずっと ふんで いれば 勝てる」が なくなる。
+      b.x += b.walk * 0.8;
+      if (b.x < 60) { b.x = 60; b.walk = 1; }
+      if (b.x + b.w > W - 60) { b.x = W - 60 - b.w; b.walk = -1; }
+      b.face = (p.x + p.w / 2 < b.x + b.w / 2) ? -1 : 1;
     }
 
     // ── こうげき① わく星おとし
     b.orbCd--;
     if (b.orbCd <= 0) {
       // ★ver6.20：前半も 2つ ずつ・まちも みじかく（「よわすぎる」オーナー報告）
-      b.orbCd = b.phase2 ? 110 : 140;
+      // ★ver9.10：前半の まちを もう ひとつ みじかく（140 → 124）
+      b.orbCd = b.phase2 ? 110 : 124;
       const ready = b.orbs.filter(o => o.out <= 0 && o.back <= 0);
       const n = b.phase2 ? ready.length : Math.min(2, ready.length);   // 後半は 3つ 同時
       for (let i = 0; i < n; i++) launchGravitonOrb(b, ready[i]);
@@ -10991,7 +11155,7 @@
     // ── こうげき③ いんせき（天じょうと ゆかから 交ごに 小さな 岩）
     b.rockCd--;
     if (b.rockCd <= 0) {
-      b.rockCd = b.phase2 ? 70 : 130;
+      b.rockCd = b.phase2 ? 70 : 112;   // ★ver9.10：前半の いんせきも すこし 早める
       const fromTop = (b.t % 2 === 0);
       const rx = 90 + Math.random() * (W - 180);
       hazards.push({ kind: "grock", x: rx, y: fromTop ? (GV_CEIL_Y + 10) : (BOSS_GROUND - 10),
@@ -20844,6 +21008,56 @@
       if (cu.kind === "arrow") { drawArrow(cu, false); continue; }
       if (cu.kind === "arrowlob") { drawArrow(cu, true); continue; }
       if (cu.kind === "ember") { drawEmber(cu); continue; }
+      if (cu.kind === "ygball") {   // ★ようせいの じゅうりょくだま
+        const cx = cu.x, cy = cu.y;
+        ctx.fillStyle = "rgba(120,60,200,0.30)";
+        ctx.beginPath(); ctx.arc(cx - cu.vx * 1.6, cy - cu.vy * 1.6, 10, 0, 7); ctx.fill();
+        ctx.fillStyle = "#16091f";
+        ctx.beginPath(); ctx.arc(cx, cy, 9, 0, 7); ctx.fill();
+        ctx.strokeStyle = "#c79bff"; ctx.lineWidth = 2.4;
+        ctx.beginPath(); ctx.arc(cx, cy, 10.5 + Math.sin(cu.t * 0.35) * 1.2, 0, 7); ctx.stroke();
+        continue;
+      }
+      if (cu.kind === "ydeck") {   // ★ver9.11 台座ぜんたいが 燃える
+        if (cu.wait > 0) {
+          // 予告：台が 赤く またたく（1びょう）。にげる 時間だと ひと目で わかる ように
+          //   だんだん 強く 光らせて「もうすぐ 来る」を つたえる。
+          const k = 1 - cu.wait / YO_DECK_WARN;
+          const a = (0.25 + 0.45 * k) * (0.55 + 0.45 * Math.abs(Math.sin(cu.t * 0.28)));
+          ctx.fillStyle = "rgba(255,90,60," + a.toFixed(2) + ")";
+          ctx.fillRect(cu.x, cu.y - 6, cu.w, 10);
+          ctx.strokeStyle = "rgba(255,200,120," + (0.4 + 0.5 * k).toFixed(2) + ")";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(cu.x + 1, cu.y - 5, cu.w - 2, 8);
+          for (let i = 0; i < 4; i++) {     // ちいさな 火の粉
+            const fx = cu.x + ((cu.t * 3 + i * 37) % cu.w);
+            const fy = cu.y - 8 - ((cu.t * 2 + i * 19) % 20);
+            ctx.fillStyle = "rgba(255,190,90," + (0.5 * k).toFixed(2) + ")";
+            ctx.fillRect(fx, fy, 3, 3);
+          }
+        } else {
+          // 燃えて いる：台の 上ぜんぶに 炎が 立つ
+          const n = Math.round(cu.w / 20);
+          for (let i = 0; i < n; i++) {
+            const fx = cu.x + 10 + i * (cu.w - 20) / (n - 1 || 1);
+            const w2 = 12 + Math.sin(cu.t * 0.4 + i) * 2.5;
+            const h2 = 30 + Math.sin(cu.t * 0.5 + i * 1.7) * 8;
+            ctx.fillStyle = "rgba(255,140,50,0.85)";
+            ctx.beginPath();
+            ctx.moveTo(fx - w2, cu.y);
+            ctx.quadraticCurveTo(fx, cu.y - h2, fx + w2, cu.y);
+            ctx.closePath(); ctx.fill();
+            ctx.fillStyle = "rgba(255,224,120,0.9)";
+            ctx.beginPath();
+            ctx.moveTo(fx - w2 * 0.5, cu.y);
+            ctx.quadraticCurveTo(fx, cu.y - h2 * 0.55, fx + w2 * 0.5, cu.y);
+            ctx.closePath(); ctx.fill();
+          }
+          ctx.fillStyle = "rgba(255,120,50,0.35)";
+          ctx.fillRect(cu.x, cu.y - 6, cu.w, 8);
+        }
+        continue;
+      }
       if (cu.kind === "yfire") {   // 地めんを はしる ほのお
         ctx.save();
         ctx.translate(cu.x, BOSS_GROUND - 4);
