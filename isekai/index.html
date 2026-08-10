@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 9.13 (2026-08-09)";
+  const GAME_VERSION = "異世界編 ver 9.14 (2026-08-09)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -1207,7 +1207,7 @@
       gdir: 1,          // ★ver6.14：重力の 向き。1＝ふつう／-1＝さかさま（じゅうりょくスキル）
       flipCd: 0, flipFx: 0, slam: 0, hoverT: 0, hoverLeft: 0, pull: 0,
       spin: 0, spinCd: 0, tackle: 0, tackleCd: 0, flaps: 0, flapT: 0, mouthOpen: 0,
-      roll: 0, rollCd: 0, gnaw: 0, gnawTarget: null, gnawBoss: null, burrow: 0, burrowCd: 0, slow: 0,
+      roll: 0, rollCd: 0, gnaw: 0, gnawTarget: null, gnawBoss: null, gnawHit: [], burrow: 0, burrowCd: 0, slow: 0,
       rbGauge: 0, rbBeam: 0, rbFx: 0, rbShow: 0,
       orbCool: 0, circleCd: 0, carry: null, carryCd: 0, broom: 0, broomCd: 0,
       floating: 0, tkFx: 0, tkMiss: 0,
@@ -1716,7 +1716,7 @@
         const plus = normalPlus;
         return [
           ["B", "たねスピット", "口から タネを とばす" + (plus ? "（はやく なった・れんだも きく）" : "")],
-          ["B ながおし", "かじる", "めのまえの ブロックを こわす（ヒビ割れた壁も／ボスのバリアも）。**ボスにも 当たる**" + (plus ? "。はんいは **前の 3×3マス**" : "")],
+          ["B ながおし", "かじる", "めのまえの ブロックを こわす（ヒビ割れた壁も／ボスのバリアも）。**てきにも ボスにも 当たる**" + (plus ? "。はんいは **前の 3×3マス**" : "")],
           ["↓ ＋ B", "もぐる", "土にもぐって むてき。ヒビブロックは 掘って こわす。もう一度おすと とび出す" + (plus ? "。すぐ もぐり直せる" : "")],
           ["ダッシュ中に B", "ごろごろローリング", "まるまって つっこむ。せまい穴も通れる" + (plus ? "。はやく 長く なった" : "")]
         ].concat(rainbowOn() ? [
@@ -2147,9 +2147,29 @@
       ? { x: tx, y: p.y + p.h - TILE * 3, w: gw, h: TILE * 3 }
       : { x: tx, y: p.y + 10, w: gw, h: p.h - 20 };
   }
+  // ★★ver9.14（オーナー指示「ノーマルと ノーマル＋の かじるに 攻撃判定が ない」）：
+  //   はんい（gnawBox）に 入った **てき**を かじる。
+  //   ・ボスは「かみ**終わった** しゅんかん」（ver9.2）だが、てきは **入った その コマ**。
+  //     かじりは 44コマ（0.73びょう）も かかる ので、終わりまで 待つと
+  //     近づいて きた てきに 先に ぶつかって しまう＝身を まもれない。
+  //   ・1回の かじりで **1ぴき 1回まで**（gnawHit）。ずっと 入って いても 何度も 入らない。
+  //   ・トゲトゲ／ほしのみはり／こおりづけ などの 例外は damageEnemy が 見て くれる。
+  //   ・かがみの まもり手には **どの むきからでも 通る**（meleeNow に p.gnaw が 入って いる）。
+  function gnawEnemies(p) {
+    if (!p.gnawHit) p.gnawHit = [];
+    const box = gnawBox(p);
+    for (const e of enemies) {
+      if (!e.alive || p.gnawHit.indexOf(e) >= 0) continue;
+      if (!rectHit(box, e)) continue;
+      p.gnawHit.push(e);
+      sfx.block();
+      spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#ffd9a0", 6);
+      damageEnemy(e, "#ffd9a0");
+    }
+  }
   function startGnaw(p) {
     if (p.gnaw > 0 || p.burrow > 0) return;
-    p.gnaw = GNAW_TIME; p.vx = 0;
+    p.gnaw = GNAW_TIME; p.vx = 0; p.gnawHit = [];
     // 目の前のブロックをさがす
     const tall = np("gnawTall");
     const box = gnawBox(p);
@@ -3279,7 +3299,7 @@
     stopLoopSE("jet");                 // ★ミス・スキル切りかえで ジェットの 音を 止め忘れない
     stopLoopSE("pull");                // ★ver6.21：ちょうじゅうりょくの オーラも 止め忘れない
     if (p.roll > 0) { p.roll = 0; setLowProfile(p, false); }
-    p.spin = 0; p.tackle = 0; p.gnaw = 0; p.gnawTarget = null; p.gnawBoss = null; p.burrow = 0; p.mouthOpen = 0;
+    p.spin = 0; p.tackle = 0; p.gnaw = 0; p.gnawTarget = null; p.gnawBoss = null; p.gnawHit = []; p.burrow = 0; p.mouthOpen = 0;
     p.broom = 0;
     // ぶしスキルの技も止める（スキルを切りかえたのに 構えっぱなし・突進しっぱなしにならないように）
     p.cut = 0; p.cutUp = 0; p.shuku = 0; p.shukuLeft = 0; p.shukuHitB = [];
@@ -6606,6 +6626,7 @@
       p.gnaw--;
       p.vx = 0;
       p.mouthOpen = (p.gnaw % 8 < 4) ? 9 : 0;     // 口をパクパクさせる
+      gnawEnemies(p);                             // ★ver9.14：はんいに 入った てきを かじる
       const t = p.gnawTarget;
       if (t && !t.dead && p.gnaw % 6 === 0) {
         sfx.block();
@@ -7555,7 +7576,7 @@
     player.wing = false; player.gliding = false; player.glideUsed = false; player.shield = false;
     player.spin = 0; player.spinCd = 0; player.tackle = 0; player.tackleCd = 0;
     player.flaps = 0; player.flapT = 0; player.mouthOpen = 0;
-    player.roll = 0; player.rollCd = 0; player.gnaw = 0; player.gnawTarget = null; player.burrow = 0; player.burrowCd = 0; player.slow = 0;
+    player.roll = 0; player.rollCd = 0; player.gnaw = 0; player.gnawTarget = null; player.gnawHit = []; player.burrow = 0; player.burrowCd = 0; player.slow = 0;
     player.vx = 0; player.vy = 0;
     player.alive = true; player.deadT = 0;
     seeds = []; flames = [];
