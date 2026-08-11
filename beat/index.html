@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>まるりんビートバトル</title>
+<title>まるりんビート</title>
 <style>
   * { box-sizing: border-box; }
   html, body { margin:0; padding:0; height:100%; overscroll-behavior:none;
@@ -11,7 +11,9 @@
   body { color:#fff; font-family:"Segoe UI","Yu Gothic UI",system-ui,sans-serif;
          display:flex; align-items:center; justify-content:center; }
   #wrap { position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
-  #stage { position:relative; width:min(100vw, calc(100vh * 1.777), 1100px); touch-action:none; }
+  /* ★たて画面（9:16）。本家の ビートバトルが たて画面 なので それに あわせた。
+     高さで きまる ので、iPad(4:3)では 左右に すこし よはくが 出る。 */
+  #stage { position:relative; width:min(100vw, calc(100vh * 0.5625), 620px); touch-action:none; }
   canvas { display:block; width:100%; height:auto;
            touch-action:none; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
   /* ★背景の 色は ゲーム画面(#cv)だけ。canvas 全部に かけると
@@ -33,16 +35,16 @@
   .logo span { display:block; font-weight:900;
                font-family:"Yu Gothic UI","Hiragino Sans","Segoe UI",sans-serif;
                -webkit-text-stroke:4px #1b0f33; paint-order:stroke fill; }
-  .logo .l1 { font-size:clamp(24px,5.2vw,48px); letter-spacing:5px; color:#ffd23f;
+  .logo .l1 { font-size:38px; letter-spacing:4px; color:#ffd23f;
               text-shadow:0 3px 0 #b8791a, 0 6px 0 #8d5a0e, 0 9px 14px rgba(0,0,0,.5); }
-  .logo .l2 { font-size:clamp(15px,3.0vw,27px); letter-spacing:3px; color:#ffe9fb;
+  .logo .l2 { font-size:20px; letter-spacing:3px; color:#ffe9fb;
               margin-top:3px; -webkit-text-stroke-width:3.4px;
               text-shadow:0 3px 0 #a13f8e, 0 5px 0 #6d2760, 0 8px 12px rgba(0,0,0,.45); }
   .sub { display:inline-block; padding:2px 14px; border-radius:999px;
          background:rgba(255,255,255,.16); border:2px solid rgba(255,255,255,.55);
          color:#ffe9fb; font-size:11px; font-weight:800; letter-spacing:3px; }
   #menuBody { display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; }
-  .menu { display:flex; flex-direction:column; gap:10px; width:min(340px,86vw); }
+  .menu { display:flex; flex-direction:column; gap:10px; width:100%; max-width:340px; }
   button.big { font:inherit; font-size:17px; font-weight:800; padding:11px; border-radius:14px;
                border:3px solid rgba(255,255,255,.95); color:#fff; cursor:pointer;
                background:linear-gradient(180deg,#8a5ce6,#5a2fb0);
@@ -57,7 +59,7 @@
                       text-shadow:0 1px 0 rgba(255,255,255,.5); }
   button.big.focus { outline:4px solid #ffe14d; outline-offset:3px; filter:brightness(1.14); }
   button.big:disabled { opacity:.45; cursor:default; }
-  .note { color:#d9cbf2; font-size:11.5px; line-height:1.7; max-width:min(660px,94vw); font-weight:600; }
+  .note { color:#d9cbf2; font-size:11.5px; line-height:1.7; width:100%; max-width:480px; font-weight:600; }
   .note b { color:#ffd54a; }
   #ver { position:absolute; right:10px; bottom:8px; font-size:11px; color:#a493c9; }
 
@@ -68,49 +70,55 @@
              background:linear-gradient(180deg,#ffdf70,#f0a81e);
              border:3px solid #fff; box-shadow:0 3px 0 rgba(0,0,0,.3);
              font-size:16px; font-weight:900; color:#4a2f04; letter-spacing:5px; }
-  .ssList { display:flex; flex-direction:column; gap:6px; width:min(660px,95vw); }
-  .ssRow { display:flex; align-items:center; gap:10px; padding:5px 10px 5px 5px;
-           border:3px solid rgba(255,255,255,.7); border-radius:14px; cursor:pointer;
+  .ssList { display:flex; flex-direction:column; gap:5px; width:100%; max-width:500px; }
+  .ssRow { display:flex; align-items:center; gap:8px; padding:4px 8px 4px 4px;
+           border:3px solid rgba(255,255,255,.7); border-radius:13px; cursor:pointer;
            background:linear-gradient(100deg, rgba(255,255,255,.16), rgba(255,255,255,.06));
            -webkit-tap-highlight-color:transparent; text-align:left; }
   .ssRow:hover { filter:brightness(1.15); }
   .ssRow.sel { border-color:#ffe14d; background:linear-gradient(100deg,#6d3fb8,#3d2170);
                box-shadow:0 0 0 3px rgba(255,225,77,.5); }
-  .ssFace { width:52px; height:52px; flex:0 0 52px; border-radius:10px;
+  .ssFace { width:46px; height:46px; flex:0 0 46px; border-radius:9px;
             background:rgba(0,0,0,.28); border:2px solid rgba(255,255,255,.45); }
-  .ssInfo { flex:1; min-width:0; }
-  .ssName { font-size:15px; font-weight:900; letter-spacing:.5px;
+  /* ★min-width:0 が ないと flex の 中身が ちぢまず、行が 画面から はみ出す */
+  .ssInfo { flex:1; min-width:0; display:flex; flex-direction:column; gap:0; }
+  .ssName { font-size:14px; font-weight:900; letter-spacing:.3px; line-height:1.25;
             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .ssMeta { font-size:10.5px; color:#cbbce8; font-weight:600; }
-  .ssBest { font-size:10.5px; color:#ffe14d; font-weight:800; white-space:nowrap; }
-  .ssRank { font-size:26px; font-weight:900; width:34px; text-align:center;
+  .ssFoe  { font-size:11px; font-weight:700; color:#ffe1b0; line-height:1.3;
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ssMeta { font-size:9.5px; color:#bcaadd; font-weight:600; line-height:1.3;
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ssBest { flex:0 0 auto; text-align:right; font-size:10px; color:#ffe14d;
+            font-weight:800; line-height:1.35; white-space:nowrap; }
+  .ssRank { flex:0 0 26px; font-size:24px; font-weight:900; text-align:center;
             -webkit-text-stroke:2px #1b0f33; paint-order:stroke fill; }
-  .ssBar { display:flex; gap:6px; align-items:center; justify-content:center; flex-wrap:wrap; }
+  .ssBar { display:flex; gap:5px; align-items:center; justify-content:center; flex-wrap:wrap;
+           width:100%; max-width:500px; }
   .pill { font:inherit; font-size:12.5px; font-weight:800; padding:5px 13px; border-radius:999px;
           border:2px solid rgba(255,255,255,.75); background:rgba(255,255,255,.12); color:#fff;
           cursor:pointer; -webkit-tap-highlight-color:transparent; }
   .pill.on { background:#ffd257; color:#3b2b06; border-color:#fff; }
-  .pill small { font-weight:600; opacity:.85; }
-  .ssMe { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.1);
-          border:2px solid rgba(255,255,255,.4); border-radius:999px; padding:3px 6px 3px 3px; }
-  .ssMe canvas { width:38px; height:38px; background:transparent; }
-  .ssMe span { font-size:12px; font-weight:800; }
+  .pill.sm { padding:4px 9px; font-size:13px; }
+  .ssMe { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.1);
+          border:2px solid rgba(255,255,255,.4); border-radius:999px; padding:3px 8px 3px 3px; }
+  .ssMe canvas { width:34px; height:34px; background:transparent; }
+  .ssMe span { font-size:11.5px; font-weight:800; min-width:96px; text-align:center; }
 
   #rotate { display:none; position:fixed; inset:0; z-index:60; background:#14142a; text-align:center;
             flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:30px; }
   #rotate .ico { font-size:60px; }
-  @media (orientation:portrait){ body.has-touch #rotate { display:flex; } }
+  @media (orientation:landscape){ body.has-touch #rotate { display:flex; } }
 </style>
 </head>
 <body>
 
 <div id="wrap">
   <div id="stage">
-    <canvas id="cv" width="960" height="540"></canvas>
+    <canvas id="cv" width="540" height="960"></canvas>
     <div id="overlay">
       <div class="logo">
-        <span class="l1">ビートバトル</span>
-        <span class="l2">まるりん おんがくバトル</span>
+        <span class="l1">まるりんビート</span>
+        <span class="l2">おんがくバトル</span>
       </div>
       <div class="sub">ベータ版</div>
       <div id="menuBody"></div>
@@ -121,15 +129,15 @@
 
 <div id="rotate">
   <div class="ico">📱</div>
-  <h2>よこ向きにしてね</h2>
-  <p>タブレット・スマホは横向きで遊んでください</p>
+  <h2>たて向きにしてね</h2>
+  <p>スマホ・タブレットは たて向きで あそんでください</p>
 </div>
 
 <script>
 (function(){
 "use strict";
 
-const GAME_VERSION = "まるりんビートバトル ver 0.1 (2026-08-11)";
+const GAME_VERSION = "まるりんビート ver 0.2 (2026-08-11)";
 
 // ============================================================
 //  譜面データ（★ここは 譜面つくる.py が 書きかえる。手で いじらない）
@@ -183,11 +191,21 @@ let frame = 0;
 //   さわる ところは 「画面の 下はんぶんを たてに 4等分」＝どこを たたいても 入る。
 //   見た目の レーンより ずっと 広い ので、タブレットで 遊びやすい。
 const LANES = 4;
-const LANE_W = 96;                      // レーンの あいだ
-const ARROW  = 76;                      // やじるしの 大きさ
-const LANE_X = [336, 432, 528, 624];    // レーンの まん中の x
-const HIT_Y  = 384;                     // 判定ライン（ここで たたく）
-const TOUCH_TOP = 320;                  // これより 下を さわると ノーツの 入力に なる
+const LANE_W = 135;                     // レーン1本の はば（画面540 ÷ 4）
+const ARROW  = 88;                      // やじるしの 大きさ
+const LANE_X = [68, 203, 338, 473];     // レーンの まん中の x（画面を たてに 4等分）
+const HIT_Y  = 800;                     // 判定ライン＝下の 丸ボタン
+const RECEPT_R = 56;                    // 丸ボタンの 大きさ
+const NOTE_TOP = 96;                    // ノーツが 出てくる 高さ
+// ★上の ふだ（コンボ・曲名・スコア）は y=88 まで。画面の そと(-70)から 落とすと
+//   ノーツが ふだの うらを 通り、上下に 白い トゲが はみ出して 見えた。
+const FLOOR_Y  = 700;                   // キャラが 立つ ゆか
+const TOUCH_TOP = 560;                  // これより 下を さわると ノーツの 入力に なる
+// ★本家の 画面に あわせた たての わりふり:
+//   8-34 ゲージ ／ 44-78 コンボ(左)・曲名(中)・スコア(右)
+//   〜700 キャラが 立つ ところ（ノーツは キャラの 手前を 通る）
+//   800 判定＝丸ボタン（ここが そのまま さわる ボタン）
+//   さわる はんいは 「画面の 下(y>560)を たてに 4等分」＝丸ボタンより ずっと 広い
 const LANE_NAME = ["←","↓","↑","→"];
 const LANE_COL  = ["#c24bff", "#2ea8ff", "#3ddc6b", "#ff4d5e"];
 const LANE_COL_D= ["#6b1f96", "#125f9c", "#1d7a3c", "#8f2230"];
@@ -2526,13 +2544,15 @@ const POSE_T = 15;                    // ノーツを たたいた ポーズが 
 // ★キャラは 「実さいに 描いた はんい(artBox)」に あわせて 入れる。
 //   ch.h（当たり判定の 高さ）で 縮めると、まるりんの ように 原点より 下にも
 //   描く キャラが 画面の 下に はみ出して 足が 切れる（1回 これで 切れた）。
-//   cx=まん中の x／topY=絵の 上の はし／tall=絵の 高さ／maxW=よこ幅の 上げんど
-function drawActor(a, cx, topY, tall, maxW){
+//   cx=まん中の x／botY=絵の 下の はし（ゆか）／tall=高さの 上げんど／maxW=よこ幅の 上げんど
+//   ★「上の はし」で 合わせては いけない。よこ幅で 縮んだ ときに 下が 浮いて、
+//     足もとの かげと 体が はなれる（1回 これで 浮いた）。かならず 下で そろえる。
+function drawActor(a, cx, botY, tall, maxW){
   const ch = a.ch;
   const box = artBox(ch.key);
   const sc = Math.min(tall / box.h, (maxW || 240) / box.w);
   const x = cx - box.cx * sc * a.face;
-  const footY = topY - (box.cy - box.h / 2) * sc;
+  const footY = botY - (box.cy + box.h / 2) * sc;
   const p  = a.poseT > 0 ? a.poseT / POSE_T : 0;    // 1 → 0
   const e  = p * p;                                  // おわりを なめらかに
   let dx = 0, dy = 0, rot = 0, sq = 1;
@@ -2661,7 +2681,6 @@ function nowT(){
 }
 let AUTO = false;      // オート（自分の ノーツも かってに 当たる）
 let AUTO_LAG = 0;      // オートを わざと ずらす（判定の テスト用・秒）
-let SHOW_PADS = hasTouch;   // 下の たたくボタンを 出すか（テストで 出したい ことが ある）
 
 // ============================================================
 //  たたく
@@ -2792,7 +2811,8 @@ function finishSong(){
              maxCombo, total:myTotal };
   const key = song.id + ":" + diff;
   const b = best[key];
-  if (!failed && (!b || score > b.score)){
+  // テスト（にせの 時計）で 出た 点は 記ろくに しない
+  if (testT === null && !failed && (!b || score > b.score)){
     best[key] = { score, acc:Math.round(acc*1000)/1000, rank:rank.r, full };
     saveBest();
   }
@@ -2820,9 +2840,13 @@ function drawBg(){
   else if (th === "neon")    bgNeon(p);
   else                       bgVoid(p);
   // 下は 少し 暗く して ノーツを 見やすく
-  const g = ctx.createLinearGradient(0, H*0.45, 0, H);
-  g.addColorStop(0, "rgba(8,4,20,0)"); g.addColorStop(1, "rgba(8,4,20,0.55)");
-  ctx.fillStyle = g; ctx.fillRect(0, H*0.45, W, H*0.55);
+  // ノーツが 見やすい ように 上下を すこし 暗く する
+  const g = ctx.createLinearGradient(0, 0, 0, 220);
+  g.addColorStop(0, "rgba(8,4,20,0.55)"); g.addColorStop(1, "rgba(8,4,20,0)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, 220);
+  const g2 = ctx.createLinearGradient(0, FLOOR_Y, 0, H);
+  g2.addColorStop(0, "rgba(8,4,20,0)"); g2.addColorStop(1, "rgba(8,4,20,0.55)");
+  ctx.fillStyle = g2; ctx.fillRect(0, FLOOR_Y, W, H - FLOOR_Y);
 }
 
 function skyGrad(c1, c2, c3){
@@ -2831,93 +2855,101 @@ function skyGrad(c1, c2, c3){
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 }
 
+// ★キャラは ゆか(FLOOR_Y=700)に 立つ。背景の 見せ場は その 上に 置く。
 function bgStation(p){                       // 南流山の えき（ペギ＆にせペギ）
-  skyGrad("#16224a", "#24305e", "#3a3f6e");
+  skyGrad("#16224a", "#24305e", "#2e3763");
   ctx.fillStyle = "rgba(255,255,255," + (0.10 + p*0.10) + ")";
-  for (let i = 0; i < 9; i++) ctx.fillRect(40 + i*104, 96, 62, 8);        // 天じょうの あかり
-  ctx.fillStyle = "#2b3560";
-  ctx.fillRect(0, 150, W, 24);
-  ctx.fillStyle = "#e8eef8"; ctx.font = "bold 20px system-ui"; ctx.textAlign = "center";
-  ctx.fillText("南 流 山", W/2, 168);
-  ctx.fillStyle = "#1d2547"; ctx.fillRect(0, 330, W, 210);              // ホーム
+  for (let i = 0; i < 5; i++) ctx.fillRect(24 + i*104, 96, 62, 8);        // 天じょうの あかり
+  ctx.fillStyle = "#2b3560"; ctx.fillRect(0, 300, W, 30);
+  ctx.fillStyle = "#e8eef8"; ctx.font = "bold 22px system-ui"; ctx.textAlign = "center";
+  ctx.fillText("南 流 山", W/2, 322);
+  ctx.fillStyle = "rgba(255,240,190," + (0.05 + p*0.09) + ")";
+  ctx.fillRect(0, 340, W, FLOOR_Y - 340);
+  ctx.fillStyle = "#1d2547"; ctx.fillRect(0, FLOOR_Y, W, H - FLOOR_Y);   // ホーム
   ctx.fillStyle = "#39406b";
-  for (let i = 0; i < 16; i++) ctx.fillRect(i*64, 330, 58, 6);
-  ctx.fillStyle = "rgba(255,240,190," + (0.06 + p*0.10) + ")";
-  ctx.fillRect(0, 174, W, 156);
+  for (let i = 0; i < 9; i++) ctx.fillRect(i*64, FLOOR_Y, 58, 7);
 }
 
 function bgRing(p){                          // ムエタイの リング（ザガット）
-  skyGrad("#ff9a4d", "#e0563f", "#5a2438");
+  skyGrad("#ff9a4d", "#e0563f", "#7a2c3c");
   ctx.fillStyle = "rgba(255,220,140," + (0.08 + p*0.14) + ")";
-  ctx.beginPath(); ctx.arc(W/2, 210, 150 + p*22, 0, 7); ctx.fill();
-  ctx.fillStyle = "#3b1f30"; ctx.fillRect(0, 352, W, 188);
-  ctx.fillStyle = "#6b3348"; ctx.fillRect(0, 352, W, 12);
-  for (const [y, c] of [[228,"#ff5f6d"],[272,"#ffd257"],[316,"#ff5f6d"]]){
-    ctx.strokeStyle = c; ctx.lineWidth = 6; ctx.beginPath();
-    ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  ctx.beginPath(); ctx.arc(W/2, 330, 190 + p*24, 0, 7); ctx.fill();
+  for (const [y, c] of [[430,"#ff5f6d"],[510,"#ffd257"],[590,"#ff5f6d"]]){
+    ctx.strokeStyle = c; ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
   }
   ctx.fillStyle = "#2b1622";
-  for (const x of [30, W-30]) ctx.fillRect(x-9, 200, 18, 160);
+  for (const x of [26, W-26]) ctx.fillRect(x-10, 380, 20, FLOOR_Y - 380);
+  ctx.fillStyle = "#3b1f30"; ctx.fillRect(0, FLOOR_Y, W, H - FLOOR_Y);
+  ctx.fillStyle = "#6b3348"; ctx.fillRect(0, FLOOR_Y, W, 13);
 }
 
 function bgHonnouji(p){                      // 本能寺（織田信長）
-  skyGrad("#5b1414", "#8f2a10", "#2b0d0a");
+  skyGrad("#5b1414", "#8f2a10", "#3a1109");
   ctx.fillStyle = "rgba(255,150,40," + (0.10 + p*0.16) + ")";
-  ctx.beginPath(); ctx.arc(W/2, 400, 320 + p*30, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(W/2, 500, 300 + p*28, 0, 7); ctx.fill();
   ctx.fillStyle = "#1c0e0c";                                    // お寺の シルエット
+  const ry = 210, ey = 330, gy = FLOOR_Y;
   ctx.beginPath();
-  ctx.moveTo(250, 300); ctx.lineTo(480, 210); ctx.lineTo(710, 300);
-  ctx.lineTo(660, 300); ctx.lineTo(660, 400); ctx.lineTo(300, 400); ctx.lineTo(300, 300);
+  ctx.moveTo(30, ey); ctx.lineTo(W/2, ry); ctx.lineTo(W-30, ey);
+  ctx.lineTo(W-76, ey); ctx.lineTo(W-76, gy); ctx.lineTo(76, gy); ctx.lineTo(76, ey);
   ctx.closePath(); ctx.fill();
-  ctx.fillRect(430, 330, 100, 70);
-  for (let i = 0; i < 14; i++){                                  // ほのお
+  ctx.fillRect(W/2-56, gy-90, 112, 90);
+  for (let i = 0; i < 16; i++){                                  // ほのお
     const x = (i * 71 + frame * 1.4) % (W + 60) - 30;
-    const y = 470 - ((frame * 2 + i * 37) % 210);
-    const s = 5 + (i % 3) * 3;
-    ctx.fillStyle = i % 2 ? "rgba(255,180,60,.55)" : "rgba(255,90,40,.45)";
-    ctx.beginPath(); ctx.ellipse(x, y, s, s*1.7, 0, 0, 7); ctx.fill();
+    const y = gy + 30 - ((frame * 2 + i * 37) % 340);
+    const sz = 5 + (i % 3) * 3;
+    ctx.fillStyle = i % 2 ? "rgba(255,180,60,.5)" : "rgba(255,90,40,.42)";
+    ctx.beginPath(); ctx.ellipse(x, y, sz, sz*1.7, 0, 0, 7); ctx.fill();
   }
-  ctx.fillStyle = "#170807"; ctx.fillRect(0, 400, W, 140);
+  const gg = ctx.createLinearGradient(0, gy, 0, H);
+  gg.addColorStop(0, "#3a1410"); gg.addColorStop(1, "#150706");
+  ctx.fillStyle = gg; ctx.fillRect(0, gy, W, H - gy);
 }
 
 function bgNeon(p){                          // ネオ・ハムシティ（マザーAI）
-  skyGrad("#090c26", "#12093a", "#05030f");
+  skyGrad("#090c26", "#12093a", "#0a0620");
+  const hz = FLOOR_Y;
+  const bld = [[6,300],[86,420],[172,240],[254,380],[330,340],[406,450],[476,280]];
+  for (const [x, bh] of bld){
+    ctx.fillStyle = "#0d1233"; ctx.fillRect(x, hz - bh, 58, bh);
+    ctx.fillStyle = "rgba(255,60,180," + (0.32 + p*0.4) + ")";
+    for (let r = 0; r < Math.floor(bh/30); r++)
+      ctx.fillRect(x + 8 + ((r*13) % 34), hz - bh + 14 + r*28, 8, 6);
+  }
   ctx.save();
   ctx.strokeStyle = "rgba(80,220,255," + (0.16 + p*0.22) + ")"; ctx.lineWidth = 1.4;
-  for (let i = 0; i <= 16; i++){                                 // おくゆきの ゆか
-    ctx.beginPath(); ctx.moveTo(W/2, 250); ctx.lineTo(i*60 - 60, H); ctx.stroke();
+  for (let i = -3; i <= 12; i++){                                // おくゆきの ゆか
+    ctx.beginPath(); ctx.moveTo(W/2, hz); ctx.lineTo(i*60, H); ctx.stroke();
   }
-  for (let i = 1; i < 9; i++){
-    const y = 250 + i*i*4.2;
+  for (let i = 1; i < 8; i++){
+    const y = hz + i*i*5.4;
+    if (y > H) break;
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
   }
   ctx.restore();
-  const bld = [[40,150],[120,210],[210,120],[300,190],[640,170],[730,230],[830,140],[900,200]];
-  for (const [x, h2] of bld){
-    ctx.fillStyle = "#0d1233"; ctx.fillRect(x, 250 - h2, 66, h2);
-    ctx.fillStyle = "rgba(255,60,180," + (0.35 + p*0.4) + ")";
-    for (let r = 0; r < Math.floor(h2/26); r++)
-      ctx.fillRect(x + 8 + ((r*13) % 40), 250 - h2 + 12 + r*24, 8, 6);
-  }
-  ctx.fillStyle = "rgba(255,60,180," + (0.10 + p*0.16) + ")";
-  ctx.fillRect(0, 246, W, 6);
+  ctx.fillStyle = "rgba(255,60,180," + (0.12 + p*0.16) + ")";
+  ctx.fillRect(0, hz - 4, W, 6);
 }
 
 function bgVoid(p){                          // 虚空（妖精・ラスボス）
-  skyGrad("#1a0733", "#2b0a4a", "#07030f");
+  skyGrad("#1a0733", "#2b0a4a", "#0d0620");
   ctx.save();
-  for (let i = 0; i < 60; i++){
-    const a = i * 2.399, r = 40 + (i * 13 % 300);
-    const x = W/2 + Math.cos(a + frame*0.004) * r * 1.6;
-    const y = 250 + Math.sin(a + frame*0.004) * r * 0.8;
+  for (let i = 0; i < 80; i++){
+    const a = i * 2.399, r = 30 + (i * 13 % 260);
+    const x = W/2 + Math.cos(a + frame*0.004) * r * 1.1;
+    const y = 420 + Math.sin(a + frame*0.004) * r * 1.4;
     ctx.fillStyle = "rgba(255,240,190," + (0.15 + (i % 5) * 0.09 + p*0.2) + ")";
     ctx.beginPath(); ctx.arc(x, y, 1.2 + (i % 4) * 0.8, 0, 7); ctx.fill();
   }
   ctx.restore();
-  const rr = 118 + p * 26;
-  const g = ctx.createRadialGradient(W/2, 250, 10, W/2, 250, rr);
-  g.addColorStop(0, "rgba(200,150,255,.34)"); g.addColorStop(1, "rgba(200,150,255,0)");
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(W/2, 250, rr, 0, 7); ctx.fill();
+  const rr = 160 + p * 30;
+  const g = ctx.createRadialGradient(W/2, 430, 10, W/2, 430, rr);
+  g.addColorStop(0, "rgba(200,150,255,.30)"); g.addColorStop(1, "rgba(200,150,255,0)");
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(W/2, 430, rr, 0, 7); ctx.fill();
+  const gg = ctx.createLinearGradient(0, FLOOR_Y, 0, H);
+  gg.addColorStop(0, "rgba(60,25,100,.7)"); gg.addColorStop(1, "rgba(10,4,24,.9)");
+  ctx.fillStyle = gg; ctx.fillRect(0, FLOOR_Y, W, H - FLOOR_Y);
 }
 
 // --- やじるし ------------------------------------------------------
@@ -2964,55 +2996,64 @@ function drawArrow(cx, cy, s, lane, kind, alpha){
 }
 
 function drawLanes(){
-  // レーンの おび（明るい ステージだと こい 茶色の 柱に 見えるので うすく＋下は ぼかす）
-  const lg = ctx.createLinearGradient(0, 0, 0, HIT_Y + 56);
-  lg.addColorStop(0,    "rgba(10,6,26,0.30)");
-  lg.addColorStop(0.86, "rgba(10,6,26,0.26)");
+  // レーンの おび（キャラの 手前を 通る ので うすく。こくすると キャラが かすむ）
+  const lg = ctx.createLinearGradient(0, 0, 0, HIT_Y + 70);
+  lg.addColorStop(0,    "rgba(10,6,26,0.24)");
+  lg.addColorStop(0.80, "rgba(10,6,26,0.20)");
   lg.addColorStop(1,    "rgba(10,6,26,0)");
   ctx.fillStyle = lg;
   for (let i = 0; i < LANES; i++)
-    ctx.fillRect(LANE_X[i] - LANE_W/2 + 4, 0, LANE_W - 8, HIT_Y + 56);
-  // 判定ライン
-  ctx.strokeStyle = "rgba(255,255,255,0.30)"; ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(LANE_X[0] - LANE_W/2, HIT_Y); ctx.lineTo(LANE_X[3] + LANE_W/2, HIT_Y);
-  ctx.stroke();
-  // 受け皿
+    ctx.fillRect(LANE_X[i] - LANE_W/2 + 3, 0, LANE_W - 6, HIT_Y + 70);
+
+  // ★受け皿＝下の 丸ボタン。ここが そのまま さわる ボタンに 見える ように する
   for (let i = 0; i < LANES; i++){
-    if (foeLit[i] > 0){
-      ctx.save(); ctx.globalAlpha = foeLit[i] / 9 * 0.9;
-      ctx.translate(LANE_X[i], HIT_Y); ctx.rotate(LANE_ROT[i]);
-      arrowPath(ARROW * 1.14);
-      ctx.fillStyle = "rgba(255,150,70,0.85)"; ctx.fill();
-      ctx.restore();
-    }
-    const lit = laneLit[i] > 0;
-    drawArrow(LANE_X[i], HIT_Y, ARROW * (lit ? 1.10 : 1), i, lit ? "lit" : "ghost");
-  }
-  // ★たたく ところの めやす。さわって 遊ぶ ときだけ 出す。
-  //   パソコンで 出すと キャラの 上に たての 線が かかって じゃまだった。
-  //   ほんとうの 判定は 「画面の 下はんぶんを たてに 4等分」なので、
-  //   この おびより 上を さわっても ちゃんと 入る。
-  if (SHOW_PADS){
+    const lit = laneLit[i] > 0, foeL = foeLit[i] > 0;
+    const r = RECEPT_R * (lit ? 1.08 : 1);
     ctx.save();
-    for (let i = 0; i < 4; i++){
-      const cx = i * W/4 + W/8;
-      ctx.globalAlpha = laneLit[i] > 0 ? 0.34 : 0.13;
-      ctx.fillStyle = LANE_COL[i];
-      roundRect(i * W/4 + 6, H - 68, W/4 - 12, 62, 14); ctx.fill();
-      ctx.globalAlpha = 0.5;
-      ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
-      roundRect(i * W/4 + 6, H - 68, W/4 - 12, 62, 14); ctx.stroke();
-      ctx.globalAlpha = 0.75;
-      drawArrow(cx, H - 37, 40, i, "ghost");
-    }
+    ctx.translate(LANE_X[i], HIT_Y);
+    // そとわく
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, 7);
+    ctx.fillStyle = lit ? LANE_COL[i] : (foeL ? "rgba(255,150,70,0.55)" : "rgba(16,10,32,0.72)");
+    if (lit){ ctx.shadowColor = LANE_COL[i]; ctx.shadowBlur = 26; }
+    ctx.fill(); ctx.shadowBlur = 0;
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = lit ? "#fff" : LANE_COL[i];
+    ctx.stroke();
+    ctx.restore();
+    // 中の やじるし
+    ctx.save();
+    ctx.translate(LANE_X[i], HIT_Y); ctx.rotate(LANE_ROT[i]);
+    arrowPath(ARROW * (lit ? 0.80 : 0.74));
+    ctx.fillStyle = lit ? "#ffffff" : "rgba(190,196,220,0.92)";
+    ctx.fill();
+    ctx.lineWidth = 2.4; ctx.strokeStyle = "rgba(20,12,40,0.65)"; ctx.stroke();
     ctx.restore();
   }
 }
 
 function drawNotes(){
   const t = nowT(), app = approachSec();
-  const top = -70;
+  const top = NOTE_TOP;   // 画面の 上の そとから 落ちてくる
+  // 拍の 線（4拍めは こく＝小節の あたま）。リズムが 目でも わかる
+  if (song && song.bpm > 0){
+    const beat = 60 / song.bpm;
+    const b0 = Math.ceil((t - song.offset) / beat);
+    ctx.save();
+    for (let k = b0; ; k++){
+      const bt = song.offset + k * beat;
+      const dt = bt - t;
+      if (dt > app) break;
+      if (dt < 0) continue;
+      const y = HIT_Y - (dt / app) * (HIT_Y - top);
+      const bar = ((k % 4) + 4) % 4 === 0;
+      ctx.strokeStyle = bar ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.08)";
+      ctx.lineWidth = bar ? 2 : 1;
+      ctx.beginPath();
+      ctx.moveTo(6, y); ctx.lineTo(W - 6, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   for (const n of notes){
     if (n.hit || n.dead) continue;
     const dt = n.t - t;
@@ -3035,65 +3076,90 @@ function drawNotes(){
 
 function drawChars(){
   // うしろに やわらかい 光。妖精の ように 黒い キャラが 暗い 背景に 沈む ため
-  for (const [x, c] of [[138, "255,140,110"], [822, "120,210,255"]]){
-    const g = ctx.createRadialGradient(x, 360, 8, x, 360, 190);
-    g.addColorStop(0, "rgba(" + c + ",0.26)");
+  // ★キャラは 大きく、ゆかに 立たせる。ノーツは この 手前を 通る（本家と 同じ）
+  for (const [x, c] of [[118, "255,140,110"], [422, "120,210,255"]]){
+    const g = ctx.createRadialGradient(x, 570, 10, x, 570, 185);
+    g.addColorStop(0, "rgba(" + c + ",0.22)");
     g.addColorStop(1, "rgba(" + c + ",0)");
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, 360, 190, 0, 7); ctx.fill();
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, 570, 185, 0, 7); ctx.fill();
   }
-  if (foe) drawActor(foe, 138, 246, 250, 250);
-  if (me)  drawActor(me,  822, 246, 250, 250);
+  // 足もとの かげ
+  for (const x of [118, 422]){
+    ctx.fillStyle = "rgba(0,0,0,0.28)";
+    ctx.beginPath(); ctx.ellipse(x, FLOOR_Y + 6, 78, 13, 0, 0, 7); ctx.fill();
+  }
+  // ★大きすぎると 2人が くっついて 背景も 見えなく なる。
+  //   よこ幅は 200 まで、あいだに すきまが のこる くらいが ちょうどよい。
+  if (foe) drawActor(foe, 118, FLOOR_Y, 290, 200);
+  if (me)  drawActor(me,  422, FLOOR_Y, 290, 200);
 }
 
 function drawHUD(){
-  // 曲名・スコア
-  ctx.textAlign = "left";
-  ctx.font = "bold 17px system-ui"; ctx.fillStyle = "#fff";
-  ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.lineWidth = 4;
-  ctx.strokeText(song.title, 16, 26); ctx.fillText(song.title, 16, 26);
-  const d = DIFFS.find(x => x.id === diff);
-  ctx.font = "bold 12px system-ui"; ctx.fillStyle = d ? d.col : "#fff";
-  ctx.strokeText(d ? d.name : "", 16, 44); ctx.fillText(d ? d.name : "", 16, 44);
-  ctx.textAlign = "right";
-  ctx.font = "bold 22px system-ui"; ctx.fillStyle = "#ffe14d";
-  ctx.strokeText(String(score), W - 16, 28); ctx.fillText(String(score), W - 16, 28);
-  ctx.font = "bold 12px system-ui"; ctx.fillStyle = "#d9cbf2";
-  const accNow = myDone > 0 ? Math.round(score / (myDone * 350) * 1000) / 10 : 100;
-  ctx.strokeText(accNow.toFixed(1) + "%", W - 16, 46); ctx.fillText(accNow.toFixed(1) + "%", W - 16, 46);
-
-  // 体力（つなひき）ゲージ
-  const bx = 250, bw = 460, by = 58, bh = 20;
-  ctx.fillStyle = "rgba(0,0,0,.45)";
-  roundRect(bx - 3, by - 3, bw + 6, bh + 6, 12); ctx.fill();
+  // ---- いちばん 上：つなひきゲージ ----
+  const bx = 40, bw = W - 40 - 62, by = 12, bh = 26;
+  ctx.fillStyle = "rgba(0,0,0,.5)";
+  roundRect(bx - 4, by - 4, bw + 8, bh + 8, 15); ctx.fill();
   const k = hp / 100;
-  ctx.fillStyle = "#ff6a4d"; roundRect(bx, by, bw, bh, 10); ctx.fill();
+  ctx.fillStyle = "#ff6a4d"; roundRect(bx, by, bw, bh, 12); ctx.fill();
   ctx.save();
-  ctx.beginPath(); roundRect(bx, by, bw, bh, 10); ctx.clip();
+  ctx.beginPath(); roundRect(bx, by, bw, bh, 12); ctx.clip();
   ctx.fillStyle = "#5fd0ff"; ctx.fillRect(bx + bw * (1 - k), by, bw * k, bh);
   ctx.restore();
-  ctx.strokeStyle = "#fff"; ctx.lineWidth = 2.4;
-  roundRect(bx, by, bw, bh, 10); ctx.stroke();
-  // まん中の しるし
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 3;
+  roundRect(bx, by, bw, bh, 12); ctx.stroke();
   ctx.fillStyle = "#fff";
-  ctx.beginPath(); ctx.arc(bx + bw * (1 - k), by + bh/2, 5.4, 0, 7); ctx.fill();
-  ctx.textAlign = "left"; ctx.font = "bold 11px system-ui"; ctx.fillStyle = "#ffd7c8";
-  ctx.fillText(foe.ch.name, bx + 2, by - 6);
-  ctx.textAlign = "right"; ctx.fillStyle = "#c8ecff";
-  ctx.fillText(me.ch.name, bx + bw - 2, by - 6);
+  ctx.beginPath(); ctx.arc(bx + bw * (1 - k), by + bh/2, 7, 0, 7); ctx.fill();
+  ctx.font = "bold 11px system-ui";
+  ctx.strokeStyle = "rgba(0,0,0,.55)"; ctx.lineWidth = 3;
+  ctx.textAlign = "left";
+  ctx.strokeText(foe.ch.name, bx + 8, by + 18); ctx.fillText(foe.ch.name, bx + 8, by + 18);
+  ctx.textAlign = "right";
+  ctx.strokeText(me.ch.name, bx + bw - 8, by + 18); ctx.fillText(me.ch.name, bx + bw - 8, by + 18);
 
-  // やめる
-  ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(0,0,0,.4)"; roundRect(W - 46, 62, 34, 30, 8); ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,.6)"; ctx.lineWidth = 2; roundRect(W - 46, 62, 34, 30, 8); ctx.stroke();
-  ctx.fillStyle = "#fff"; ctx.font = "bold 16px system-ui"; ctx.fillText("✕", W - 29, 83);
+  // やめる（右上）
+  ctx.beginPath(); ctx.arc(W - 28, by + bh/2, 17, 0, 7);
+  ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,.65)"; ctx.lineWidth = 2.4; ctx.stroke();
+  ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = "bold 16px system-ui";
+  ctx.fillText("✕", W - 28, by + bh/2 + 6);
 
-  // コンボ・判定
+  // ---- ふだ（左＝コンボ／右＝スコア／まん中＝曲名）----
+  const panel = (x, w, y, h) => {
+    ctx.fillStyle = "rgba(255,255,255,.92)";
+    roundRect(x, y, w, h, 11); ctx.fill();
+    ctx.strokeStyle = "rgba(30,16,56,.55)"; ctx.lineWidth = 2.6;
+    roundRect(x, y, w, h, 11); ctx.stroke();
+  };
+  panel(10, 150, 50, 38);
+  panel(W - 160, 150, 50, 38);
+  ctx.textAlign = "left";
+  ctx.font = "bold 11px system-ui"; ctx.fillStyle = "#7a5bb5";
+  ctx.fillText("コンボ", 20, 66);
+  ctx.font = "900 21px system-ui"; ctx.fillStyle = combo >= 50 ? "#e07a10" : "#2b1750";
+  ctx.fillText(String(combo), 20, 84);
+  ctx.textAlign = "right";
+  ctx.font = "bold 11px system-ui"; ctx.fillStyle = "#7a5bb5";
+  ctx.fillText("スコア", W - 20, 66);
+  ctx.font = "900 21px system-ui"; ctx.fillStyle = "#2b1750";
+  ctx.fillText(String(score), W - 20, 84);
+
   ctx.textAlign = "center";
+  ctx.font = "bold 14px system-ui"; ctx.fillStyle = "#fff";
+  ctx.strokeStyle = "rgba(0,0,0,.65)"; ctx.lineWidth = 4;
+  ctx.strokeText(song.title, W/2, 68); ctx.fillText(song.title, W/2, 68);
+  const d = DIFFS.find(x => x.id === diff);
+  const accNow = myDone > 0 ? Math.round(score / (myDone * 350) * 1000) / 10 : 100;
+  ctx.font = "bold 11px system-ui"; ctx.fillStyle = d ? d.col : "#fff";
+  ctx.lineWidth = 3;
+  const line = (d ? d.name : "") + "　" + accNow.toFixed(1) + "%";
+  ctx.strokeText(line, W/2, 84); ctx.fillText(line, W/2, 84);
+
+  // ---- 判定の 文字（ゆかと 丸ボタンの あいだ）----
   if (judgePop && judgePop.t > 0){
     const k2 = judgePop.t / 26;
     ctx.save();
     ctx.globalAlpha = Math.min(1, k2 * 2.2);
-    ctx.translate(480, 452 - (1 - k2) * 10);
+    ctx.translate(W/2, 734 - (1 - k2) * 10);
     ctx.scale(1 + (1 - k2) * 0.12, 1 + (1 - k2) * 0.12);
     ctx.font = "900 30px system-ui";
     ctx.strokeStyle = "rgba(0,0,0,.75)"; ctx.lineWidth = 7;
@@ -3101,27 +3167,15 @@ function drawHUD(){
     ctx.fillStyle = judgePop.col; ctx.fillText(judgePop.name, 0, 0);
     ctx.restore();
   }
-  // ★コンボは 「自分がわ(右)の 上」に 出す。まん中の 下に 置いたら
-  //   タブレットの たたくボタンと かさなった。
-  if (combo >= 2){
-    ctx.font = "900 40px system-ui";
-    ctx.strokeStyle = "rgba(0,0,0,.7)"; ctx.lineWidth = 7;
-    ctx.strokeText(String(combo), 822, 150);
-    ctx.fillStyle = combo >= 50 ? "#ffe14d" : "#fff"; ctx.fillText(String(combo), 822, 150);
-    ctx.font = "bold 12px system-ui";
-    ctx.strokeStyle = "rgba(0,0,0,.7)"; ctx.lineWidth = 4;
-    ctx.strokeText("コンボ", 822, 170);
-    ctx.fillStyle = "#d9cbf2"; ctx.fillText("コンボ", 822, 170);
-  }
-  // 「きみの ばん！」
+  // ---- 「きみの ばん！」----
   if (turnPop > 0){
     const k3 = turnPop / 42;
     ctx.save(); ctx.globalAlpha = Math.min(1, k3 * 2.4);
     ctx.font = "900 26px system-ui";
     ctx.strokeStyle = "rgba(0,0,0,.7)"; ctx.lineWidth = 7;
-    const s = turnWho === 0 ? "きみの ばん！" : "あいての ばん";
-    ctx.strokeText(s, 480, 118); ctx.fillStyle = turnWho === 0 ? "#5fe08a" : "#ff9a5c";
-    ctx.fillText(s, 480, 118);
+    const t2 = turnWho === 0 ? "きみの ばん！" : "あいての ばん";
+    ctx.strokeText(t2, W/2, 300); ctx.fillStyle = turnWho === 0 ? "#5fe08a" : "#ff9a5c";
+    ctx.fillText(t2, W/2, 300);
     ctx.restore();
   }
 }
@@ -3134,9 +3188,9 @@ function drawCountdown(){
   ctx.save();
   ctx.textAlign = "center";
   ctx.globalAlpha = 0.5 + 0.5 * f;
-  ctx.translate(480, 250);
+  ctx.translate(W/2, 480);
   ctx.scale(1 + (1 - f) * 0.35, 1 + (1 - f) * 0.35);
-  ctx.font = "900 74px system-ui";
+  ctx.font = "900 64px system-ui";
   ctx.strokeStyle = "rgba(0,0,0,.7)"; ctx.lineWidth = 10;
   ctx.strokeText(s, 0, 0);
   ctx.fillStyle = "#ffe14d"; ctx.fillText(s, 0, 0);
@@ -3192,7 +3246,7 @@ cv.addEventListener("pointerdown", ev => {
   audioCtx();
   if (state !== "play") return;
   const [x, y] = canvasXY(ev);
-  if (x > W - 56 && y < 100){ quitPlay(); return; }       // ✕
+  if (x > W - 56 && y < 52){ quitPlay(); return; }               // ✕（右上）
   const l = laneFromXY(x, y);
   if (l >= 0){ heldPointers.set(ev.pointerId, l); pressLane(l); }
 }, { passive:false });
@@ -3335,17 +3389,17 @@ function showOptions(){
   showOverlay("");
   const row = (label, id, val, hint) =>
     '<div style="display:flex;align-items:center;gap:10px;justify-content:center;margin:6px 0">' +
-    '<span style="width:110px;text-align:right;font-weight:800;font-size:13px">' + label + '</span>' +
+    '<span style="width:86px;text-align:right;font-weight:800;font-size:12.5px">' + label + '</span>' +
     '<button class="pill" id="' + id + 'M">−</button>' +
-    '<span id="' + id + 'V" style="min-width:96px;font-weight:900;font-size:15px">' + val + '</span>' +
+    '<span id="' + id + 'V" style="min-width:76px;font-weight:900;font-size:14px">' + val + '</span>' +
     '<button class="pill" id="' + id + 'P">＋</button>' +
-    '<span style="font-size:10.5px;color:#cbbce8">' + (hint || "") + '</span></div>';
+    '<span style="font-size:10px;color:#cbbce8;flex:1;min-width:0">' + (hint || "") + '</span></div>';
   menuBody.innerHTML =
-    '<div style="width:min(560px,94vw)">' +
+    '<div style="width:100%;max-width:420px">' +
     row("ズレ調整", "off", cfg.offset + " ms", "＋で ノーツが おそく") +
     row("スピード", "spd", cfg.speed.toFixed(1) + " 倍", "はやいほど 見やすい") +
     '<div style="display:flex;align-items:center;gap:10px;justify-content:center;margin:6px 0">' +
-    '<span style="width:110px;text-align:right;font-weight:800;font-size:13px">こうかおん</span>' +
+    '<span style="width:86px;text-align:right;font-weight:800;font-size:12.5px">こうかおん</span>' +
     '<button class="pill' + (cfg.se ? " on" : "") + '" id="seT">' + (cfg.se ? "オン" : "オフ") + '</button></div>' +
     '</div>' +
     '<div class="menu"><button class="big" id="bBack">もどる</button></div>';
@@ -3386,29 +3440,34 @@ function showSongSel(){
   html += '<div class="ssBar">';
   for (const d of DIFFS)
     html += '<button class="pill' + (cfg.diff === d.id ? " on" : "") + '" data-d="' + d.id + '">' + d.name + '</button>';
-  html += '<span class="ssMe"><canvas id="meFace" width="76" height="76"></canvas>' +
-          '<button class="pill" id="mePrev">◀</button>' +
-          '<span id="meName">' + CHARS[cfg.me].name + '</span>' +
-          '<button class="pill" id="meNext">▶</button></span>';
   html += '</div>';
+  html += '<div class="ssBar"><span class="ssMe">' +
+          '<canvas id="meFace" width="68" height="68"></canvas>' +
+          '<button class="pill sm" id="mePrev">◀</button>' +
+          '<span id="meName">' + CHARS[cfg.me].name + '</span>' +
+          '<button class="pill sm" id="meNext">▶</button></span></div>';
   html += '<div class="ssList" id="ssList">';
   SONGS.forEach((s, i) => {
     const b = best[s.id + ":" + cfg.diff];
     const rk = b ? b.rank : "";
     const rc = b ? (RANKS.find(r => r.r === b.rank) || RANKS[0]).col : "#888";
+    // ★1行に ぜんぶ 入れると たて画面では はみ出す。3段に 分ける
     html += '<div class="ssRow' + (i === selSong ? " sel" : "") + '" data-i="' + i + '">' +
             '<canvas class="ssFace" data-face="' + s.foe + '"></canvas>' +
-            '<span class="ssInfo"><span class="ssName">' + s.title + '</span>' +
-            '<span class="ssMeta">' + s.sub + '　／　あいて：' + CHARS[s.foe].name +
-            '　／　BPM ' + Math.round(s.bpm) + '　' + Math.round(s.end) + '秒</span></span>' +
+            '<span class="ssInfo">' +
+              '<span class="ssName">' + s.title + '</span>' +
+              '<span class="ssFoe">あいて：' + CHARS[s.foe].name + '</span>' +
+              '<span class="ssMeta">' + s.sub + ' ・ BPM' + Math.round(s.bpm) +
+                ' ・ ' + Math.round(s.end) + '秒</span>' +
+            '</span>' +
             (b ? '<span class="ssBest">' + b.score + '<br>' + (b.acc*100).toFixed(1) + '%' +
-                 (b.full ? ' ✨' : '') + '</span>' : '<span class="ssBest">—</span>') +
+                 (b.full ? '<br>✨' : '') + '</span>' : '<span class="ssBest">—</span>') +
             '<span class="ssRank" style="color:' + rc + '">' + rk + '</span></div>';
   });
   html += '</div>';
-  html += '<div class="menu" style="width:min(660px,95vw);flex-direction:row">' +
-          '<button class="big prim" id="bGo" style="flex:2">▶ この曲で バトル！</button>' +
-          '<button class="big" id="bBack" style="flex:1">もどる</button></div>';
+  html += '<div class="menu" style="max-width:500px;flex-direction:row;gap:6px">' +
+          '<button class="big prim" id="bGo" style="flex:2;min-width:0">▶ この曲で バトル！</button>' +
+          '<button class="big" id="bBack" style="flex:1;min-width:0">もどる</button></div>';
   menuBody.innerHTML = html;
 
   overlayEl.querySelectorAll(".pill[data-d]").forEach(el => {
@@ -3464,7 +3523,7 @@ function showResult(){
         ';-webkit-text-stroke:4px #1b0f33;paint-order:stroke fill">' + r.rank.r + '</div>') +
     (r.full ? '<div style="color:#ffe14d;font-weight:900;font-size:15px">✨ フルコンボ！ ✨</div>' : '') +
     '<div style="font-size:30px;font-weight:900;color:#ffe14d">' + r.score + '</div>' +
-    '<div style="width:min(300px,90vw);display:flex;flex-direction:column;gap:3px">' +
+    '<div style="width:100%;max-width:300px;display:flex;flex-direction:column;gap:3px">' +
       line("パーフェクト", c.perfect, "#ffe14d") +
       line("グレート",     c.great,   "#5fe08a") +
       line("グッド",       c.good,    "#5fbdf5") +
@@ -3473,7 +3532,7 @@ function showResult(){
       line("さいだいコンボ", r.maxCombo, "#fff") +
       line("せいかくさ",   (r.acc*100).toFixed(1) + "%", "#fff") +
     '</div>' +
-    '<div class="menu" style="flex-direction:row;width:min(420px,92vw)">' +
+    '<div class="menu" style="flex-direction:row;max-width:420px;gap:6px">' +
     '<button class="big prim" id="bAgain" style="flex:1">もういちど</button>' +
     '<button class="big" id="bList" style="flex:1">曲えらび</button></div>';
   document.getElementById("bAgain").onclick = () => {
@@ -3516,7 +3575,6 @@ window.__beat = {
   realT(){ testT = null; },
   tick(n){ for (let i = 0; i < (n || 1); i++){ if (state === "play"){ update(); if (state === "play") stepTurns(nowT()); } } return this.info(); },
   press(l){ pressLane(l); releaseLane(l); return this.info(); },
-  pads(on){ SHOW_PADS = on !== false; return SHOW_PADS; },
   // 本物の 音で 動かす ときの ようす（時計が 音に ついて いけて いるか）
   audio(){
     if (!music) return null;
