@@ -216,6 +216,34 @@
     #overlay .logo .sub { font-size: 10px; }
     #overlay button { font-size: 15px; padding: 8px 22px; box-shadow: 0 3px 0 #a82a42; }
   }
+  /* ★ver9.17「はじめから」の たしかめ画面。タイトルの 上に かぶせる */
+  #confirmNew {
+    position: absolute; inset: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(4,2,12,.72); padding: 16px;
+  }
+  #confirmNew .box {
+    background: linear-gradient(180deg, #2a1c46 0%, #1a1030 100%);
+    border: 3px solid #ffd34d; border-radius: 22px;
+    padding: 22px 26px 20px; max-width: 460px; width: 100%;
+    box-shadow: 0 10px 30px rgba(0,0,0,.6);
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  #confirmNew .q { font-size: 20px; font-weight: bold; line-height: 1.5; color: #fff; }
+  #confirmNew .d { font-size: 13px; line-height: 1.7; color: #ffd9a0; }
+  #confirmNew .k { font-size: 12px; color: #9fe8d0; }
+  #confirmNew .btns { display: flex; gap: 14px; margin-top: 6px; }
+  #confirmNew button { font-size: 17px; padding: 11px 30px; }
+  /* 「いいえ」を おちついた 色に して、まちがえて「はい」を おしにくく する */
+  #confirmNew #confirmNo { background: #4a4a72; box-shadow: 0 4px 0 #2c2c48; }
+  #confirmNew #confirmNo:active { box-shadow: 0 1px 0 #2c2c48; }
+  @media (max-height: 540px) {
+    #confirmNew .box { padding: 12px 16px 10px; gap: 6px; }
+    #confirmNew .q { font-size: 16px; }
+    #confirmNew .d { font-size: 11px; line-height: 1.6; }
+    #confirmNew .k { font-size: 10px; }
+    #confirmNew button { font-size: 15px; padding: 8px 22px; }
+  }
   .hidden { display: none !important; }
   /* ポーズボタン（スマホ・タブレットでも押せるように画面の右上に置く） */
   #pauseBtn {
@@ -257,6 +285,19 @@
       </div>
       <div id="contNote"></div>
       <div id="version">ver</div>
+     </div>
+     <!-- ★ver9.17（オーナー指示）：「はじめから」は おぼえた スキルも ハートのうつわも
+          ぜんぶ 消える。おしまちがいで 泣かない ように 1回 たしかめる。 -->
+     <div id="confirmNew" class="hidden">
+      <div class="box">
+       <div class="q">スキルを ぜんぶ わすれますが<br>ほんとうに いいですか？</div>
+       <div class="d" id="confirmLose"></div>
+       <div class="k">ベストスコアだけ のこります</div>
+       <div class="btns">
+        <button id="confirmNo">いいえ</button>
+        <button id="confirmYes" class="danger">はい</button>
+       </div>
+      </div>
      </div>
     </div>
   </div>
@@ -302,7 +343,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 9.16 (2026-08-09)";
+  const GAME_VERSION = "異世界編 ver 9.18 (2026-08-09)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -5204,6 +5245,8 @@
   // ★ver9.3：ようせいを たおして エンディングを 見た しるし。
   //   ・gameCleared … 全部 おわった（タイトルの 見た目などに つかえる）
   //   ・rainbowGot … **にじいろビーム**が つかえる（オーナー案）。
+  //     ★ver9.17：クリア後の ごほうび なので **「はじめから」で 消える**
+  //       （resetAbilities → resetClearBonus）。gameCleared も いっしょに 消す。
   //     ★ボタンの わりあては まだ 決まって いない（↓＋B は もぐるで ふさがって いる）ので、
   //       いまは **きろくだけ 残す**。技そのものは ボタンが 決まってから 足す。
   //       先に きろんで おけば、いま クリアした 子も あとから そのまま つかえる。
@@ -5223,12 +5266,24 @@
     if (normalPlus) return;
     normalPlus = true; saveNormalPlus();
   }
+  // ★ver9.17（オーナー指示「にじいろビームも 消えます。クリア後の ボーナスなので」）：
+  //   「はじめから」で **クリアの ごほうびも 取りなおし**に する。
+  //   gameCleared と rainbowGot は markGameCleared で いっしょに つく ので、
+  //   消す ときも いっしょに 消す（かた方だけ のこると おかしな じょうたいに なる）。
+  function resetClearBonus() {
+    gameCleared = false; rainbowGot = false;
+    try {
+      localStorage.removeItem("maruring_isekai_cleared");
+      localStorage.removeItem("maruring_isekai_rainbow");
+    } catch (e) {}
+  }
   // 「はじめから」＝おぼえたスキルもリセット（ステージ1でもう一度ドラゴンを手に入れる）
   function resetAbilities() {
     abilities = ["normal"]; abilityIndex = 0; saveAbilities();
     normalPlus = false; saveNormalPlus();   // ★ばつりんの 力も 取りなおし
     endDragonMode(); dragonGauge = DRAGON_MAX;
     maxHp = HP_BASE; hp = HP_BASE; vesselGot = []; saveHeartData();   // ハートのうつわも取り直し
+    resetClearBonus();                      // ★ver9.17：にじいろビームも 取りなおし
   }
   function currentAbility() { return abilities.length ? ABILITY_DEFS[abilities[abilityIndex]] : null; }
   function learnAbility(id) {
@@ -29450,6 +29505,8 @@
     state = "menu";
     document.body.classList.remove("playing");
     updateContinueUI();
+    // ★ver9.17：たしかめ画面を 出した まま メニューに もどっても のこらない ように
+    { const cn = document.getElementById("confirmNew"); if (cn) cn.classList.add("hidden"); }
     overlay.classList.remove("hidden");
   }
 
@@ -29472,7 +29529,57 @@
     }
   }
 
-  newBtn.addEventListener("click", () => beginPlay(0, true));   // はじめから＝オープニングを見せる
+  // ★★ver9.17（オーナー指示「はじめからを おす とき、スキルを すべて わすれますが
+  //   ほんとうに いいですか？／はい／いいえ の 画面が ほしい」）：
+  //   「はじめから」は resetAbilities()＋resetProgress() で
+  //     ・おぼえた スキル 7つ    ・ノーマル＋（ばつりんの 力）
+  //     ・ハートのうつわ（さいだいHP）・とちゅうの きろく
+  //     ・にじいろビーム（クリアの ごほうび。ver9.17で ここも 消す ことに した）
+  //   が ぜんぶ 消える。おしまちがえると 取りかえしが つかない ので 1回 たしかめる。
+  //   ★のこる のは ベストスコアだけ（resetProgress が 消さない）。
+  //   ★まだ 何も おぼえて いない・きろくも ない ときは たしかめない
+  //     （はじめての 子に むだな 画面を 見せない）。
+  const confirmNew = document.getElementById("confirmNew");
+  const confirmLose = document.getElementById("confirmLose");
+  function nothingToLose() {
+    return !hasSave && abilities.length <= 1 && !normalPlus && maxHp <= HP_BASE && !rainbowGot && !gameCleared;
+  }
+  function loseList() {
+    const a = [];
+    if (abilities.length > 1) a.push("スキル " + (abilities.length - 1) + "つ");
+    if (normalPlus) a.push("ノーマル＋");
+    if (maxHp > HP_BASE) a.push("ハートのうつわ " + (maxHp - HP_BASE) + "こ");
+    if (rainbowGot) a.push("🌈 にじいろビーム");
+    if (hasSave) a.push("とちゅうの きろく（ステージ" + (continueStage + 1) + "）");
+    return a.length ? "消える もの：" + a.join(" ／ ") : "";
+  }
+  function openConfirmNew() {
+    if (!confirmNew) { beginPlay(0, true); return; }
+    if (confirmLose) confirmLose.textContent = loseList();
+    confirmNew.classList.remove("hidden");
+    const no = document.getElementById("confirmNo");
+    if (no) no.focus();          // ★はじめに あたるのは「いいえ」＝あんぜんがわ
+  }
+  function closeConfirmNew() {
+    if (confirmNew) confirmNew.classList.add("hidden");
+    newBtn.focus();
+  }
+  newBtn.addEventListener("click", () => {   // はじめから＝オープニングを見せる
+    ac();                                     // ★たしかめ画面を はさんでも 音の 解禁が おくれない ように
+    if (nothingToLose()) { beginPlay(0, true); return; }
+    openConfirmNew();
+  });
+  {
+    const yes = document.getElementById("confirmYes");
+    const no = document.getElementById("confirmNo");
+    if (yes) yes.addEventListener("click", () => { closeConfirmNew(); beginPlay(0, true); });
+    if (no) no.addEventListener("click", closeConfirmNew);
+  }
+  // Esc／R で「いいえ」＝出したまま とじられなく ならない ように
+  window.addEventListener("keydown", (e) => {
+    if (!confirmNew || confirmNew.classList.contains("hidden")) return;
+    if (e.key === "Escape") { e.preventDefault(); closeConfirmNew(); }
+  });
   // ★つづきから＝「ようせいの とびらの間」へ（クリアした ステージを えらび直せる）
   contBtn.addEventListener("click", () => {
     if (contBtn.disabled) return;
