@@ -35,16 +35,35 @@
   .dbtn.left{ left:0; top:50px; border-radius:10px 0 0 10px; }
   .dbtn.right{ right:0; top:50px; border-radius:0 10px 10px 0; }
   .dbtn.pressed{ background:rgba(233,69,96,.8); }
+  /* ★ボタンは ほんものの ゲーム機コントローラーと 同じ ならび にする（ユーザー指定）。
+     ふつうの コントローラー＝  X
+                            Y   A
+                              B
+     スマホは 3つだけ 出すので X を のぞいた **Y（左）／A（右）／B（下）**。
+     Y＝ジャンプ・A＝こうげき・B＝ひっさつ は コントローラーと 同じ わりあて。
+     色も タイトル画面の ボタン説明（Y=みどり／A=あか／B=きいろ）と そろえる。 */
   #abtns { position:relative; width:200px; height:170px; pointer-events:none; }
-  .rbtn { position:absolute; border-radius:50%; color:#fff; font-weight:bold; line-height:1;
+  .rbtn { position:absolute; width:72px; height:72px; font-size:22px;
+          border-radius:50%; color:#fff; font-weight:bold; line-height:1;
           display:flex; flex-direction:column; align-items:center; justify-content:center;
           pointer-events:auto; -webkit-tap-highlight-color:transparent; touch-action:none;
-          box-shadow:0 4px 0 rgba(0,0,0,.35); border:3px solid rgba(255,255,255,.5); }
-  .rbtn small { font-size:10px; font-weight:normal; opacity:.85; margin-top:2px; }
-  .rbtn.a { width:84px; height:84px; font-size:26px; right:4px;  bottom:4px;  background:rgba(233,69,96,.85); }
-  .rbtn.b { width:70px; height:70px; font-size:22px; left:2px;   bottom:36px; background:rgba(58,168,224,.85); }
-  .rbtn.c { width:64px; height:64px; font-size:20px; right:14px; bottom:96px; background:rgba(240,190,60,.9); color:#20242f; }
+          box-shadow:0 4px 0 rgba(0,0,0,.35); border:3px solid rgba(255,255,255,.55); }
+  .rbtn small { font-size:9.5px; font-weight:normal; opacity:.9; margin-top:2px; }
+  .rbtn.y { left:0;   top:26px; background:rgba(60,176,110,.88); }   /* Y＝ジャンプ */
+  .rbtn.a { right:0;  top:26px; background:rgba(233,69,96,.88); }    /* A＝こうげき */
+  .rbtn.b { left:64px; bottom:0; background:rgba(240,190,60,.92); color:#20242f; } /* B＝ひっさつ */
   .rbtn.pressed { transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.35); filter:brightness(1.2); }
+  /* 画面が ひくい スマホでは 少し 小さく */
+  @media (max-height:420px){
+    #abtns { width:176px; height:150px; }
+    .rbtn { width:64px; height:64px; font-size:20px; }
+    .rbtn.y, .rbtn.a { top:22px; }
+    .rbtn.b { left:56px; }
+    #dpad { width:132px; height:132px; }
+    .dbtn { width:44px; height:44px; }
+    .dbtn.up{ left:44px; } .dbtn.down{ left:44px; }
+    .dbtn.left{ top:44px; } .dbtn.right{ top:44px; }
+  }
 
   /* ===== オーバーレイ（メニュー） ===== */
   /* ★明るく 楽しい 画面に（くさはらの 空と 草）。
@@ -153,8 +172,10 @@
   /* 17体を たてに はみ出さず おさめる＝9列×2段 */
   .csGrid { display:grid; grid-template-columns:repeat(9, 1fr);
             gap:4px; width:100%; max-width:780px; }
-  @media (max-width:820px){ .csGrid { grid-template-columns:repeat(6, 1fr); } }
-  @media (max-width:520px){ .csGrid { grid-template-columns:repeat(5, 1fr); } }
+  /* ★よこ長の スマホ（812x375 など）でも 9列のままの ほうが 2段で おさまる。
+     6列に すると 3段に なって たてに あふれる ので、切りかえは もっと せまい ときだけ。 */
+  @media (max-width:430px){ .csGrid { grid-template-columns:repeat(6, 1fr); } }
+  @media (max-width:340px){ .csGrid { grid-template-columns:repeat(5, 1fr); } }
   .csCell { position:relative; padding:0; border:3px solid #ffffff; border-radius:10px;
             background:linear-gradient(180deg,#ffffff,#cfe4f5); cursor:pointer; overflow:hidden;
             aspect-ratio:1/1; -webkit-tap-highlight-color:transparent;
@@ -221,6 +242,62 @@
   .csMoves { min-height:56px; }
   .csHint { color:#20344f; font-weight:600; text-shadow:0 1px 0 rgba(255,255,255,.6); }
 
+  /* ================================================================
+     ★せまい 画面（スマホ・タブレットの よこ持ち）でも 見きれない ように 縮める。
+       たて 620px 未満 → すこし 縮小／520px 未満 → もっと 縮小／420px 未満 → いちばん 小さく。
+       「タイトルと キャラ選択が スマホだと 見きれる」という 指摘への 対応。
+     ================================================================ */
+  /* ★切りかえは **画面の 高さ ではなく ゲーム枠(#overlay)の 高さ** で 決める。
+     #stage は 16:9 に そろえる ので、よこ長の 画面では 枠の 高さが
+     画面の 高さより ずっと 小さい（例：726x790 の 画面でも 枠は 408px）。
+     @media (max-height:...) だと そこが 見えず、見きれが 直らなかった。
+     クラス（mh1/mh2/mh3）は fitMenu() が 枠を 実測して つける。 */
+  body.mh1 #overlay { gap:5px; padding:5px 8px; }
+  body.mh1 .logo .l1 { font-size:clamp(22px,4.4vw,34px); }
+  body.mh1 .logo .l2 { font-size:clamp(14px,2.8vw,21px); }
+  body.mh1 #menuBody { gap:7px; }
+  body.mh1 .menu { gap:6px; width:min(300px,80vw); }
+  body.mh1 button.big { font-size:15px; padding:7px; border-radius:11px; }
+  body.mh1 .note { font-size:10.5px; line-height:1.45; }
+  body.mh1 .pad { padding:3px 9px; gap:6px; }
+  body.mh1 .csTitle { font-size:14px; padding:2px 20px; letter-spacing:3px; }
+  body.mh1 .csGrid { max-width:700px; gap:3px; }
+  body.mh1 .csBig { height:66px; }
+  body.mh1 .csMoves { font-size:9.5px; min-height:46px; padding:3px 6px; line-height:1.35; }
+  body.mh1 .csTag { font-size:9px; padding:1px 6px; margin:2px 3px 0; }
+  body.mh1 .csHint { display:none; }
+  body.mh1 .logo { margin-bottom:7px; }
+
+  body.mh2 #overlay { gap:3px; }
+  body.mh2 .logo .l1 { font-size:26px; letter-spacing:4px; -webkit-text-stroke-width:3px; }
+  body.mh2 .logo .l2 { font-size:16px; -webkit-text-stroke-width:2.6px; }
+  /* ロゴの 下の かげ＋ボタンの 黄色いふちが かさなって、
+     「まるりんブラザーズ」が ボタンに かくれていた ので すきまを あける */
+  body.mh2 .logo { margin-bottom:10px; }
+  body.mh2 .sub { display:none; }
+  body.mh2 #menuBody { gap:5px; }
+  body.mh2 button.big { font-size:14px; padding:6px; }
+  body.mh2 .note { font-size:9.5px; line-height:1.35; }
+  body.mh2 .pad .row { font-size:10px; }
+  body.mh2 .btn { width:19px; height:19px; font-size:11px; }
+  body.mh2 .csTitle { font-size:12px; padding:1px 16px; letter-spacing:2px; }
+  body.mh2 .csGrid { max-width:600px; gap:2px; }
+  body.mh2 .csName { font-size:7.5px; }
+  body.mh2 .csBig { height:52px; }
+  body.mh2 .csBar { font-size:10px; padding:1px 6px; }
+  body.mh2 .csTag { font-size:8.5px; }
+  body.mh2 .csMoves { font-size:8.5px; min-height:40px; gap:1px 4px; }
+  body.mh2 .csMoves i small { font-size:7px; }
+  body.mh2 .csCur { font-size:7.5px; bottom:13px; padding:0 4px 1px; }
+
+  body.mh3 .logo .l1 { font-size:21px; }
+  body.mh3 .logo .l2 { font-size:13px; }
+  body.mh3 button.big { font-size:12.5px; padding:5px; }
+  body.mh3 .note { font-size:8.5px; }
+  body.mh3 .csGrid { max-width:520px; }
+  body.mh3 .csBig { height:44px; }
+  body.mh3 .csMoves { min-height:34px; }
+
   #rotate { display:none; position:fixed; inset:0; z-index:60; background:#14142a; text-align:center;
             flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:30px; }
   #rotate .ico { font-size:60px; }
@@ -256,9 +333,9 @@
   </div>
   <div class="side right">
     <div id="abtns">
-      <button class="rbtn c" data-act="special" aria-label="ひっさつ">B<small>ひっさつ</small></button>
-      <button class="rbtn b" data-act="attack"  aria-label="こうげき">A<small>こうげき</small></button>
-      <button class="rbtn a" data-act="jump"    aria-label="ジャンプ">X<small>ジャンプ</small></button>
+      <button class="rbtn y" data-act="jump"    aria-label="ジャンプ">Y<small>ジャンプ</small></button>
+      <button class="rbtn a" data-act="attack"  aria-label="こうげき">A<small>こうげき</small></button>
+      <button class="rbtn b" data-act="special" aria-label="ひっさつ">B<small>ひっさつ</small></button>
     </div>
   </div>
 </div>
@@ -273,7 +350,7 @@
 (function(){
 "use strict";
 
-const GAME_VERSION = "大乱闘まるりんブラザーズ ベータ版 ver 1.2 (2026-08-11)";
+const GAME_VERSION = "大乱闘まるりんブラザーズ ベータ版 ver 1.3 (2026-08-11)";
 
 // ============================================================
 //  基本
@@ -4946,43 +5023,65 @@ function loop(){
 // ============================================================
 //  メニュー（HTMLオーバーレイ）
 // ============================================================
+// ★メニューの 大きさを 枠(#overlay)の 実さいの 高さで 切りかえる。
+//   スマホ・タブレットの よこ持ちだと 枠が ひくいので、そのままだと 見きれる。
+function fitMenu(){
+  const h = overlayEl.clientHeight || innerHeight;
+  document.body.classList.toggle("mh1", h < 620);
+  document.body.classList.toggle("mh2", h < 500);
+  document.body.classList.toggle("mh3", h < 400);
+}
+addEventListener("resize", fitMenu);
+addEventListener("orientationchange", () => setTimeout(fitMenu, 120));
+
 function showMenu(){
   state = "menu";
+  fitMenu();
   document.body.classList.remove("playing");
   overlayEl.classList.remove("hide", "charsel");
   stopBGM();
+  // ★スマホ・タブレットでは コントローラーの 話は 出さない（ユーザー指定）。
+  //   つないでいる 台数も ボタン設定も いらないので、画面が すっきりして
+  //   せまい 画面に おさまる ように なる。
   const padN = padList().length;
   overlay.innerHTML =
     '<div class="menu">' +
       '<button class="big prim" id="b1">ひとりで あそぶ<br><span style="font-size:12px;font-weight:500">CPUと たいせん</span></button>' +
       '<button class="big c-blue" id="b2">ふたりで たいせん<br><span style="font-size:12px;font-weight:500">おなじ画面で 2人</span></button>' +
-      '<button class="big c-grn" id="b3" style="font-size:14px;padding:10px">🎮 コントローラーのボタン設定</button>' +
+      (hasTouch ? '' :
+      '<button class="big c-grn" id="b3" style="font-size:14px;padding:10px">🎮 コントローラーのボタン設定</button>') +
       '<button class="big c-yel" id="b4" style="font-size:14px;padding:10px">' +
         (bgmOn ? "🔊 音楽：オン" : "🔈 音楽：オフ") + '</button>' +
     '</div>' +
-    '<div class="note">つながっているコントローラー：<b style="color:#ffd54a">' + padN + ' 個</b>' +
+    (hasTouch ? '' :
+      '<div class="note">つながっているコントローラー：<b style="color:#ffd54a">' + padN + ' 個</b>' +
       (padN === 0 ? '（コントローラーのボタンを1回押すと認識されます）'
-                  : '　<b>A</b>＝こうげき／<b>B</b>＝ひっさつ／<b>X・Y</b>＝ジャンプ') + '</div>' +
+                  : '　<b>A</b>＝こうげき／<b>B</b>＝ひっさつ／<b>X・Y</b>＝ジャンプ') + '</div>') +
     '<div class="pad">' +
       '<span class="row"><b class="btn d">十字</b>いどう</span>' +
-      '<span class="row"><b class="btn x">X</b><b class="btn y">Y</b>ジャンプ</span>' +
+      (hasTouch ? '' : '<span class="row"><b class="btn x">X</b><b class="btn y">Y</b>ジャンプ</span>') +
+      (hasTouch ? '<span class="row"><b class="btn y">Y</b>ジャンプ</span>' : '') +
       '<span class="row"><b class="btn a">A</b>こうげき</span>' +
       '<span class="row"><b class="btn b">B</b>ひっさつ</span>' +
     '</div>' +
     '<div class="note">' +
-      '<b>X</b>・<b>Y</b>＝ジャンプ（空中でもう一度おすと 2段ジャンプ）　' +
-      '<b>A</b>＝こうげき（上＋A＝うちあげ／空中でA＝空中攻撃）<br>' +
+      (hasTouch
+        ? '<b>Y</b>＝ジャンプ（空中でもう一度おすと 2段ジャンプ）　' +
+          '<b>A</b>＝こうげき（上＋A＝うちあげ／空中でA＝空中攻撃）<br>'
+        : '<b>X</b>・<b>Y</b>＝ジャンプ（空中でもう一度おすと 2段ジャンプ）　' +
+          '<b>A</b>＝こうげき（上＋A＝うちあげ／空中でA＝空中攻撃）<br>') +
       '<b>B</b>＝ひっさつ。<b>方向で4種類</b> ＝ B／横＋B／上＋B（復帰技）／下＋B<br>' +
       'ダメージ％がたまるほど遠くへ飛びます。場外に出されたら1ミス、3ミスで負け。<br>' +
-      '落ちても<b>崖につかまれます</b>（つかんだら X・Y でのぼる）。</div>';
+      '落ちても<b>崖につかまれます</b>（つかんだら ' + (hasTouch ? 'Y' : 'X・Y') + ' でのぼる）。</div>';
   document.getElementById("b1").onclick = () => { mode = "cpu"; showCharSel(); };
   document.getElementById("b2").onclick = () => { mode = "vs";  showCharSel(); };
-  document.getElementById("b3").onclick = () => showRemap();
+  if (document.getElementById("b3")) document.getElementById("b3").onclick = () => showRemap();
   document.getElementById("b4").onclick = () => { setBGM(!bgmOn); showMenu(); };
 }
 
 function showCharSel(){
   state = "charsel";
+  fitMenu();
   overlayEl.classList.add("charsel");
   const p2label = mode === "cpu" ? "CPU" : "2P";
   overlay.innerHTML =
@@ -5332,6 +5431,7 @@ window.__smash = {
     fighters.forEach(f => { f.isCPU = true; });
     // 開始位置を すこし ずらして 何回か 測る（同じ位置だと 毎回 同じ試合に なる）
     if (jitter){ fighters[0].x += jitter; fighters[1].x -= jitter; } },
+  menu(){ showMenu(); return state; },
   result(){ return { state, winner: winner ? winner.ch.key : null,
     stocks: fighters.map(f => f.stocks), dmg: fighters.map(f => +f.dmg.toFixed(1)) }; },
   // 手動で コマを進める。ブラウザが 裏に回っていると requestAnimationFrame が
