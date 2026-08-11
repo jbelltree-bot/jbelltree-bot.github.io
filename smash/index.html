@@ -290,11 +290,14 @@
   body.mh2 .csMoves i small { font-size:7px; }
   body.mh2 .csCur { font-size:7.5px; bottom:13px; padding:0 4px 1px; }
 
-  body.mh3 .logo .l1 { font-size:21px; }
-  body.mh3 .logo .l2 { font-size:13px; }
-  body.mh3 button.big { font-size:12.5px; padding:5px; }
-  body.mh3 .note { font-size:8.5px; }
+  body.mh3 .logo .l1 { font-size:19px; letter-spacing:3px; }
+  body.mh3 .logo .l2 { font-size:12px; }
+  body.mh3 .logo { margin-bottom:7px; }
+  body.mh3 button.big { font-size:12.5px; padding:4px; }
+  body.mh3 .note { font-size:8px; line-height:1.25; }
+  body.mh3 .pad { padding:2px 7px; }
   body.mh3 .csGrid { max-width:520px; }
+  body.mh3 .csTitle { font-size:11px; padding:1px 12px; }
   body.mh3 .csBig { height:44px; }
   body.mh3 .csMoves { min-height:34px; }
 
@@ -350,7 +353,7 @@
 (function(){
 "use strict";
 
-const GAME_VERSION = "大乱闘まるりんブラザーズ ベータ版 ver 1.3 (2026-08-11)";
+const GAME_VERSION = "大乱闘まるりんブラザーズ ベータ版 ver 1.4 (2026-08-11)";
 
 // ============================================================
 //  基本
@@ -838,6 +841,7 @@ const CHARS = {
   //   技も みんなの 力の つめあわせ。かるくて 空中が つよい。
   fairy: {
     key:"fairy", name:"妖精", w:40, h:64,
+    secret:true,       // ★キャラ選択では「？？？」＝異世界編の ネタバレ ぼうし
     weight:0.84, speed:4.0, accel:0.60, airAccel:0.44, friction:0.74,
     jump:12.4, airJump:10.6, airJumps:3, grav:0.55, maxFall:12.4,   // はねが あるので 空中が 得意
     tag:"空中最強／わなを置く",
@@ -5026,7 +5030,11 @@ function loop(){
 // ★メニューの 大きさを 枠(#overlay)の 実さいの 高さで 切りかえる。
 //   スマホ・タブレットの よこ持ちだと 枠が ひくいので、そのままだと 見きれる。
 function fitMenu(){
-  const h = overlayEl.clientHeight || innerHeight;
+  // ★オーバーレイが かくれて いる（display:none）と clientHeight が 0 に なる。
+  //   そのときは 親の #stage を 見る。innerHeight に 落とすと
+  //   よこ長の 画面で「大きいまま」に なって 見きれる。
+  const st = document.getElementById("stage");
+  const h = overlayEl.clientHeight || (st && st.clientHeight) || innerHeight;
   document.body.classList.toggle("mh1", h < 620);
   document.body.classList.toggle("mh2", h < 500);
   document.body.classList.toggle("mh3", h < 400);
@@ -5036,9 +5044,9 @@ addEventListener("orientationchange", () => setTimeout(fitMenu, 120));
 
 function showMenu(){
   state = "menu";
-  fitMenu();
   document.body.classList.remove("playing");
   overlayEl.classList.remove("hide", "charsel");
+  fitMenu();                 // ★かくしを といた あとで 測る（前だと 高さ 0 で 効かない）
   stopBGM();
   // ★スマホ・タブレットでは コントローラーの 話は 出さない（ユーザー指定）。
   //   つないでいる 台数も ボタン設定も いらないので、画面が すっきりして
@@ -5079,10 +5087,17 @@ function showMenu(){
   document.getElementById("b4").onclick = () => { setBGM(!bgmOn); showMenu(); };
 }
 
+// ★キャラ選択で 名前を かくす キャラ（`secret:true`）。
+//   妖精＝異世界編の **ほんとうの 最後のボス** なので、まだ 遊んで いない子への
+//   ネタバレに ならない よう「？？？」に する（ユーザー指定）。
+//   えらんで 試合に 入れば ふつうに 名前が 出る（もう 知って いる ので）。
+function selName(ch){ return ch.secret ? "？？？" : ch.name; }
+
 function showCharSel(){
   state = "charsel";
-  fitMenu();
+  overlayEl.classList.remove("hide");
   overlayEl.classList.add("charsel");
+  fitMenu();
   const p2label = mode === "cpu" ? "CPU" : "2P";
   overlay.innerHTML =
     '<div class="csTitle">キャラクター選択</div>' +
@@ -5090,7 +5105,7 @@ function showCharSel(){
       CHAR_LIST.map(k =>
         '<button class="csCell" data-k="'+k+'">' +
           '<canvas class="csFace" width="150" height="150"></canvas>' +
-          '<span class="csName">' + CHARS[k].name + '</span>' +
+          '<span class="csName">' + selName(CHARS[k]) + '</span>' +
           '<i class="csCur c1">1P</i><i class="csCur c2">2P</i>' +
         '</button>').join("") +
     '</div>' +
@@ -5145,7 +5160,7 @@ function showCharSel(){
       p.classList.toggle("p1", i === 0);
       p.classList.toggle("p2", i === 1);
       const ch = CHARS[sel[i]];
-      p.querySelector(".csPick").textContent = ch.name;
+      p.querySelector(".csPick").textContent = selName(ch);
       p.querySelector(".csTag").textContent = ch.tag || "";
       drawPortrait(p.querySelector(".csBig"), sel[i], 0.92, true);   // パネルは 大きい版
       const s = ch.sp;
