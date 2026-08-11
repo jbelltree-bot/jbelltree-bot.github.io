@@ -2575,6 +2575,23 @@ function drawActor(a, cx, botY, tall, maxW){
   ctx.restore();
 }
 
+// ゲージの はしに 出す まるい 顔アイコン。
+// ★これが ないと 体力が 満タンの とき ゲージが 一色に なって、
+//   ただの おびに 見える（オーナーに「ライフゲージが なくなった」と 言われた）。
+function drawBadge(a, cx, cy, r, ring){
+  const box = artBox(a.ch.key);
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.clip();
+  ctx.fillStyle = "rgba(20,12,40,0.9)"; ctx.fillRect(cx-r, cy-r, r*2, r*2);
+  const sc = Math.min((r * 2.05) / box.h, (r * 2.05) / box.w);
+  ctx.translate(cx - box.cx * sc, cy - box.cy * sc);
+  ctx.scale(sc, sc);
+  drawCharBoth(a);
+  ctx.restore();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7);
+  ctx.lineWidth = 3.4; ctx.strokeStyle = ring; ctx.stroke();
+}
+
 function poseActor(a, lane){ a.poseT = POSE_T; a.poseLane = lane; }
 function stepActor(a){ if (a.poseT > 0) a.poseT--; a.bob *= 0.80; }
 
@@ -3057,9 +3074,13 @@ function drawNotes(){
   for (const n of notes){
     if (n.hit || n.dead) continue;
     const dt = n.t - t;
-    if (dt > app || dt < -MISS_MS/1000 - 0.1) continue;
-    const y = HIT_Y - (dt / app) * (HIT_Y - top);
-    const a = dt > app * 0.86 ? (app - dt) / (app * 0.14) : 1;
+    if (dt > app || dt < -0.13) continue;
+    let y = HIT_Y - (dt / app) * (HIT_Y - top);
+    let a = dt > app * 0.86 ? (app - dt) / (app * 0.14) : 1;
+    // ★判定ラインを すぎた ノーツは その場で うすくして 消す。
+    //   そのまま 落とすと 丸ボタンを 通りこして 画面の 下まで 行き、
+    //   「ボタンの 下に ノーツが ある」ように 見えて まぎらわしい。
+    if (dt < 0){ y = Math.min(y, HIT_Y + 40); a *= Math.max(0, 1 + dt / 0.13); }
     drawArrow(LANE_X[n.lane], y, ARROW * (n.who === 0 ? 1 : 0.78), n.lane,
               n.who === 0 ? "note" : "foe", Math.max(0, Math.min(1, a)));
   }
@@ -3095,33 +3116,38 @@ function drawChars(){
 }
 
 function drawHUD(){
-  // ---- いちばん 上：つなひきゲージ ----
-  const bx = 40, bw = W - 40 - 62, by = 12, bh = 26;
+  // ---- いちばん 上：つなひきゲージ（＝ライフ）----
+  //   左＝あいて(オレンジ)／右＝じぶん(青)。まん中の しるしが 右に 行くほど まけ。
+  const cy = 28, bx = 54, bw = 390, by = 16, bh = 24;
   ctx.fillStyle = "rgba(0,0,0,.5)";
   roundRect(bx - 4, by - 4, bw + 8, bh + 8, 15); ctx.fill();
-  const k = hp / 100;
-  ctx.fillStyle = "#ff6a4d"; roundRect(bx, by, bw, bh, 12); ctx.fill();
+  const k = Math.max(0, Math.min(1, hp / 100));
+  const mx = bx + bw * (1 - k);                 // さかいめ
   ctx.save();
   ctx.beginPath(); roundRect(bx, by, bw, bh, 12); ctx.clip();
-  ctx.fillStyle = "#5fd0ff"; ctx.fillRect(bx + bw * (1 - k), by, bw * k, bh);
+  ctx.fillStyle = "#ff6a4d"; ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = "#5fd0ff"; ctx.fillRect(mx, by, bw - (mx - bx), bh);
+  // まん中の めもり（どちらが かって いるか ひと目で わかる）
+  ctx.strokeStyle = "rgba(255,255,255,.45)"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(bx + bw/2, by); ctx.lineTo(bx + bw/2, by + bh); ctx.stroke();
   ctx.restore();
   ctx.strokeStyle = "#fff"; ctx.lineWidth = 3;
   roundRect(bx, by, bw, bh, 12); ctx.stroke();
-  ctx.fillStyle = "#fff";
-  ctx.beginPath(); ctx.arc(bx + bw * (1 - k), by + bh/2, 7, 0, 7); ctx.fill();
-  ctx.font = "bold 11px system-ui";
-  ctx.strokeStyle = "rgba(0,0,0,.55)"; ctx.lineWidth = 3;
-  ctx.textAlign = "left";
-  ctx.strokeText(foe.ch.name, bx + 8, by + 18); ctx.fillText(foe.ch.name, bx + 8, by + 18);
-  ctx.textAlign = "right";
-  ctx.strokeText(me.ch.name, bx + bw - 8, by + 18); ctx.fillText(me.ch.name, bx + bw - 8, by + 18);
+  // さかいめの しるし（白だけだと 青の上で 消える ので 黒ぶちを つける）
+  ctx.beginPath(); ctx.arc(mx, cy, 8, 0, 7);
+  ctx.fillStyle = "#fff"; ctx.fill();
+  ctx.lineWidth = 2.6; ctx.strokeStyle = "#241338"; ctx.stroke();
+
+  // りょうはしに 顔（この2人の 取り合い だと ひと目で わかる）
+  drawBadge(foe, 28, cy, 21, "#ff6a4d");
+  drawBadge(me, bx + bw + 22, cy, 21, "#5fd0ff");
 
   // やめる（右上）
-  ctx.beginPath(); ctx.arc(W - 28, by + bh/2, 17, 0, 7);
+  ctx.beginPath(); ctx.arc(W - 26, cy, 17, 0, 7);
   ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fill();
   ctx.strokeStyle = "rgba(255,255,255,.65)"; ctx.lineWidth = 2.4; ctx.stroke();
   ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = "bold 16px system-ui";
-  ctx.fillText("✕", W - 28, by + bh/2 + 6);
+  ctx.fillText("✕", W - 26, cy + 6);
 
   // ---- ふだ（左＝コンボ／右＝スコア／まん中＝曲名）----
   const panel = (x, w, y, h) => {
@@ -3246,7 +3272,7 @@ cv.addEventListener("pointerdown", ev => {
   audioCtx();
   if (state !== "play") return;
   const [x, y] = canvasXY(ev);
-  if (x > W - 56 && y < 52){ quitPlay(); return; }               // ✕（右上）
+  if (x > W - 46 && y < 52){ quitPlay(); return; }               // ✕（右上）
   const l = laneFromXY(x, y);
   if (l >= 0){ heldPointers.set(ev.pointerId, l); pressLane(l); }
 }, { passive:false });
