@@ -302,7 +302,7 @@
 
   // ★バージョン★ 更新したら、この数字だけ上げる（タイトル画面に表示される）
   // メジャー番号＝いま入っているステージ数（ステージ2が入ったので 2.x 系）
-  const GAME_VERSION = "異世界編 ver 9.14 (2026-08-09)";
+  const GAME_VERSION = "異世界編 ver 9.16 (2026-08-09)";
   { const vEl = document.getElementById("version"); if (vEl) vEl.textContent = GAME_VERSION; }
 
   // ---------- 定数 ----------
@@ -13226,7 +13226,19 @@
   //   ★とばしかた：**おしっぱなしで 早おくり**。1回 おしただけで とばないのは わざと。
   //     はじめて 見る 子が まちがえて とばして しまうと 泣く ので。
   // =====================================================================
-  const ENDROLL_TIME = 60 * 75;        // 75びょう
+  // ★★ver9.16（オーナー指示「END_BGM は **97びょう**が いい」）：
+  //   エンドロールの あとの エンドカード（s9home）は `audio: LAST_BGM` なので、
+  //   applySceneBgm が そこで END_BGM を 止めて 曲を 入れかえる。
+  //   ＝**エンドロールの ながさが、END_BGM の どこで 切れるかを 決めて いる**。
+  //
+  //   END_BGM は 紙芝居 ⑭ で 頭出し（applySceneBgm → playTrack(track, true)）。
+  //   ⑭⑮⑯ の dur は 300+360+320＝**980コマ**（1まいは きっかり dur コマ）。
+  //     980 ＋ ENDROLL_TIME ＝ 97びょう×60 ＝ 5820コマ
+  //     → ENDROLL_TIME ＝ **4840コマ＝80.67びょう**（曲ぜんたいは 101.7びょう）
+  //   ★上の 映像（ROLL_SCENES 7まい）も 下の クレジットの 流れも
+  //     ENDROLL_TIME から わりだして いる ので、ここ 1か所で ぜんぶ そろって のびる。
+  //     7まい ÷ 4840 ＝ 1まい **691コマ＝11.5びょう**（まえは 10.9びょう）。
+  const ENDROLL_TIME = 4840;           // 80.67びょう（980コマと あわせて 曲の 97びょう）
   let endroll = null, endrollFast = false;
   function startEndroll() {
     stopStoryWind();
@@ -25308,6 +25320,31 @@
     ctx.fillText("SCORE", W / 2 - 84, 117);
     ctx.fillStyle = "#ffffff"; ctx.font = "bold 22px 'Segoe UI',sans-serif";
     ctx.fillText(String(score).padStart(6, "0"), W / 2 + 26, 118);
+    // ★★ver9.15（オーナー指示「エンドカードに にじいろビームが ふえた ことを 出して」）：
+    //   クリアの てつづき（markGameCleared）で **この しゅんかん** に
+    //   にじいろビームが 使える ように なる。ここで はっきり 教えないと、
+    //   せっかくの ごほうびに 気づかない まま おわって しまう。
+    {
+      const bw = 560, bx = W / 2 - bw / 2, by = 142, bh = 66;
+      ctx.fillStyle = "rgba(12,10,24,0.58)";
+      roundRectPath(bx, by, bw, bh, 14); ctx.fill();
+      const gl = 0.5 + 0.5 * Math.sin(f * 0.09);           // ゆっくり 光る わく＝目を ひく
+      ctx.strokeStyle = "rgba(255,211,77," + (0.30 + 0.50 * gl).toFixed(2) + ")";
+      ctx.lineWidth = 2;
+      roundRectPath(bx + 1, by + 1, bw - 2, bh - 2, 13); ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.font = "13px 'Segoe UI',sans-serif";
+      ctx.fillText("ノーマル＋に あたらしい わざが ふえました！", W / 2, by + 15);
+      const g4 = ctx.createLinearGradient(bx + 140, 0, bx + bw - 140, 0);
+      // ★くらい わくの 上に のせる ので、にじの 色は **明るめ**に する
+      //   （ゲーム中の にじいろビームの 色の まま だと 赤と むらさきが 読めなかった）
+      const RB7 = ["#ff9a9a", "#ffc978", "#fff08c", "#96ef9c", "#8ad8ff", "#b4b4ff", "#eaa8ff"];
+      RB7.forEach((c, i) => g4.addColorStop(i / (RB7.length - 1), c));
+      ctx.fillStyle = g4;
+      ctx.font = "bold 22px 'Segoe UI Emoji','Segoe UI',sans-serif";
+      ctx.fillText("🌈 にじいろビーム", W / 2, by + 38);
+      ctx.fillStyle = "rgba(255,255,255,0.72)"; ctx.font = "12px 'Segoe UI',sans-serif";
+      ctx.fillText("↓ ＋ B ながおし で ためて、満タンで B ＝ 発射", W / 2, by + 56);
+    }
     // あんない
     ctx.globalAlpha = 0.55 + 0.35 * Math.sin(f * 0.08);
     ctx.fillStyle = "#ffd34d"; ctx.font = "bold 15px 'Segoe UI',sans-serif";
