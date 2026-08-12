@@ -9,7 +9,10 @@
   html, body { margin:0; padding:0; height:100%; overscroll-behavior:none;
                background:linear-gradient(180deg,#2a4c74 0%, #1d3350 60%, #16283f 100%); }
   body { color:#fff; font-family:"Segoe UI","Yu Gothic UI",system-ui,sans-serif;
-         display:flex; align-items:center; justify-content:center; }
+         display:flex; align-items:center; justify-content:center;
+         /* ★ゲームなので 文字を えらぶ ことは ない。
+            iPhoneで ボタンを 長おしすると 出る「コピー／調べる」を まとめて 止める */
+         -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
   #wrap { position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
   #stage { position:relative; width:min(100vw, calc(100vh * 1.777), 1100px); touch-action:none; }
   canvas { display:block; width:100%; height:auto;
@@ -29,40 +32,53 @@
   .dbtn { position:absolute; width:50px; height:50px; background:rgba(40,40,70,.55);
           border:2px solid rgba(255,255,255,.35); color:#fff; font-size:20px;
           display:flex; align-items:center; justify-content:center;
-          pointer-events:auto; -webkit-tap-highlight-color:transparent; touch-action:none; }
+          pointer-events:auto; -webkit-tap-highlight-color:transparent; touch-action:none;
+          /* ★iPhoneで 十字を おすと「コピー／調べる」が 出て しまう ので 止める */
+          -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
   .dbtn.up{ top:0; left:50px; border-radius:10px 10px 0 0; }
   .dbtn.down{ bottom:0; left:50px; border-radius:0 0 10px 10px; }
   .dbtn.left{ left:0; top:50px; border-radius:10px 0 0 10px; }
   .dbtn.right{ right:0; top:50px; border-radius:0 10px 10px 0; }
   .dbtn.pressed{ background:rgba(233,69,96,.8); }
-  /* ★ボタンは ほんものの ゲーム機コントローラーと 同じ ならび にする（ユーザー指定）。
-     ふつうの コントローラー＝  X
-                            Y   A
-                              B
-     スマホは 3つだけ 出すので X を のぞいた **Y（左）／A（右）／B（下）**。
-     Y＝ジャンプ・A＝こうげき・B＝ひっさつ は コントローラーと 同じ わりあて。
-     色も タイトル画面の ボタン説明（Y=みどり／A=あか／B=きいろ）と そろえる。 */
-  #abtns { position:relative; width:200px; height:170px; pointer-events:none; }
-  .rbtn { position:absolute; width:72px; height:72px; font-size:22px;
+  /* ★ボタンは ほんものの ゲーム機コントローラーと 同じ ならび（ユーザー指定）。
+             X          X・Y＝ジャンプ
+          Y     A       A＝こうげき
+             B          B＝ひっさつ
+     色は タイトル画面の ボタン説明（X=あお／Y=みどり／A=あか／B=きいろ）と そろえる。 */
+  #abtns { position:relative; width:192px; height:192px; pointer-events:none; }
+  .rbtn { position:absolute; width:64px; height:64px; font-size:20px;
           border-radius:50%; color:#fff; font-weight:bold; line-height:1;
           display:flex; flex-direction:column; align-items:center; justify-content:center;
           pointer-events:auto; -webkit-tap-highlight-color:transparent; touch-action:none;
+          -webkit-touch-callout:none; -webkit-user-select:none; user-select:none;
           box-shadow:0 4px 0 rgba(0,0,0,.35); border:3px solid rgba(255,255,255,.55); }
-  .rbtn small { font-size:9.5px; font-weight:normal; opacity:.9; margin-top:2px; }
-  .rbtn.y { left:0;   top:26px; background:rgba(60,176,110,.88); }   /* Y＝ジャンプ */
-  .rbtn.a { right:0;  top:26px; background:rgba(233,69,96,.88); }    /* A＝こうげき */
-  .rbtn.b { left:64px; bottom:0; background:rgba(240,190,60,.92); color:#20242f; } /* B＝ひっさつ */
+  .rbtn small { font-size:8.5px; font-weight:normal; opacity:.9; margin-top:1px; }
+  .rbtn.x { left:64px; top:0;    background:rgba(42,143,214,.9); }   /* X＝ジャンプ */
+  .rbtn.y { left:0;    top:64px; background:rgba(58,168,92,.9); }    /* Y＝ジャンプ */
+  .rbtn.a { left:128px; top:64px; background:rgba(224,52,79,.9); }   /* A＝こうげき */
+  .rbtn.b { left:64px; top:128px; background:rgba(232,164,30,.94); color:#20242f; } /* B＝ひっさつ */
   .rbtn.pressed { transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.35); filter:brightness(1.2); }
-  /* 画面が ひくい スマホでは 少し 小さく */
-  @media (max-height:420px){
-    #abtns { width:176px; height:150px; }
-    .rbtn { width:64px; height:64px; font-size:20px; }
-    .rbtn.y, .rbtn.a { top:22px; }
-    .rbtn.b { left:56px; }
+  /* 画面が ひくい スマホでは 少し 小さく（4つ ぶん たてに 必要なので しっかり 縮める） */
+  @media (max-height:430px){
+    #abtns { width:168px; height:168px; }
+    .rbtn { width:56px; height:56px; font-size:18px; }
+    .rbtn small { font-size:7.5px; }
+    .rbtn.x { left:56px; top:0; }
+    .rbtn.y { left:0;    top:56px; }
+    .rbtn.a { left:112px; top:56px; }
+    .rbtn.b { left:56px; top:112px; }
     #dpad { width:132px; height:132px; }
     .dbtn { width:44px; height:44px; }
     .dbtn.up{ left:44px; } .dbtn.down{ left:44px; }
     .dbtn.left{ top:44px; } .dbtn.right{ top:44px; }
+  }
+  @media (max-height:350px){
+    #abtns { width:150px; height:150px; }
+    .rbtn { width:50px; height:50px; font-size:16px; }
+    .rbtn.x { left:50px; top:0; }
+    .rbtn.y { left:0;    top:50px; }
+    .rbtn.a { left:100px; top:50px; }
+    .rbtn.b { left:50px; top:100px; }
   }
 
   /* ===== オーバーレイ（メニュー） ===== */
@@ -336,6 +352,7 @@
   </div>
   <div class="side right">
     <div id="abtns">
+      <button class="rbtn x" data-act="jump"    aria-label="ジャンプ">X<small>ジャンプ</small></button>
       <button class="rbtn y" data-act="jump"    aria-label="ジャンプ">Y<small>ジャンプ</small></button>
       <button class="rbtn a" data-act="attack"  aria-label="こうげき">A<small>こうげき</small></button>
       <button class="rbtn b" data-act="special" aria-label="ひっさつ">B<small>ひっさつ</small></button>
@@ -353,7 +370,7 @@
 (function(){
 "use strict";
 
-const GAME_VERSION = "大乱闘まるりんブラザーズ ベータ版 ver 1.4 (2026-08-11)";
+const GAME_VERSION = "大乱闘まるりんブラザーズ ベータ版 ver 1.5 (2026-08-11)";
 
 // ============================================================
 //  基本
@@ -1001,20 +1018,50 @@ function readPad(slot, dst){
 }
 
 // --- タッチ（1Pのみ） ---
-const touchHeld = Object.create(null);
+// ★おしている ボタンの「数」で かぞえる。
+//   X と Y は どちらも ジャンプ なので、片方を はなした だけで
+//   ジャンプが 切れて しまわない ように する（true/false 1個だと そうなる）。
+const touchCount = Object.create(null);
+const touchHeld = { get left(){return touchCount.left>0;}, get right(){return touchCount.right>0;},
+                    get up(){return touchCount.up>0;}, get down(){return touchCount.down>0;},
+                    get jump(){return touchCount.jump>0;}, get attack(){return touchCount.attack>0;},
+                    get special(){return touchCount.special>0;} };
 document.querySelectorAll("#touch-controls [data-act]").forEach(el => {
   const act = el.dataset.act;
-  const press = e => { e.preventDefault(); touchHeld[act] = true;  el.classList.add("pressed"); };
-  const rel   = e => { e.preventDefault(); touchHeld[act] = false; el.classList.remove("pressed"); };
+  const press = e => {
+    if (e.cancelable) e.preventDefault();      // ★iPhoneの「コピー／調べる」を 出さない
+    if (el._on) return;
+    el._on = true; touchCount[act] = (touchCount[act] || 0) + 1;
+    el.classList.add("pressed");
+  };
+  const rel = e => {
+    if (e && e.cancelable) e.preventDefault();
+    if (!el._on) return;
+    el._on = false; touchCount[act] = Math.max(0, (touchCount[act] || 1) - 1);
+    el.classList.remove("pressed");
+  };
+  el._release = rel;
+  // ★Safari（iPhone・iPad）は pointerdown を 止めるだけでは
+  //   長おしの「コピー」メニューや 文字えらびが 出て しまう。
+  //   touchstart を passive:false で 止める のが 効く。
+  el.addEventListener("touchstart", press, { passive:false });
+  el.addEventListener("touchend", rel, { passive:false });
+  el.addEventListener("touchcancel", rel, { passive:false });
   el.addEventListener("pointerdown", press);
   el.addEventListener("pointerup", rel);
   el.addEventListener("pointercancel", rel);
   el.addEventListener("pointerleave", rel);
+  el.addEventListener("contextmenu", e => e.preventDefault());
+  el.addEventListener("selectstart", e => e.preventDefault());
 });
-addEventListener("blur", () => {
-  for (const k in touchHeld) touchHeld[k] = false;
-  document.querySelectorAll("#touch-controls .pressed").forEach(e => e.classList.remove("pressed"));
-});
+function releaseAllTouch(){
+  document.querySelectorAll("#touch-controls [data-act]").forEach(el => {
+    if (el._release) el._release(null);
+  });
+  for (const k in touchCount) touchCount[k] = 0;
+}
+addEventListener("blur", releaseAllTouch);
+document.addEventListener("visibilitychange", () => { if (document.hidden) releaseAllTouch(); });
 
 function blankInput(){ return { left:false,right:false,up:false,down:false,jump:false,attack:false,special:false }; }
 
@@ -5052,35 +5099,36 @@ function showMenu(){
   //   つないでいる 台数も ボタン設定も いらないので、画面が すっきりして
   //   せまい 画面に おさまる ように なる。
   const padN = padList().length;
+  // ★「タッチしか ない 端末」＝スマホ・タブレット の ときだけ かくす。
+  //   さわれる 画面の Windowsノートでも hasTouch は true に なる ので、
+  //   それだけで 判定すると **コントローラー設定が 出せなく なって しまう**。
+  //   ゆびが 主役（pointer:coarse）で、コントローラーも つながって いない ときだけ かくす。
+  const touchOnly = hasTouch && matchMedia("(pointer: coarse)").matches && padN === 0;
   overlay.innerHTML =
     '<div class="menu">' +
       '<button class="big prim" id="b1">ひとりで あそぶ<br><span style="font-size:12px;font-weight:500">CPUと たいせん</span></button>' +
       '<button class="big c-blue" id="b2">ふたりで たいせん<br><span style="font-size:12px;font-weight:500">おなじ画面で 2人</span></button>' +
-      (hasTouch ? '' :
+      (touchOnly ? '' :
       '<button class="big c-grn" id="b3" style="font-size:14px;padding:10px">🎮 コントローラーのボタン設定</button>') +
       '<button class="big c-yel" id="b4" style="font-size:14px;padding:10px">' +
         (bgmOn ? "🔊 音楽：オン" : "🔈 音楽：オフ") + '</button>' +
     '</div>' +
-    (hasTouch ? '' :
+    (touchOnly ? '' :
       '<div class="note">つながっているコントローラー：<b style="color:#ffd54a">' + padN + ' 個</b>' +
       (padN === 0 ? '（コントローラーのボタンを1回押すと認識されます）'
                   : '　<b>A</b>＝こうげき／<b>B</b>＝ひっさつ／<b>X・Y</b>＝ジャンプ') + '</div>') +
     '<div class="pad">' +
       '<span class="row"><b class="btn d">十字</b>いどう</span>' +
-      (hasTouch ? '' : '<span class="row"><b class="btn x">X</b><b class="btn y">Y</b>ジャンプ</span>') +
-      (hasTouch ? '<span class="row"><b class="btn y">Y</b>ジャンプ</span>' : '') +
+      '<span class="row"><b class="btn x">X</b><b class="btn y">Y</b>ジャンプ</span>' +
       '<span class="row"><b class="btn a">A</b>こうげき</span>' +
       '<span class="row"><b class="btn b">B</b>ひっさつ</span>' +
     '</div>' +
     '<div class="note">' +
-      (hasTouch
-        ? '<b>Y</b>＝ジャンプ（空中でもう一度おすと 2段ジャンプ）　' +
-          '<b>A</b>＝こうげき（上＋A＝うちあげ／空中でA＝空中攻撃）<br>'
-        : '<b>X</b>・<b>Y</b>＝ジャンプ（空中でもう一度おすと 2段ジャンプ）　' +
-          '<b>A</b>＝こうげき（上＋A＝うちあげ／空中でA＝空中攻撃）<br>') +
+      '<b>X</b>・<b>Y</b>＝ジャンプ（空中でもう一度おすと 2段ジャンプ）　' +
+      '<b>A</b>＝こうげき（上＋A＝うちあげ／空中でA＝空中攻撃）<br>' +
       '<b>B</b>＝ひっさつ。<b>方向で4種類</b> ＝ B／横＋B／上＋B（復帰技）／下＋B<br>' +
       'ダメージ％がたまるほど遠くへ飛びます。場外に出されたら1ミス、3ミスで負け。<br>' +
-      '落ちても<b>崖につかまれます</b>（つかんだら ' + (hasTouch ? 'Y' : 'X・Y') + ' でのぼる）。</div>';
+      '落ちても<b>崖につかまれます</b>（つかんだら X・Y でのぼる）。</div>';
   document.getElementById("b1").onclick = () => { mode = "cpu"; showCharSel(); };
   document.getElementById("b2").onclick = () => { mode = "vs";  showCharSel(); };
   if (document.getElementById("b3")) document.getElementById("b3").onclick = () => showRemap();
